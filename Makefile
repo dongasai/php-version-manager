@@ -1,6 +1,6 @@
 # PHP Version Manager Makefile
 
-.PHONY: build dev shell run test test-ubuntu test-debian test-centos test-fedora test-alpine test-arm64 test-all clean
+.PHONY: build dev shell run test test-ubuntu test-debian test-centos test-fedora test-alpine test-arm64 test-all clean run-tests-ubuntu compat-test-ubuntu compat-test-debian compat-test-centos compat-test-fedora compat-test-alpine compat-test-arm64 compat-test-all
 
 # 构建所有容器
 build:

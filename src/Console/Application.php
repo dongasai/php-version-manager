@@ -39,6 +39,7 @@ class Application
             'list' => Commands\ListCommand::class,
             'help' => Commands\HelpCommand::class,
             'version' => Commands\VersionCommand::class,
+            'supported' => Commands\SupportedCommand::class,
         ];
     }
 

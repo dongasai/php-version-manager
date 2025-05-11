@@ -21,5 +21,11 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "bin": ["bin/pvm"]
+    "bin": ["bin/pvm"],
+    "repositories": {
+        "packagist": {
+            "type": "composer",
+            "url": "https://packagist.pages.dev"
+        }
+    }
 }

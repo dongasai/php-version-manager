@@ -1,0 +1,24 @@
+{
+    "name": "php-version-manager",
+    "description": "A simple PHP CLI version management tool.",
+    "type": "library",
+    "require": {
+        "php": ">=7.4",
+        "monolog/monolog": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "VersionManager\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

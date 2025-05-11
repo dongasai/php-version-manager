@@ -1,0 +1,52 @@
+<?php
+
+namespace VersionManager\Console\Commands;
+
+use VersionManager\Console\CommandInterface;
+use VersionManager\Console\Application;
+
+class HelpCommand implements CommandInterface
+{
+    /**
+     * 执行命令
+     *
+     * @param array $args 命令参数
+     * @return int 返回状态码
+     */
+    public function execute(array $args)
+    {
+        echo "PHP Version Manager " . Application::VERSION . PHP_EOL;
+        echo "用法: pvm [命令] [参数]" . PHP_EOL . PHP_EOL;
+        
+        echo "可用命令:" . PHP_EOL;
+        echo "  install   安装指定版本的PHP" . PHP_EOL;
+        echo "  use       切换到指定的PHP版本" . PHP_EOL;
+        echo "  remove    删除指定的PHP版本" . PHP_EOL;
+        echo "  list      列出所有已安装的PHP版本" . PHP_EOL;
+        echo "  help      显示帮助信息" . PHP_EOL . PHP_EOL;
+        
+        echo "更多信息请访问: https://github.com/yourusername/php-version-manager" . PHP_EOL;
+        
+        return 0;
+    }
+    
+    /**
+     * 获取命令描述
+     *
+     * @return string
+     */
+    public function getDescription()
+    {
+        return '显示帮助信息';
+    }
+    
+    /**
+     * 获取命令用法
+     *
+     * @return string
+     */
+    public function getUsage()
+    {
+        return 'pvm help';
+    }
+}

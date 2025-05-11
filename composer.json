@@ -3,7 +3,7 @@
     "description": "A simple PHP CLI version management tool.",
     "type": "library",
     "require": {
-        "php": ">=7.4",
+        "php": ">=7.1",
         "monolog/monolog": "^2.0"
     },
     "autoload": {
@@ -20,5 +20,6 @@
         "phpunit/phpunit": "^9.0"
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "bin": ["bin/pvm"]
 }

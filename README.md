@@ -8,6 +8,7 @@ PHP Version Manager 是一个用于管理 PHP Cli 版本的工具，支持版本
 - 更新现有的 PHP 版本
 - 删除不再需要的 PHP 版本
 - 辅助工具函数以支持版本管理操作
+- Composer管理
 
 
 

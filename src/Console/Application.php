@@ -40,6 +40,7 @@ class Application
             'help' => Commands\HelpCommand::class,
             'version' => Commands\VersionCommand::class,
             'supported' => Commands\SupportedCommand::class,
+            'ext' => Commands\ExtensionCommand::class,
         ];
     }
 

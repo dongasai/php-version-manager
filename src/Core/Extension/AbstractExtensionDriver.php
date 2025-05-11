@@ -354,3 +354,4 @@ abstract class AbstractExtensionDriver implements ExtensionDriverInterface
         // 写入扩展配置
         return $this->writeExtensionConfig($phpVersion, $mergedConfig);
     }
+}

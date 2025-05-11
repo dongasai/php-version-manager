@@ -1,13 +1,13 @@
 <?php
 
-namespace VersionManager\Core\Extension\Drivers;
+namespace VersionManager\Core\Extension\Drivers\Gd;
 
 use VersionManager\Core\Extension\AbstractExtensionDriver;
 
 /**
- * GD扩展驱动类
+ * GD扩展基础驱动类
  */
-class Gd extends AbstractExtensionDriver
+class Base extends AbstractExtensionDriver
 {
     /**
      * 构造函数
@@ -26,7 +26,7 @@ class Gd extends AbstractExtensionDriver
             false
         );
     }
-
+    
     /**
      * {@inheritdoc}
      */
@@ -36,33 +36,33 @@ class Gd extends AbstractExtensionDriver
         if ($this->isInstalled($phpVersion)) {
             throw new \Exception("扩展 {$this->getName()} 已经安装");
         }
-
+        
         // 获取PHP二进制文件路径
         $phpBin = $this->getPhpBinary($phpVersion);
-
+        
         // 检查PHP是否支持GD扩展
         $output = [];
         exec($phpBin . ' -m | grep gd', $output);
-
+        
         if (empty($output)) {
             // 如果不支持，则安装依赖并重新编译PHP
             $this->installDependencies();
             throw new \Exception("当前 PHP 版本不支持 GD 扩展，需要重新编译 PHP");
         }
-
+        
         // 启用扩展
         $config = isset($options['config']) ? $options['config'] : $this->getDefaultConfig();
         return $this->enable($phpVersion, $config);
     }
-
+    
     /**
      * 安装GD依赖
      */
-    private function installDependencies()
+    protected function installDependencies()
     {
         // 检测操作系统类型
         $osInfo = $this->getOsInfo();
-
+        
         switch ($osInfo['type']) {
             case 'debian':
             case 'ubuntu':
@@ -80,11 +80,11 @@ class Gd extends AbstractExtensionDriver
                 throw new \Exception("不支持的操作系统类型: {$osInfo['type']}");
         }
     }
-
+    
     /**
      * 安装Debian/Ubuntu依赖
      */
-    private function installDebianDependencies()
+    protected function installDebianDependencies()
     {
         $command = 'apt-get update && apt-get install -y '
             . 'libpng-dev '
@@ -92,20 +92,20 @@ class Gd extends AbstractExtensionDriver
             . 'libfreetype6-dev '
             . 'libwebp-dev '
             . 'libxpm-dev';
-
+        
         $output = [];
         $returnCode = 0;
         exec($command . ' 2>&1', $output, $returnCode);
-
+        
         if ($returnCode !== 0) {
             throw new \Exception("安装 GD 依赖失败: " . implode("\n", $output));
         }
     }
-
+    
     /**
      * 安装RHEL/CentOS/Fedora依赖
      */
-    private function installRhelDependencies()
+    protected function installRhelDependencies()
     {
         $command = 'yum install -y '
             . 'libpng-devel '
@@ -113,20 +113,20 @@ class Gd extends AbstractExtensionDriver
             . 'freetype-devel '
             . 'libwebp-devel '
             . 'libXpm-devel';
-
+        
         $output = [];
         $returnCode = 0;
         exec($command . ' 2>&1', $output, $returnCode);
-
+        
         if ($returnCode !== 0) {
             throw new \Exception("安装 GD 依赖失败: " . implode("\n", $output));
         }
     }
-
+    
     /**
      * 安装Alpine依赖
      */
-    private function installAlpineDependencies()
+    protected function installAlpineDependencies()
     {
         $command = 'apk add --no-cache '
             . 'libpng-dev '
@@ -134,68 +134,42 @@ class Gd extends AbstractExtensionDriver
             . 'freetype-dev '
             . 'libwebp-dev '
             . 'libxpm-dev';
-
+        
         $output = [];
         $returnCode = 0;
         exec($command . ' 2>&1', $output, $returnCode);
-
+        
         if ($returnCode !== 0) {
             throw new \Exception("安装 GD 依赖失败: " . implode("\n", $output));
         }
     }
-
+    
     /**
      * 获取操作系统信息
      *
      * @return array [type => 类型, version => 版本]
      */
-    private function getOsInfo()
+    protected function getOsInfo()
     {
         $type = '';
         $version = '';
-
+        
         // 读取/etc/os-release文件
         if (file_exists('/etc/os-release')) {
             $osRelease = parse_ini_file('/etc/os-release');
-
+            
             if (isset($osRelease['ID'])) {
                 $type = strtolower($osRelease['ID']);
             }
-
+            
             if (isset($osRelease['VERSION_ID'])) {
                 $version = $osRelease['VERSION_ID'];
             }
         }
-
+        
         return [
             'type' => $type,
             'version' => $version,
         ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function remove($phpVersion, array $options = [])
-    {
-        // 检查扩展是否已安装
-        if (!$this->isInstalled($phpVersion)) {
-            throw new \Exception("扩展 {$this->getName()} 未安装");
-        }
-
-        // 如果是内置扩展，则只能禁用而不能删除
-        if ($this->getType() === 'builtin') {
-            if (isset($options['disable']) && $options['disable']) {
-                return $this->disable($phpVersion);
-            } else {
-                throw new \Exception("无法删除内置扩展 {$this->getName()}，只能禁用");
-            }
-        }
-
-        // 删除扩展配置
-        $config = $this->getConfig($phpVersion);
-        $config->removeExtensionConfig($this->getName());
-
-        return true;
     }
 }

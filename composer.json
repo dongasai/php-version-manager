@@ -1,5 +1,5 @@
 {
-    "name": "php-version-manager",
+    "name": "dongasai/php-version-manager",
     "description": "A simple PHP CLI version management tool.",
     "type": "library",
     "require": {

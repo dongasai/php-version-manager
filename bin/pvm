@@ -32,7 +32,8 @@ if (!$loaded) {
 // 引导应用程序
 try {
     $app = new VersionManager\Console\Application();
-    $app->run();
+    $exitCode = $app->run($argv);
+    exit($exitCode);
 } catch (Exception $e) {
     echo 'Error: ' . $e->getMessage() . PHP_EOL;
     exit(1);

@@ -22,6 +22,31 @@ PHP Version Manager 是一个用于管理 PHP Cli 版本的工具，支持版本
 
 ## 开发与测试
 
+### 使用开发容器
+
+我们提供了一个基于PHP 7.1的开发容器，用于开发和测试。
+
+1. 构建开发容器并进入容器的shell：
+   ```
+   make dev
+   ```
+
+2. 仅进入开发容器的shell：
+   ```
+   make shell
+   ```
+
+3. 在开发容器中运行命令：
+   ```
+   make run CMD="test-all"    # 运行所有测试
+   make run CMD="composer install"  # 安装依赖
+   ```
+
+4. 在开发容器中运行测试：
+   ```
+   make test
+   ```
+
 ### 使用Docker进行测试
 
 我们提供了Docker环境来测试PVM在不同的Linux发行版和架构上的兼容性。

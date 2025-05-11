@@ -3,6 +3,10 @@ FROM ubuntu:22.04
 # 设置非交互式安装
 ENV DEBIAN_FRONTEND=noninteractive
 
+# 使用阿里云镜像
+RUN sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+    sed -i 's/security.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list
+
 # 安装基本工具和依赖
 RUN apt-get update && apt-get install -y \
     curl \

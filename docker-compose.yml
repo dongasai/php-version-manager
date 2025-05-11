@@ -1,11 +1,21 @@
 version: '3'
 
 services:
+  # 开发容器
+  dev:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    stdin_open: true
+    command: /bin/bash
   # Ubuntu 容器
   ubuntu:
     build:
-      context: ./docker
-      dockerfile: Dockerfile.ubuntu
+      context: ./docker/ubuntu
+      dockerfile: Dockerfile
     volumes:
       - .:/app
     tty: true
@@ -17,8 +27,8 @@ services:
   # Debian 容器
   debian:
     build:
-      context: ./docker
-      dockerfile: Dockerfile.debian
+      context: ./docker/debian
+      dockerfile: Dockerfile
     volumes:
       - .:/app
     tty: true
@@ -30,8 +40,8 @@ services:
   # CentOS 容器
   centos:
     build:
-      context: ./docker
-      dockerfile: Dockerfile.centos
+      context: ./docker/centos
+      dockerfile: Dockerfile
     volumes:
       - .:/app
     tty: true
@@ -41,8 +51,8 @@ services:
   # Fedora 容器
   fedora:
     build:
-      context: ./docker
-      dockerfile: Dockerfile.fedora
+      context: ./docker/fedora
+      dockerfile: Dockerfile
     volumes:
       - .:/app
     tty: true
@@ -52,8 +62,8 @@ services:
   # Alpine 容器
   alpine:
     build:
-      context: ./docker
-      dockerfile: Dockerfile.alpine
+      context: ./docker/alpine
+      dockerfile: Dockerfile
     volumes:
       - .:/app
     tty: true
@@ -63,8 +73,8 @@ services:
   # ARM 架构模拟 (使用 QEMU)
   arm64:
     build:
-      context: ./docker
-      dockerfile: Dockerfile.arm64
+      context: ./docker/arm64
+      dockerfile: Dockerfile
     volumes:
       - .:/app
     tty: true

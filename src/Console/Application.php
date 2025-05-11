@@ -45,11 +45,12 @@ class Application
     /**
      * 运行应用程序
      *
-     * @return int
+     * @param array $argv 命令行参数
+     * @return int 返回状态码
      */
-    public function run()
+    public function run($argv = null)
     {
-        $args = $_SERVER['argv'];
+        $args = $argv ?: $_SERVER['argv'];
 
         // 移除脚本名称
         array_shift($args);

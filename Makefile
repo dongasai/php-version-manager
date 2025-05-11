@@ -1,14 +1,62 @@
 # PHP Version Manager Makefile
 
-.PHONY: build test-ubuntu test-debian test-centos test-fedora test-alpine test-arm64 test-all clean
+.PHONY: build dev shell run test test-ubuntu test-debian test-centos test-fedora test-alpine test-arm64 test-all clean
 
 # 构建所有容器
 build:
 	docker-compose build
 
+# 启动开发容器
+dev:
+	docker-compose build dev
+	docker-compose run --rm dev
+
+# 进入开发容器的shell
+shell:
+	docker-compose run --rm dev
+
+# 在开发容器中运行命令
+run:
+	docker-compose run --rm dev bash -c "cd /app && chmod +x docker/dev.sh && ./docker/dev.sh $(CMD)"
+
+# 在开发容器中运行测试
+test:
+	docker-compose run --rm dev bash -c "cd /app && chmod +x docker/dev.sh && ./docker/dev.sh test-all"
+
 # 测试Ubuntu
 test-ubuntu:
 	docker-compose run --rm ubuntu bash -c "cd /app && chmod +x docker/test.sh && ./docker/test.sh"
+
+# 运行所有测试在Ubuntu上
+run-tests-ubuntu:
+	docker-compose run --rm ubuntu bash -c "cd /app && chmod +x docker/run_tests.sh && ./docker/run_tests.sh"
+
+# 运行兼容性测试在Ubuntu上
+compat-test-ubuntu:
+	docker-compose run --rm ubuntu bash -c "cd /app && chmod +x docker/compatibility_test.sh && ./docker/compatibility_test.sh"
+
+# 运行兼容性测试在Debian上
+compat-test-debian:
+	docker-compose run --rm debian bash -c "cd /app && chmod +x docker/compatibility_test.sh && ./docker/compatibility_test.sh"
+
+# 运行兼容性测试在CentOS上
+compat-test-centos:
+	docker-compose run --rm centos bash -c "cd /app && chmod +x docker/compatibility_test.sh && ./docker/compatibility_test.sh"
+
+# 运行兼容性测试在Fedora上
+compat-test-fedora:
+	docker-compose run --rm fedora bash -c "cd /app && chmod +x docker/compatibility_test.sh && ./docker/compatibility_test.sh"
+
+# 运行兼容性测试在Alpine上
+compat-test-alpine:
+	docker-compose run --rm alpine bash -c "cd /app && chmod +x docker/compatibility_test.sh && ./docker/compatibility_test.sh"
+
+# 运行兼容性测试在ARM64上
+compat-test-arm64:
+	docker-compose run --rm arm64 bash -c "cd /app && chmod +x docker/compatibility_test.sh && ./docker/compatibility_test.sh"
+
+# 运行所有兼容性测试
+compat-test-all: compat-test-ubuntu compat-test-debian compat-test-centos compat-test-fedora compat-test-alpine
 
 # 测试Debian
 test-debian:

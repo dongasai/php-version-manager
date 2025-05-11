@@ -1,0 +1,72 @@
+version: '3'
+
+services:
+  # Ubuntu 容器
+  ubuntu:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.ubuntu
+    volumes:
+      - .:/app
+    tty: true
+    stdin_open: true
+    command: /bin/bash
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+
+  # Debian 容器
+  debian:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.debian
+    volumes:
+      - .:/app
+    tty: true
+    stdin_open: true
+    command: /bin/bash
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+
+  # CentOS 容器
+  centos:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.centos
+    volumes:
+      - .:/app
+    tty: true
+    stdin_open: true
+    command: /bin/bash
+
+  # Fedora 容器
+  fedora:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.fedora
+    volumes:
+      - .:/app
+    tty: true
+    stdin_open: true
+    command: /bin/bash
+
+  # Alpine 容器
+  alpine:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.alpine
+    volumes:
+      - .:/app
+    tty: true
+    stdin_open: true
+    command: /bin/sh
+
+  # ARM 架构模拟 (使用 QEMU)
+  arm64:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.arm64
+    volumes:
+      - .:/app
+    tty: true
+    stdin_open: true
+    command: /bin/bash

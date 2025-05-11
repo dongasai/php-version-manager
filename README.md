@@ -20,6 +20,37 @@ PHP Version Manager 是一个用于管理 PHP Cli 版本的工具，支持版本
 
 **注意：** 用户不需要预先安装 PHP。我们提供了一个独立的安装脚本，可以自动安装必要的基础 PHP 版本。
 
+## 开发与测试
+
+### 使用Docker进行测试
+
+我们提供了Docker环境来测试PVM在不同的Linux发行版和架构上的兼容性。
+
+1. 构建所有容器：
+   ```
+   make build
+   ```
+
+2. 在特定环境中运行测试：
+   ```
+   make test-ubuntu    # 测试Ubuntu环境
+   make test-debian    # 测试Debian环境
+   make test-centos    # 测试CentOS环境
+   make test-fedora    # 测试Fedora环境
+   make test-alpine    # 测试Alpine环境
+   make test-arm64     # 测试ARM64架构
+   ```
+
+3. 在所有环境中运行测试：
+   ```
+   make test-all
+   ```
+
+4. 清理容器：
+   ```
+   make clean
+   ```
+
 
 
 ## 贡献

@@ -2,6 +2,9 @@
 
 namespace VersionManager\Core\Extension;
 
+use VersionManager\Core\Extension\ExtensionType;
+use VersionManager\Core\Config\MirrorConfig;
+
 /**
  * 通用扩展驱动类
  *
@@ -23,7 +26,7 @@ class GenericExtensionDriver extends AbstractExtensionDriver
             $name,
             isset($info['description']) ? $info['description'] : '',
             isset($info['version']) ? $info['version'] : '',
-            isset($info['type']) ? $info['type'] : 'pecl',
+            isset($info['type']) ? $info['type'] : ExtensionType::PECL,
             isset($info['dependencies']) ? $info['dependencies'] : [],
             isset($info['config']) ? $info['config'] : [],
             isset($info['zend']) && $info['zend']
@@ -112,8 +115,18 @@ class GenericExtensionDriver extends AbstractExtensionDriver
             $phpConfig = 'php-config';
         }
 
+        // 获取镜像配置
+        $mirrorConfig = new MirrorConfig();
+        $mirror = isset($options['mirror']) ? $options['mirror'] : null;
+
         // 构建 pecl 命令
         $command = 'pecl install';
+
+        // 添加镜像地址
+        $peclUrl = $mirrorConfig->getPeclMirror($mirror);
+        if ($peclUrl !== $mirrorConfig->getPeclMirror('official')) {
+            $command .= ' -d preferred_mirror=' . escapeshellarg($peclUrl);
+        }
 
         // 添加版本限制
         if (isset($options['version'])) {

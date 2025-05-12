@@ -3,6 +3,7 @@
 namespace VersionManager\Core\Extension\Drivers;
 
 use VersionManager\Core\Extension\AbstractExtensionDriver;
+use VersionManager\Core\Extension\ExtensionType;
 
 /**
  * GD扩展驱动类
@@ -18,7 +19,7 @@ class Gd extends AbstractExtensionDriver
             'gd',
             'GD Graphics Library',
             '',
-            'builtin',
+            ExtensionType::BUILTIN,
             [],
             [
                 'jpeg_ignore_warning' => '1',

@@ -3,28 +3,37 @@
 namespace VersionManager\Console\Commands;
 
 use VersionManager\Console\CommandInterface;
-use VersionManager\Core\ExtensionManager;
+use VersionManager\Core\ComposerManager;
+use VersionManager\Core\VersionSwitcher;
 
 /**
- * 扩展安装命令类
+ * Composer设置默认版本命令类
  */
-class ExtInstallCommand implements CommandInterface
+class ComposerDefaultCommand implements CommandInterface
 {
     /**
-     * 扩展管理器
+     * Composer管理器
      *
-     * @var ExtensionManager
+     * @var ComposerManager
      */
     private $manager;
-
+    
+    /**
+     * 版本切换器
+     *
+     * @var VersionSwitcher
+     */
+    private $versionSwitcher;
+    
     /**
      * 构造函数
      */
     public function __construct()
     {
-        $this->manager = new ExtensionManager();
+        $this->manager = new ComposerManager();
+        $this->versionSwitcher = new VersionSwitcher();
     }
-
+    
     /**
      * 执行命令
      *
@@ -33,26 +42,32 @@ class ExtInstallCommand implements CommandInterface
      */
     public function execute(array $args)
     {
-        if (empty($args)) {
-            echo "错误: 请指定要安装的扩展" . PHP_EOL;
+        // 解析选项
+        $options = $this->parseOptions($args);
+        
+        // 获取PHP版本
+        $phpVersion = isset($options['php']) ? $options['php'] : $this->versionSwitcher->getCurrentVersion();
+        
+        // 获取Composer版本
+        if (!isset($options['version'])) {
+            echo "错误: 请指定要设置为默认的Composer版本" . PHP_EOL;
             echo $this->getUsage() . PHP_EOL;
             return 1;
         }
-
-        $extension = array_shift($args);
-        $options = $this->parseOptions($args);
-
+        
+        $composerVersion = $options['version'];
+        
         try {
-            echo "正在安装扩展 {$extension}..." . PHP_EOL;
-            $this->manager->installExtension($extension, $options);
-            echo "扩展 {$extension} 安装成功" . PHP_EOL;
+            echo "正在将PHP {$phpVersion} 的Composer {$composerVersion} 设置为默认版本..." . PHP_EOL;
+            $this->manager->setDefaultComposer($phpVersion, $composerVersion);
+            echo "Composer {$composerVersion} 已设置为默认版本" . PHP_EOL;
             return 0;
         } catch (\Exception $e) {
             echo "错误: " . $e->getMessage() . PHP_EOL;
             return 1;
         }
     }
-
+    
     /**
      * 解析命令选项
      *
@@ -62,11 +77,11 @@ class ExtInstallCommand implements CommandInterface
     private function parseOptions(array $args)
     {
         $options = [];
-
+        
         foreach ($args as $arg) {
             if (strpos($arg, '--') === 0) {
                 $option = substr($arg, 2);
-
+                
                 if (strpos($option, '=') !== false) {
                     list($key, $value) = explode('=', $option, 2);
                     $options[$key] = $value;
@@ -81,10 +96,10 @@ class ExtInstallCommand implements CommandInterface
                 $options[$key] = $value;
             }
         }
-
+        
         return $options;
     }
-
+    
     /**
      * 获取命令描述
      *
@@ -92,9 +107,9 @@ class ExtInstallCommand implements CommandInterface
      */
     public function getDescription()
     {
-        return '安装PHP扩展';
+        return '设置默认Composer版本';
     }
-
+    
     /**
      * 获取命令用法
      *
@@ -103,26 +118,17 @@ class ExtInstallCommand implements CommandInterface
     public function getUsage()
     {
         return <<<USAGE
-用法: pvm ext-install <扩展> [选项]
+用法: pvm composer-default [选项]
 
-安装PHP扩展。
+设置默认Composer版本。
 
 选项:
-  --version=<版本>         指定扩展版本
-  --force                 强制安装
-  --zend                  指定为Zend扩展
-  --source=<源码URL>        从源码安装
-  --pecl                  从 PECL 安装
-  --config=<配置项>         扩展配置项，格式为 key=value
-  --mirror=<镜像名称>       使用指定的镜像下载
+  --php=<版本>            指定PHP版本，默认为当前版本
+  --version=<版本>        指定要设置为默认的Composer版本
 
 示例:
-  pvm ext-install mysqli
-  pvm ext-install redis --version=5.3.7
-  pvm ext-install gd --config=jpeg_ignore_warning=1
-  pvm ext-install xdebug --zend
-  pvm ext-install redis --mirror=aliyun
-  pvm ext-install memcached --pecl --mirror=ustc
+  pvm composer-default --version=2
+  pvm composer-default --php=7.4.30 --version=1
 USAGE;
     }
 }

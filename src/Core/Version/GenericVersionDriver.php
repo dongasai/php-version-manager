@@ -2,6 +2,8 @@
 
 namespace VersionManager\Core\Version;
 
+use VersionManager\Core\Config\MirrorConfig;
+
 /**
  * 通用版本安装驱动类
  *
@@ -58,7 +60,8 @@ class GenericVersionDriver extends AbstractVersionDriver
 
         try {
             // 下载PHP源码
-            $sourceUrl = $this->getSourceUrl($version);
+            $mirror = isset($options['mirror']) ? $options['mirror'] : null;
+            $sourceUrl = $this->getSourceUrl($version, $mirror);
             $sourceFile = $tempDir . '/' . basename($sourceUrl);
             $this->downloadFile($sourceUrl, $sourceFile);
 
@@ -121,11 +124,17 @@ class GenericVersionDriver extends AbstractVersionDriver
      * 获取PHP源码URL
      *
      * @param string $version PHP版本
+     * @param string $mirror 镜像名称，如果为null则使用默认镜像
      * @return string
      */
-    protected function getSourceUrl($version)
+    protected function getSourceUrl($version, $mirror = null)
     {
-        return "https://www.php.net/distributions/php-{$version}.tar.gz";
+        // 获取镜像配置
+        $mirrorConfig = new MirrorConfig();
+        $mirrorUrl = $mirrorConfig->getPhpMirror($mirror);
+
+        // 构建源码URL
+        return "{$mirrorUrl}/php-{$version}.tar.gz";
     }
 
     /**

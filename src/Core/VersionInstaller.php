@@ -3,6 +3,11 @@
 namespace VersionManager\Core;
 
 use Exception;
+use VersionManager\Core\Cache\CacheManager;
+use VersionManager\Core\Download\DownloadManager;
+use VersionManager\Core\Security\SignatureVerifier;
+use VersionManager\Core\Security\PermissionManager;
+use VersionManager\Core\Security\SecurityUpdater;
 
 /**
  * PHP版本安装类
@@ -26,6 +31,41 @@ class VersionInstaller
     private $supportedVersions;
 
     /**
+     * 缓存管理器
+     *
+     * @var CacheManager
+     */
+    private $cacheManager;
+
+    /**
+     * 下载管理器
+     *
+     * @var DownloadManager
+     */
+    private $downloadManager;
+
+    /**
+     * 签名验证器
+     *
+     * @var SignatureVerifier
+     */
+    private $signatureVerifier;
+
+    /**
+     * 权限管理器
+     *
+     * @var PermissionManager
+     */
+    private $permissionManager;
+
+    /**
+     * 安全更新器
+     *
+     * @var SecurityUpdater
+     */
+    private $securityUpdater;
+
+    /**
      * PVM根目录
      *
      * @var string
@@ -47,12 +87,38 @@ class VersionInstaller
     private $tempDir;
 
     /**
+     * 是否使用缓存
+     *
+     * @var bool
+     */
+    private $useCache = true;
+
+    /**
+     * 是否使用多线程下载
+     *
+     * @var bool
+     */
+    private $useMultiThread = true;
+
+    /**
+     * 是否验证签名
+     *
+     * @var bool
+     */
+    private $verifySignature = true;
+
+    /**
      * 构造函数
      */
     public function __construct()
     {
         $this->detector = new VersionDetector();
         $this->supportedVersions = new SupportedVersions();
+        $this->cacheManager = new CacheManager();
+        $this->downloadManager = new DownloadManager();
+        $this->signatureVerifier = new SignatureVerifier();
+        $this->permissionManager = new PermissionManager();
+        $this->securityUpdater = new SecurityUpdater();
         $this->pvmDir = getenv('HOME') . '/.pvm';
         $this->versionsDir = $this->pvmDir . '/versions';
         $this->tempDir = $this->pvmDir . '/tmp';
@@ -72,7 +138,19 @@ class VersionInstaller
             if (!is_dir($dir)) {
                 mkdir($dir, 0755, true);
             }
+
+            // 设置安全的目录权限
+            $this->permissionManager->setSecureDirPermission($dir);
         }
+
+        // 创建配置目录
+        $configDir = $this->pvmDir . '/config';
+        if (!is_dir($configDir)) {
+            mkdir($configDir, 0700, true);
+        }
+
+        // 设置配置目录的权限
+        $this->permissionManager->setSecureDirPermission($configDir, 0700);
     }
 
     /**
@@ -88,6 +166,19 @@ class VersionInstaller
         // 检查版本是否已安装
         if ($this->isVersionInstalled($version)) {
             throw new Exception("PHP版本 {$version} 已安装");
+        }
+
+        // 设置下载选项
+        if (isset($options['use_cache'])) {
+            $this->setUseCache($options['use_cache']);
+        }
+
+        if (isset($options['use_multi_thread'])) {
+            $this->setUseMultiThread($options['use_multi_thread']);
+        }
+
+        if (isset($options['thread_count'])) {
+            $this->setThreadCount($options['thread_count']);
         }
 
         // 检查版本兼容性
@@ -114,6 +205,35 @@ class VersionInstaller
             $answer = trim(fgets(STDIN));
             if (strtolower($answer) !== 'y') {
                 throw new Exception("用户取消安装");
+            }
+        }
+
+        // 检查版本信息缓存
+        if ($this->useCache) {
+            $versionInfo = $this->cacheManager->getVersionCache($version);
+            if ($versionInfo) {
+                echo "\033[32m使用缓存的版本信息: {$version}\033[0m\n";
+            }
+        }
+
+        // 检查安全更新
+        $securityUpdate = $this->securityUpdater->checkSecurityUpdate($version);
+        if ($securityUpdate) {
+            echo "\033[33m警告: PHP版本 {$version} 有安全更新可用\033[0m\n";
+            echo "\033[33m最新版本: {$securityUpdate['latest_version']}\033[0m\n";
+
+            if (!empty($securityUpdate['security_fixes'])) {
+                echo "\033[33m安全修复:\033[0m\n";
+                foreach ($securityUpdate['security_fixes'] as $fix) {
+                    echo "  - {$fix}\n";
+                }
+            }
+
+            // 询问用户是否安装最新版本
+            echo "\033[33m是否安装最新版本? (y/n) \033[0m";
+            $answer = trim(fgets(STDIN));
+            if (strtolower($answer) === 'y') {
+                return $this->install($securityUpdate['latest_version'], $options);
             }
         } elseif ($supportLevel === SupportedVersions::SUPPORT_UNTESTED) {
             echo "\033[33m警告: PHP版本 {$version} 在当前系统上尚未经过测试\033[0m\n";
@@ -257,7 +377,10 @@ class VersionInstaller
         $tarFile = $this->tempDir . '/php-' . $version . '.tar.gz';
 
         echo "下载PHP {$version} 源码...\n";
-        $this->downloadFile($sourceUrl, $tarFile);
+        $this->downloadFile($sourceUrl, $tarFile, [
+            'verify_type' => 'php',
+            'verify_version' => $version
+        ]);
 
         // 解压源码
         echo "解压源码...\n";
@@ -360,6 +483,19 @@ class VersionInstaller
             $this->cleanupTempFiles($version);
         }
 
+        // 缓存版本信息
+        if ($this->useCache) {
+            $versionInfo = [
+                'version' => $version,
+                'install_time' => time(),
+                'install_type' => 'source',
+                'configure_options' => $configureOptions,
+                'php_info' => $this->getPhpInfo($version),
+            ];
+            $this->cacheManager->setVersionCache($version, $versionInfo);
+            echo "\033[32m版本信息已缓存: {$version}\033[0m\n";
+        }
+
         echo "PHP {$version} 安装完成\n";
         return true;
     }
@@ -390,7 +526,10 @@ class VersionInstaller
         // 下载二进制包
         $tarFile = $this->tempDir . '/php-' . $version . '-binary.tar.gz';
         echo "下载PHP {$version} 二进制包...\n";
-        $this->downloadFile($binaryUrl, $tarFile);
+        $this->downloadFile($binaryUrl, $tarFile, [
+            'verify_type' => 'php',
+            'verify_version' => $version
+        ]);
 
         // 解压二进制包
         echo "解压二进制包...\n";
@@ -418,6 +557,19 @@ class VersionInstaller
         // 清理临时文件
         if (!isset($options['keep_binary']) || !$options['keep_binary']) {
             unlink($tarFile);
+        }
+
+        // 缓存版本信息
+        if ($this->useCache) {
+            $versionInfo = [
+                'version' => $version,
+                'install_time' => time(),
+                'install_type' => 'binary',
+                'binary_url' => $binaryUrl,
+                'php_info' => $this->getPhpInfo($version),
+            ];
+            $this->cacheManager->setVersionCache($version, $versionInfo);
+            echo "\033[32m版本信息已缓存: {$version}\033[0m\n";
         }
 
         echo "PHP {$version} 安装完成\n";
@@ -460,26 +612,74 @@ class VersionInstaller
     }
 
     /**
+     * 设置是否使用缓存
+     *
+     * @param bool $useCache 是否使用缓存
+     * @return $this
+     */
+    public function setUseCache($useCache)
+    {
+        $this->useCache = $useCache;
+        $this->downloadManager->setUseCache($useCache);
+        return $this;
+    }
+
+    /**
+     * 设置是否使用多线程下载
+     *
+     * @param bool $useMultiThread 是否使用多线程下载
+     * @return $this
+     */
+    public function setUseMultiThread($useMultiThread)
+    {
+        $this->useMultiThread = $useMultiThread;
+        $this->downloadManager->setUseMultiThread($useMultiThread);
+        return $this;
+    }
+
+    /**
+     * 设置是否验证签名
+     *
+     * @param bool $verifySignature 是否验证签名
+     * @return $this
+     */
+    public function setVerifySignature($verifySignature)
+    {
+        $this->verifySignature = $verifySignature;
+        $this->downloadManager->setVerifySignature($verifySignature);
+        $this->signatureVerifier->setEnabled($verifySignature);
+        return $this;
+    }
+
+    /**
+     * 设置线程数
+     *
+     * @param int $threadCount 线程数
+     * @return $this
+     */
+    public function setThreadCount($threadCount)
+    {
+        $this->downloadManager->setThreadCount($threadCount);
+        return $this;
+    }
+
+    /**
      * 下载文件
      *
      * @param string $url 文件URL
      * @param string $destination 目标路径
+     * @param array $options 下载选项
      * @return bool 是否下载成功
      * @throws Exception 下载失败时抛出异常
      */
-    private function downloadFile($url, $destination)
+    private function downloadFile($url, $destination, array $options = [])
     {
-        // 使用curl下载
-        $command = "curl -L -o {$destination} {$url}";
-        $output = [];
-        $returnCode = 0;
-        exec($command, $output, $returnCode);
-
-        if ($returnCode !== 0) {
-            throw new Exception("文件下载失败: " . implode("\n", $output));
+        try {
+            // 使用下载管理器下载
+            return $this->downloadManager->download($url, $destination, $options);
+        } catch (\Exception $e) {
+            throw new Exception("文件下载失败: " . $e->getMessage());
         }
-
-        return true;
     }
 
     /**
@@ -498,6 +698,45 @@ class VersionInstaller
         }
 
         return $cores > 0 ? $cores : 1;
+    }
+
+    /**
+     * 获取PHP信息
+     *
+     * @param string $version PHP版本
+     * @return array PHP信息
+     */
+    private function getPhpInfo($version)
+    {
+        $versionDir = $this->versionsDir . '/' . $version;
+        $phpBin = $versionDir . '/bin/php';
+
+        if (!file_exists($phpBin)) {
+            return [];
+        }
+
+        // 获取PHP版本
+        $output = [];
+        exec($phpBin . ' -v', $output);
+        $phpVersion = !empty($output) ? $output[0] : '';
+
+        // 获取PHP配置信息
+        $output = [];
+        exec($phpBin . ' -i | grep "Configure Command"', $output);
+        $configureCommand = !empty($output) ? str_replace('Configure Command => ', '', $output[0]) : '';
+
+        // 获取PHP扩展信息
+        $output = [];
+        exec($phpBin . ' -m', $output);
+        $extensions = array_filter($output, function($line) {
+            return !empty($line) && $line !== '[PHP Modules]' && $line !== '[Zend Modules]';
+        });
+
+        return [
+            'php_version' => $phpVersion,
+            'configure_command' => $configureCommand,
+            'extensions' => $extensions,
+        ];
     }
 
     /**

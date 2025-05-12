@@ -41,6 +41,9 @@ class Application
             'version' => Commands\VersionCommand::class,
             'supported' => Commands\SupportedCommand::class,
             'ext' => Commands\ExtensionCommand::class,
+            'config' => Commands\ConfigCommand::class,
+            'cache' => Commands\CacheCommand::class,
+            'security' => Commands\SecurityCommand::class,
         ];
     }
 

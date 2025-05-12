@@ -3,6 +3,7 @@
 namespace VersionManager\Core\Extension\Drivers;
 
 use VersionManager\Core\Extension\AbstractExtensionDriver;
+use VersionManager\Core\Extension\ExtensionType;
 
 /**
  * Memcached扩展驱动类
@@ -18,7 +19,7 @@ class Memcached extends AbstractExtensionDriver
             'memcached',
             'Memcached Extension',
             '',
-            'pecl',
+            ExtensionType::PECL,
             [],
             [
                 'memcached.sess_prefix' => 'memc.sess.',
@@ -38,7 +39,7 @@ class Memcached extends AbstractExtensionDriver
             false
         );
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -48,18 +49,18 @@ class Memcached extends AbstractExtensionDriver
         if ($this->isInstalled($phpVersion)) {
             throw new \Exception("扩展 {$this->getName()} 已经安装");
         }
-        
+
         // 安装依赖
         $this->installDependencies();
-        
+
         // 从PECL安装Memcached扩展
         $this->installFromPecl($phpVersion, $options);
-        
+
         // 启用扩展
         $config = isset($options['config']) ? $options['config'] : $this->getDefaultConfig();
         return $this->enable($phpVersion, $config);
     }
-    
+
     /**
      * 从PECL安装Memcached扩展
      *
@@ -75,34 +76,34 @@ class Memcached extends AbstractExtensionDriver
         if (!file_exists($phpConfig)) {
             $phpConfig = 'php-config';
         }
-        
+
         // 构建pecl命令
         $command = 'pecl install';
-        
+
         // 添加版本限制
         if (isset($options['version'])) {
             $command .= ' memcached-' . $options['version'];
         } else {
             $command .= ' memcached';
         }
-        
+
         // 添加其他选项
         if (isset($options['force']) && $options['force']) {
             $command .= ' --force';
         }
-        
+
         // 执行安装命令
         $output = [];
         $returnCode = 0;
         exec($command . ' 2>&1', $output, $returnCode);
-        
+
         if ($returnCode !== 0) {
             throw new \Exception("安装扩展 {$this->getName()} 失败: " . implode("\n", $output));
         }
-        
+
         return true;
     }
-    
+
     /**
      * 安装Memcached依赖
      */
@@ -110,7 +111,7 @@ class Memcached extends AbstractExtensionDriver
     {
         // 检测操作系统类型
         $osInfo = $this->getOsInfo();
-        
+
         switch ($osInfo['type']) {
             case 'debian':
             case 'ubuntu':
@@ -128,7 +129,7 @@ class Memcached extends AbstractExtensionDriver
                 throw new \Exception("不支持的操作系统类型: {$osInfo['type']}");
         }
     }
-    
+
     /**
      * 安装Debian/Ubuntu依赖
      */
@@ -138,16 +139,16 @@ class Memcached extends AbstractExtensionDriver
             . 'libmemcached-dev '
             . 'zlib1g-dev '
             . 'memcached';
-        
+
         $output = [];
         $returnCode = 0;
         exec($command . ' 2>&1', $output, $returnCode);
-        
+
         if ($returnCode !== 0) {
             throw new \Exception("安装 Memcached 依赖失败: " . implode("\n", $output));
         }
     }
-    
+
     /**
      * 安装RHEL/CentOS/Fedora依赖
      */
@@ -157,16 +158,16 @@ class Memcached extends AbstractExtensionDriver
             . 'libmemcached-devel '
             . 'zlib-devel '
             . 'memcached';
-        
+
         $output = [];
         $returnCode = 0;
         exec($command . ' 2>&1', $output, $returnCode);
-        
+
         if ($returnCode !== 0) {
             throw new \Exception("安装 Memcached 依赖失败: " . implode("\n", $output));
         }
     }
-    
+
     /**
      * 安装Alpine依赖
      */
@@ -176,16 +177,16 @@ class Memcached extends AbstractExtensionDriver
             . 'libmemcached-dev '
             . 'zlib-dev '
             . 'memcached';
-        
+
         $output = [];
         $returnCode = 0;
         exec($command . ' 2>&1', $output, $returnCode);
-        
+
         if ($returnCode !== 0) {
             throw new \Exception("安装 Memcached 依赖失败: " . implode("\n", $output));
         }
     }
-    
+
     /**
      * 获取操作系统信息
      *
@@ -195,26 +196,26 @@ class Memcached extends AbstractExtensionDriver
     {
         $type = '';
         $version = '';
-        
+
         // 读取/etc/os-release文件
         if (file_exists('/etc/os-release')) {
             $osRelease = parse_ini_file('/etc/os-release');
-            
+
             if (isset($osRelease['ID'])) {
                 $type = strtolower($osRelease['ID']);
             }
-            
+
             if (isset($osRelease['VERSION_ID'])) {
                 $version = $osRelease['VERSION_ID'];
             }
         }
-        
+
         return [
             'type' => $type,
             'version' => $version,
         ];
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -224,21 +225,21 @@ class Memcached extends AbstractExtensionDriver
         if (!$this->isInstalled($phpVersion)) {
             throw new \Exception("扩展 {$this->getName()} 未安装");
         }
-        
+
         // 删除扩展配置
         $config = $this->getConfig($phpVersion);
         $config->removeExtensionConfig($this->getName());
-        
+
         // 使用pecl卸载扩展
         $command = "pecl uninstall {$this->getName()}";
         $output = [];
         $returnCode = 0;
         exec($command . ' 2>&1', $output, $returnCode);
-        
+
         if ($returnCode !== 0) {
             throw new \Exception("删除扩展 {$this->getName()} 失败: " . implode("\n", $output));
         }
-        
+
         return true;
     }
 }

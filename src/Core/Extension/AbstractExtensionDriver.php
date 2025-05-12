@@ -3,6 +3,8 @@
 namespace VersionManager\Core\Extension;
 
 use VersionManager\Core\ExtensionConfig;
+use VersionManager\Core\Extension\ExtensionType;
+use VersionManager\Core\Config\MirrorConfig;
 
 /**
  * 抽象扩展驱动基类
@@ -66,16 +68,23 @@ abstract class AbstractExtensionDriver implements ExtensionDriverInterface
      * @param string $name 扩展名称
      * @param string $description 扩展描述
      * @param string $version 扩展版本
-     * @param string $type 扩展类型
+     * @param string $type 扩展类型，使用ExtensionType枚举
      * @param array $dependencies 扩展依赖
      * @param array $defaultConfig 扩展默认配置
      * @param bool $isZend 是否是Zend扩展
+     * @throws \InvalidArgumentException 如果类型无效
      */
-    public function __construct($name, $description = '', $version = '', $type = '', array $dependencies = [], array $defaultConfig = [], $isZend = false)
+    public function __construct($name, $description = '', $version = '', $type = ExtensionType::BUILTIN, array $dependencies = [], array $defaultConfig = [], $isZend = false)
     {
         $this->name = $name;
         $this->description = $description;
         $this->version = $version;
+
+        // 验证扩展类型
+        if (!empty($type) && !ExtensionType::isValid($type)) {
+            throw new \InvalidArgumentException("无效的扩展类型: {$type}");
+        }
+
         $this->type = $type;
         $this->dependencies = $dependencies;
         $this->defaultConfig = $defaultConfig;
@@ -115,6 +124,16 @@ abstract class AbstractExtensionDriver implements ExtensionDriverInterface
     }
 
     /**
+     * 获取扩展类型描述
+     *
+     * @return string
+     */
+    public function getTypeDescription()
+    {
+        return ExtensionType::getDescription($this->type);
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function getDependencies()
@@ -148,6 +167,7 @@ abstract class AbstractExtensionDriver implements ExtensionDriverInterface
             'description' => $this->getDescription(),
             'version' => $this->getVersion(),
             'type' => $this->getType(),
+            'type_description' => $this->getTypeDescription(),
             'dependencies' => $this->getDependencies(),
             'config' => $this->getDefaultConfig(),
             'installed' => $this->isInstalled($phpVersion),

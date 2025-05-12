@@ -10,7 +10,7 @@ return [
     'mysqli' => [
         'name' => 'mysqli',
         'description' => 'MySQL Improved Extension',
-        'source' => 'builtin',
+        'type' => 'builtin',
         'dependencies' => [],
         'config' => [
             'default_socket' => '/tmp/mysql.sock',
@@ -24,28 +24,28 @@ return [
     'pdo_mysql' => [
         'name' => 'pdo_mysql',
         'description' => 'PDO MySQL Extension',
-        'source' => 'builtin',
+        'type' => 'builtin',
         'dependencies' => ['pdo'],
         'config' => [],
     ],
     'pdo' => [
         'name' => 'pdo',
         'description' => 'PHP Data Objects',
-        'source' => 'builtin',
+        'type' => 'builtin',
         'dependencies' => [],
         'config' => [],
     ],
     'pdo_sqlite' => [
         'name' => 'pdo_sqlite',
         'description' => 'PDO SQLite Extension',
-        'source' => 'builtin',
+        'type' => 'builtin',
         'dependencies' => ['pdo'],
         'config' => [],
     ],
     'pdo_pgsql' => [
         'name' => 'pdo_pgsql',
         'description' => 'PDO PostgreSQL Extension',
-        'source' => 'builtin',
+        'type' => 'builtin',
         'dependencies' => ['pdo'],
         'config' => [],
     ],
@@ -54,21 +54,21 @@ return [
     'gd' => [
         'name' => 'gd',
         'description' => 'GD Graphics Library',
-        'source' => 'builtin',
+        'type' => 'builtin',
         'dependencies' => [],
         'config' => [],
     ],
     'exif' => [
         'name' => 'exif',
         'description' => 'Exchangeable image information',
-        'source' => 'builtin',
+        'type' => 'builtin',
         'dependencies' => [],
         'config' => [],
     ],
     'imagick' => [
         'name' => 'imagick',
         'description' => 'ImageMagick Image Processing',
-        'source' => 'pecl',
+        'type' => 'pecl',
         'dependencies' => [],
         'config' => [],
     ],
@@ -77,21 +77,21 @@ return [
     'redis' => [
         'name' => 'redis',
         'description' => 'Redis Extension',
-        'source' => 'pecl',
+        'type' => 'pecl',
         'dependencies' => [],
         'config' => [],
     ],
     'memcached' => [
         'name' => 'memcached',
         'description' => 'Memcached Extension',
-        'source' => 'pecl',
+        'type' => 'pecl',
         'dependencies' => [],
         'config' => [],
     ],
     'apcu' => [
         'name' => 'apcu',
         'description' => 'APC User Cache',
-        'source' => 'pecl',
+        'type' => 'pecl',
         'dependencies' => [],
         'config' => [],
     ],
@@ -100,21 +100,21 @@ return [
     'curl' => [
         'name' => 'curl',
         'description' => 'cURL support',
-        'source' => 'builtin',
+        'type' => 'builtin',
         'dependencies' => [],
         'config' => [],
     ],
     'openssl' => [
         'name' => 'openssl',
         'description' => 'OpenSSL support',
-        'source' => 'builtin',
+        'type' => 'builtin',
         'dependencies' => [],
         'config' => [],
     ],
     'soap' => [
         'name' => 'soap',
         'description' => 'SOAP support',
-        'source' => 'builtin',
+        'type' => 'builtin',
         'dependencies' => ['xml'],
         'config' => [],
     ],
@@ -207,4 +207,9 @@ return [
         ],
         'zend' => true,
     ],
+    // phalcon
+    // swoole
+    // amqp
+    // mongodb
+    // swow
 ];

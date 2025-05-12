@@ -39,18 +39,51 @@ abstract class AbstractOsDriver implements OsDriverInterface
 
     /**
      * 构造函数
-     *
-     * @param string $name 操作系统名称
-     * @param string $description 操作系统描述
-     * @param string $version 操作系统版本
-     * @param string $arch 操作系统架构
      */
-    public function __construct($name, $description, $version, $arch)
+    public function __construct()
     {
-        $this->name = $name;
-        $this->description = $description;
-        $this->version = $version;
-        $this->arch = $arch;
+        $this->detectSystemInfo();
+    }
+
+    /**
+     * 检测系统信息
+     */
+    protected function detectSystemInfo()
+    {
+        // 默认架构
+        $this->arch = php_uname('m');
+
+        // 检测操作系统信息
+        $this->detectOsInfo();
+    }
+
+    /**
+     * 检测操作系统信息
+     * 子类可以重写此方法来提供特定的检测逻辑
+     */
+    protected function detectOsInfo()
+    {
+        // 默认实现，检测通用Linux信息
+        $this->name = 'linux';
+        $this->description = 'Generic Linux';
+        $this->version = php_uname('r');
+
+        // 尝试从/etc/os-release获取信息
+        if (file_exists('/etc/os-release')) {
+            $osRelease = parse_ini_file('/etc/os-release');
+
+            if (isset($osRelease['ID'])) {
+                $this->name = strtolower($osRelease['ID']);
+            }
+
+            if (isset($osRelease['PRETTY_NAME'])) {
+                $this->description = $osRelease['PRETTY_NAME'];
+            }
+
+            if (isset($osRelease['VERSION_ID'])) {
+                $this->version = $osRelease['VERSION_ID'];
+            }
+        }
     }
 
     /**

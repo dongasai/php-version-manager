@@ -12,6 +12,70 @@ class CentosDriver extends AbstractOsDriver
     /**
      * {@inheritdoc}
      */
+    protected function detectOsInfo()
+    {
+        // 默认设置CentOS信息
+        $this->name = 'centos';
+        $this->description = 'CentOS Linux';
+        $this->version = '';
+
+        // 从/etc/centos-release获取CentOS版本信息
+        if (file_exists('/etc/centos-release')) {
+            $content = file_get_contents('/etc/centos-release');
+            $this->description = trim($content);
+
+            // 提取版本号
+            if (preg_match('/release\s+(\d+(\.\d+)*)/', $content, $matches)) {
+                $this->version = $matches[1];
+            }
+        }
+
+        // 如果无法从/etc/centos-release获取信息，则尝试从/etc/os-release获取
+        if (empty($this->version) && file_exists('/etc/os-release')) {
+            $osRelease = parse_ini_file('/etc/os-release');
+
+            if (isset($osRelease['ID']) && (strtolower($osRelease['ID']) === 'centos' || strtolower($osRelease['ID']) === 'rhel')) {
+                if (isset($osRelease['VERSION_ID'])) {
+                    $this->version = $osRelease['VERSION_ID'];
+                }
+
+                if (isset($osRelease['PRETTY_NAME'])) {
+                    $this->description = $osRelease['PRETTY_NAME'];
+                }
+            }
+        }
+
+        // 如果仍然无法获取版本信息，则尝试使用yum或dnf命令
+        if (empty($this->version)) {
+            if ($this->commandExists('dnf')) {
+                $output = [];
+                $returnCode = 0;
+
+                exec('dnf --version | head -1 | cut -d" " -f3', $output, $returnCode);
+
+                if ($returnCode === 0 && !empty($output)) {
+                    // dnf版本可能与CentOS版本不完全一致
+                    // 这里只是一个备选方案
+                    $this->version = trim($output[0]);
+                }
+            } elseif ($this->commandExists('yum')) {
+                $output = [];
+                $returnCode = 0;
+
+                exec('yum --version | head -1', $output, $returnCode);
+
+                if ($returnCode === 0 && !empty($output)) {
+                    // yum版本可能与CentOS版本不完全一致
+                    // 这里只是一个备选方案
+                    $this->version = trim($output[0]);
+                }
+            }
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getDependencies($phpVersion)
     {
         // 基本依赖
@@ -31,11 +95,11 @@ class CentosDriver extends AbstractOsDriver
             'libicu-devel',
             'oniguruma-devel',
         ];
-        
+
         // 根据PHP版本添加特定依赖
         $majorVersion = (int)substr($phpVersion, 0, 1);
         $minorVersion = (int)substr($phpVersion, 2, 1);
-        
+
         if ($majorVersion === 5) {
             // PHP 5.x特定依赖
             $dependencies = array_merge($dependencies, [
@@ -52,7 +116,7 @@ class CentosDriver extends AbstractOsDriver
                 'libedit-devel',
             ]);
         }
-        
+
         // CentOS 8+使用不同的包名
         $centosVersion = (int)$this->version;
         if ($centosVersion >= 8) {
@@ -66,10 +130,10 @@ class CentosDriver extends AbstractOsDriver
                 }
             }, $dependencies);
         }
-        
+
         return $dependencies;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -77,18 +141,18 @@ class CentosDriver extends AbstractOsDriver
     {
         return $this->installPackages($dependencies);
     }
-    
+
     /**
      * {@inheritdoc}
      */
     public function getExtensionDependencies($extension, $phpVersion)
     {
         $dependencies = [];
-        
+
         // CentOS 8+使用不同的包名
         $centosVersion = (int)$this->version;
         $isNewCentos = $centosVersion >= 8;
-        
+
         switch (strtolower($extension)) {
             case 'gd':
                 $dependencies = [
@@ -194,24 +258,24 @@ class CentosDriver extends AbstractOsDriver
                 $dependencies = [];
                 break;
         }
-        
+
         return $dependencies;
     }
-    
+
     /**
      * {@inheritdoc}
      */
     public function installExtensionDependencies($extension, $phpVersion)
     {
         $dependencies = $this->getExtensionDependencies($extension, $phpVersion);
-        
+
         if (empty($dependencies)) {
             return true;
         }
-        
+
         return $this->installPackages($dependencies);
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -220,26 +284,26 @@ class CentosDriver extends AbstractOsDriver
         $majorVersion = (int)substr($phpVersion, 0, 1);
         $minorVersion = (int)substr($phpVersion, 2, 1);
         $centosVersion = (int)$this->version;
-        
+
         // CentOS 8支持PHP 5.6+
         if ($centosVersion >= 8) {
             return $majorVersion >= 5 && ($majorVersion > 5 || $minorVersion >= 6);
         }
-        
+
         // CentOS 7支持PHP 5.4+
         if ($centosVersion >= 7) {
             return $majorVersion >= 5 && ($majorVersion > 5 || $minorVersion >= 4);
         }
-        
+
         // CentOS 6支持PHP 5.3+
         if ($centosVersion >= 6) {
             return $majorVersion >= 5 && ($majorVersion > 5 || $minorVersion >= 3);
         }
-        
+
         // 其他版本默认支持PHP 5.2+
         return $majorVersion >= 5 && ($majorVersion > 5 || $minorVersion >= 2);
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -247,7 +311,7 @@ class CentosDriver extends AbstractOsDriver
     {
         $majorVersion = (int)substr($phpVersion, 0, 1);
         $minorVersion = (int)substr($phpVersion, 2, 1);
-        
+
         // 特定扩展的兼容性检查
         switch (strtolower($extension)) {
             case 'mcrypt':
@@ -272,7 +336,7 @@ class CentosDriver extends AbstractOsDriver
                 return true;
         }
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -280,10 +344,10 @@ class CentosDriver extends AbstractOsDriver
     {
         $majorVersion = (int)substr($phpVersion, 0, 1);
         $minorVersion = (int)substr($phpVersion, 2, 1);
-        
+
         // 基本配置选项
         $options = [];
-        
+
         // PHP 5.x特定配置选项
         if ($majorVersion === 5) {
             $options = array_merge($options, [
@@ -293,17 +357,17 @@ class CentosDriver extends AbstractOsDriver
                 '--with-mcrypt',
             ]);
         }
-        
+
         // PHP 7.0-7.1特定配置选项
         if ($majorVersion === 7 && $minorVersion < 2) {
             $options = array_merge($options, [
                 '--with-mcrypt',
             ]);
         }
-        
+
         return $options;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -312,12 +376,12 @@ class CentosDriver extends AbstractOsDriver
         $command = "rpm -q {$package}";
         $output = [];
         $returnCode = 0;
-        
+
         exec($command, $output, $returnCode);
-        
+
         return $returnCode === 0;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -326,16 +390,16 @@ class CentosDriver extends AbstractOsDriver
         if ($this->isPackageInstalled($package)) {
             return true;
         }
-        
+
         // 检查CentOS版本
         $centosVersion = (int)$this->version;
-        
+
         if ($centosVersion >= 8) {
             $command = "dnf install -y {$package}";
         } else {
             $command = "yum install -y {$package}";
         }
-        
+
         // 检查是否有sudo权限
         if (posix_getuid() !== 0) {
             // 检查sudo命令是否存在
@@ -345,10 +409,10 @@ class CentosDriver extends AbstractOsDriver
                 throw new \Exception("需要root权限安装依赖");
             }
         }
-        
+
         return $this->executeCommand($command);
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -357,31 +421,31 @@ class CentosDriver extends AbstractOsDriver
         if (empty($packages)) {
             return true;
         }
-        
+
         // 过滤掉已安装的包
         $packagesToInstall = [];
-        
+
         foreach ($packages as $package) {
             if (!$this->isPackageInstalled($package)) {
                 $packagesToInstall[] = $package;
             }
         }
-        
+
         if (empty($packagesToInstall)) {
             return true;
         }
-        
+
         $packageList = implode(' ', $packagesToInstall);
-        
+
         // 检查CentOS版本
         $centosVersion = (int)$this->version;
-        
+
         if ($centosVersion >= 8) {
             $command = "dnf install -y {$packageList}";
         } else {
             $command = "yum install -y {$packageList}";
         }
-        
+
         // 检查是否有sudo权限
         if (posix_getuid() !== 0) {
             // 检查sudo命令是否存在
@@ -391,7 +455,7 @@ class CentosDriver extends AbstractOsDriver
                 throw new \Exception("需要root权限安装依赖");
             }
         }
-        
+
         return $this->executeCommand($command);
     }
 }

@@ -75,19 +75,40 @@ class ExtensionDriverFactory
         // 查找驱动类
         $driverClass = null;
 
-        // 先尝试查找特定发行版和架构的驱动
-        if ($distro && $arch) {
-            $driverClass = self::findDriverClass($distro . ':' . $arch . ':' . $extension);
+        // 获取操作系统驱动实例，用于获取系统信息
+        $osDriver = OsDriverFactory::getInstance();
+
+        // 如果没有指定发行版信息，则使用操作系统驱动提供的信息
+        if ($distro === null) {
+            $distro = $osDriver->getName();
+        }
+
+        if ($distroVersion === null) {
+            $distroVersion = $osDriver->getVersion();
+        }
+
+        if ($arch === null) {
+            $arch = $osDriver->getArch();
+        }
+
+        // 先尝试查找完全匹配的驱动（PHP版本 + 发行版 + 发行版版本 + 架构）
+        if ($phpVersion && $distro && $distroVersion && $arch) {
+            $driverClass = self::findDriverClass($driverKey, $phpVersion, $distro, $distroVersion, $arch);
+        }
+
+        // 如果没有找到，则尝试查找特定发行版和架构的驱动
+        if (!$driverClass && $distro && $arch) {
+            $driverClass = self::findDriverClass($distro . ':' . $arch . ':' . $extension, $phpVersion, $distro, $distroVersion, $arch);
         }
 
         // 如果没有找到，则尝试查找特定发行版的驱动
         if (!$driverClass && $distro) {
-            $driverClass = self::findDriverClass($distro . ':' . $extension);
+            $driverClass = self::findDriverClass($distro . ':' . $extension, $phpVersion, $distro, $distroVersion, $arch);
         }
 
         // 如果还是没有找到，则尝试查找通用驱动
         if (!$driverClass) {
-            $driverClass = self::findDriverClass($extension);
+            $driverClass = self::findDriverClass($extension, $phpVersion, $distro, $distroVersion, $arch);
         }
 
         // 如果找不到驱动类，则使用通用驱动
@@ -129,9 +150,13 @@ class ExtensionDriverFactory
      * 查找驱动类
      *
      * @param string $extension 扩展名称
+     * @param string $phpVersion PHP版本
+     * @param string $distro 发行版名称
+     * @param string $distroVersion 发行版版本
+     * @param string $arch 架构名称
      * @return string|null 驱动类名，如果找不到则返回null
      */
-    private static function findDriverClass($extension)
+    private static function findDriverClass($extension, $phpVersion = null, $distro = null, $distroVersion = null, $arch = null)
     {
         // 直接查找驱动映射
         if (isset(self::$driverMap[$extension])) {
@@ -158,7 +183,7 @@ class ExtensionDriverFactory
         }
 
         // 尝试从扩展目录中查找最匹配的驱动
-        return self::findBestMatchDriver($extension, $extensionName);
+        return self::findBestMatchDriver($extension, $extensionName, $phpVersion, $distro, $distroVersion, $arch);
     }
 
     /**
@@ -166,9 +191,13 @@ class ExtensionDriverFactory
      *
      * @param string $extension 完整的扩展名称（可能包含发行版和架构信息）
      * @param string $extensionName 纯扩展名称
+     * @param string $phpVersion PHP版本
+     * @param string $distro 发行版名称
+     * @param string $distroVersion 发行版版本
+     * @param string $arch 架构名称
      * @return string|null 驱动类名，如果找不到则返回null
      */
-    private static function findBestMatchDriver($extension, $extensionName)
+    private static function findBestMatchDriver($extension, $extensionName, $phpVersion = null, $distro = null, $distroVersion = null, $arch = null)
     {
         // 扩展目录路径
         $extensionDir = __DIR__ . '/Drivers/' . ucfirst($extensionName);

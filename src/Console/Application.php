@@ -44,6 +44,9 @@ class Application
             'config' => Commands\ConfigCommand::class,
             'cache' => Commands\CacheCommand::class,
             'security' => Commands\SecurityCommand::class,
+            'env' => Commands\EnvCommand::class,
+            'service' => Commands\ServiceCommand::class,
+            'monitor' => Commands\MonitorCommand::class,
         ];
     }
 

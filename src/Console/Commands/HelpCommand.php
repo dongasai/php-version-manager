@@ -27,6 +27,9 @@ class HelpCommand implements CommandInterface
         echo "  config    管理PHP配置" . PHP_EOL;
         echo "  cache     管理缓存" . PHP_EOL;
         echo "  security  管理安全相关功能" . PHP_EOL;
+        echo "  env       管理环境变量" . PHP_EOL;
+        echo "  service   管理PHP服务" . PHP_EOL;
+        echo "  monitor   监控PHP进程和PHP-FPM状态" . PHP_EOL;
         echo "  help      显示帮助信息" . PHP_EOL . PHP_EOL;
 
         echo "更多信息请访问: https://github.com/yourusername/php-version-manager" . PHP_EOL;

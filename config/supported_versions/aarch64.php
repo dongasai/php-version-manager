@@ -17,6 +17,9 @@ return [
             '7.3' => 'partial',
             '7.2' => 'partial',
             '7.1' => 'partial',
+            '5.6' => 'partial',
+            '5.5' => 'partial',
+            '5.4' => 'partial',
         ],
         '20.04' => [
             '8.3' => 'partial',
@@ -27,6 +30,9 @@ return [
             '7.3' => 'full',
             '7.2' => 'partial',
             '7.1' => 'partial',
+            '5.6' => 'partial',
+            '5.5' => 'partial',
+            '5.4' => 'partial',
         ],
         '18.04' => [
             '8.3' => 'none',
@@ -37,6 +43,9 @@ return [
             '7.3' => 'full',
             '7.2' => 'full',
             '7.1' => 'partial',
+            '5.6' => 'partial',
+            '5.5' => 'partial',
+            '5.4' => 'partial',
         ],
     ],
     // Debian
@@ -50,6 +59,9 @@ return [
             '7.3' => 'partial',
             '7.2' => 'partial',
             '7.1' => 'partial',
+            '5.6' => 'partial',
+            '5.5' => 'partial',
+            '5.4' => 'partial',
         ],
         '11' => [
             '8.3' => 'partial',
@@ -60,6 +72,9 @@ return [
             '7.3' => 'full',
             '7.2' => 'partial',
             '7.1' => 'partial',
+            '5.6' => 'partial',
+            '5.5' => 'partial',
+            '5.4' => 'partial',
         ],
         '10' => [
             '8.3' => 'none',
@@ -70,6 +85,9 @@ return [
             '7.3' => 'full',
             '7.2' => 'full',
             '7.1' => 'partial',
+            '5.6' => 'partial',
+            '5.5' => 'partial',
+            '5.4' => 'partial',
         ],
     ],
     // Raspberry Pi OS (基于Debian)
@@ -83,6 +101,9 @@ return [
             '7.3' => 'full',
             '7.2' => 'partial',
             '7.1' => 'partial',
+            '5.6' => 'partial',
+            '5.5' => 'partial',
+            '5.4' => 'partial',
         ],
         'buster' => [
             '8.3' => 'none',
@@ -93,6 +114,9 @@ return [
             '7.3' => 'full',
             '7.2' => 'full',
             '7.1' => 'partial',
+            '5.6' => 'partial',
+            '5.5' => 'partial',
+            '5.4' => 'partial',
         ],
     ],
     // Alpine Linux
@@ -106,6 +130,9 @@ return [
             '7.3' => 'partial',
             '7.2' => 'partial',
             '7.1' => 'none',
+            '5.6' => 'none',
+            '5.5' => 'none',
+            '5.4' => 'none',
         ],
         '3.17' => [
             '8.3' => 'partial',
@@ -116,6 +143,9 @@ return [
             '7.3' => 'partial',
             '7.2' => 'partial',
             '7.1' => 'none',
+            '5.6' => 'none',
+            '5.5' => 'none',
+            '5.4' => 'none',
         ],
         '3.16' => [
             '8.3' => 'none',
@@ -126,6 +156,9 @@ return [
             '7.3' => 'full',
             '7.2' => 'partial',
             '7.1' => 'partial',
+            '5.6' => 'partial',
+            '5.5' => 'partial',
+            '5.4' => 'partial',
         ],
     ],
 ];

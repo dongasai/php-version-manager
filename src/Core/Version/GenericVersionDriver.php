@@ -32,8 +32,8 @@ class GenericVersionDriver extends AbstractVersionDriver
         // 检查版本是否在支持范围内
         list($major, $minor, $patch) = explode('.', $version);
 
-        // 支持PHP 7.1及以上版本
-        if ($major < 7 || ($major == 7 && $minor < 1)) {
+        // 支持PHP 7.1及以上版本，但不支持PHP 5.x版本
+        if ($major == 5 || $major < 7 || ($major == 7 && $minor < 1)) {
             return false;
         }
 

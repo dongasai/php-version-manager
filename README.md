@@ -16,7 +16,7 @@ PHP Version Manager 是一个用于管理 PHP Cli 版本的工具，支持版本
 
 - 支持 Linux 发行版：Ubuntu、Debian、CentOS、Fedora、Alpine 等
 - 支持架构：x86_64 (AMD64) 和 ARM (aarch64, armv7)
-- 支持 PHP 7.1 及以上版本
+- 支持 PHP 5.4 及以上版本（基础运行环境需要 PHP 7.1 及以上版本）
 
 **注意：** 用户不需要预先安装 PHP。我们提供了一个独立的安装脚本，可以自动安装必要的基础 PHP 版本。
 
@@ -24,6 +24,9 @@ PHP Version Manager 是一个用于管理 PHP Cli 版本的工具，支持版本
 
 PVM支持以下 PHP 版本：
 
+- PHP 5.4.x（已不再受官方支持）
+- PHP 5.5.x（已不再受官方支持）
+- PHP 5.6.x（已不再受官方支持）
 - PHP 7.1.x（已不再受官方支持）
 - PHP 7.2.x（已不再受官方支持）
 - PHP 7.3.x（已不再受官方支持）

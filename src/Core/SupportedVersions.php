@@ -263,6 +263,9 @@ class SupportedVersions
             '7.3' => self::SUPPORT_UNTESTED,
             '7.2' => self::SUPPORT_UNTESTED,
             '7.1' => self::SUPPORT_UNTESTED,
+            '5.6' => self::SUPPORT_UNTESTED,
+            '5.5' => self::SUPPORT_UNTESTED,
+            '5.4' => self::SUPPORT_UNTESTED,
         ];
     }
 

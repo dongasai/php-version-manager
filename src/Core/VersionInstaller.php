@@ -8,6 +8,8 @@ use VersionManager\Core\Download\DownloadManager;
 use VersionManager\Core\Security\SignatureVerifier;
 use VersionManager\Core\Security\PermissionManager;
 use VersionManager\Core\Security\SecurityUpdater;
+use VersionManager\Core\Version\Drivers\Php5Driver;
+use VersionManager\Core\Version\GenericVersionDriver;
 
 /**
  * PHP版本安装类
@@ -108,6 +110,13 @@ class VersionInstaller
     private $verifySignature = true;
 
     /**
+     * 版本驱动类列表
+     *
+     * @var array
+     */
+    private $versionDrivers = [];
+
+    /**
      * 构造函数
      */
     public function __construct()
@@ -122,6 +131,9 @@ class VersionInstaller
         $this->pvmDir = getenv('HOME') . '/.pvm';
         $this->versionsDir = $this->pvmDir . '/versions';
         $this->tempDir = $this->pvmDir . '/tmp';
+
+        // 初始化版本驱动类
+        $this->initVersionDrivers();
 
         // 确保目录存在
         $this->ensureDirectoriesExist();
@@ -355,6 +367,17 @@ class VersionInstaller
      */
     private function installFromSource($version, array $options = [])
     {
+        // 获取适用的版本驱动类
+        $driver = $this->getVersionDriver($version);
+
+        // 如果驱动类不是自身，则使用驱动类安装
+        if ($driver !== $this) {
+            try {
+                return $driver->install($version, $options);
+            } catch (\Exception $e) {
+                throw new Exception("安装PHP失败: " . $e->getMessage());
+            }
+        }
         $versionDir = $this->versionsDir . '/' . $version;
         $sourceDir = $this->tempDir . '/php-' . $version;
         $buildDir = $this->tempDir . '/php-build-' . $version;

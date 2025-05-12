@@ -14,6 +14,8 @@ return [
     'mysqli' => 'VersionManager\\Core\\Extension\\Drivers\\Mysqli\\Base',
     'pdo_mysql' => 'VersionManager\\Core\\Extension\\Drivers\\PdoMysql',
     'mongodb' => 'VersionManager\\Core\\Extension\\Drivers\\Mongodb\\Base',
+    'pgsql' => 'VersionManager\\Core\\Extension\\Drivers\\Pgsql\\Base',
+    'pdo_pgsql' => 'VersionManager\\Core\\Extension\\Drivers\\PdoPgsql\\Base',
 
     // 缓存相关扩展
     'redis' => 'VersionManager\\Core\\Extension\\Drivers\\Redis\\Base',
@@ -29,10 +31,14 @@ return [
     // 调试相关扩展
     'xdebug' => 'VersionManager\\Core\\Extension\\Drivers\\Xdebug\\Base',
     'opcache' => 'VersionManager\\Core\\Extension\\Drivers\\Opcache\\Base',
+    'xhprof' => 'VersionManager\\Core\\Extension\\Drivers\\Xhprof\\Base',
+    'pcov' => 'VersionManager\\Core\\Extension\\Drivers\\Pcov\\Base',
 
     // 国际化相关扩展
     'intl' => 'VersionManager\\Core\\Extension\\Drivers\\Intl\\Base',
     'mbstring' => 'VersionManager\\Core\\Extension\\Drivers\\Mbstring\\Base',
+    'calendar' => 'VersionManager\\Core\\Extension\\Drivers\\Calendar\\Base',
+    'timezonedb' => 'VersionManager\\Core\\Extension\\Drivers\\Timezonedb\\Base',
 
     // XML相关扩展
     'xml' => 'VersionManager\\Core\\Extension\\Drivers\\Xml\\Base',
@@ -59,11 +65,16 @@ return [
     'sysvsem' => 'VersionManager\\Core\\Extension\\Drivers\\Sysvsem\\Base',
     'sysvshm' => 'VersionManager\\Core\\Extension\\Drivers\\Sysvshm\\Base',
 
-    // 其他扩展
+    // 压缩相关扩展
     'zip' => 'VersionManager\\Core\\Extension\\Drivers\\Zip\\Base',
+    'bz2' => 'VersionManager\\Core\\Extension\\Drivers\\Bz2\\Base',
+    'zstd' => 'VersionManager\\Core\\Extension\\Drivers\\Zstd\\Base',
+
+    // 其他扩展
     'fileinfo' => 'VersionManager\\Core\\Extension\\Drivers\\Fileinfo\\Base',
     'json' => 'VersionManager\\Core\\Extension\\Drivers\\Json\\Base',
     'ldap' => 'VersionManager\\Core\\Extension\\Drivers\\Ldap\\Base',
+    'imap' => 'VersionManager\\Core\\Extension\\Drivers\\Imap\\Base',
 
     // 特定发行版的驱动
     'ubuntu:gd' => 'VersionManager\\Core\\Extension\\Drivers\\Gd\\Ubuntu',

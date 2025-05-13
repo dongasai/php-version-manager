@@ -15,6 +15,13 @@ interface VersionDriverInterface
      * @return string
      */
     public function getName();
+
+    /**
+     * 获取驱动标签
+     *
+     * @return array
+     */
+    public function getTags(): array;
     
     /**
      * 获取驱动描述

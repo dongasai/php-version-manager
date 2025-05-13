@@ -16,7 +16,7 @@ class Ubuntu extends Base
         $this->name = 'php71_ubuntu';
         $this->description = 'PHP 7.1 Ubuntu版本安装驱动';
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -24,19 +24,19 @@ class Ubuntu extends Base
     {
         // 获取基本配置选项
         $configureOptions = parent::getConfigureOptions($version, $options);
-        
+
         // 添加Ubuntu特定的配置选项
         $ubuntuOptions = [
             '--with-fpm-user=www-data',
             '--with-fpm-group=www-data',
         ];
-        
+
         // 合并配置选项
         $configureOptions = array_merge($configureOptions, $ubuntuOptions);
-        
+
         return $configureOptions;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -44,11 +44,11 @@ class Ubuntu extends Base
     {
         // 安装依赖
         $this->installDependencies($version);
-        
+
         // 调用父类的安装方法
         return parent::install($version, $options);
     }
-    
+
     /**
      * 安装依赖
      *
@@ -72,19 +72,21 @@ class Ubuntu extends Base
             'libxpm-dev',
             'libmcrypt-dev',
         ];
-        
-        // 安装依赖
-        $command = 'apt-get update && apt-get install -y ' . implode(' ', $dependencies);
-        
-        $output = [];
-        $returnCode = 0;
-        
-        exec($command . ' 2>&1', $output, $returnCode);
-        
-        if ($returnCode !== 0) {
-            throw new \Exception("安装依赖失败: " . implode("\n", $output));
+
+        // 使用主类的依赖安装方法
+        $installer = new \VersionManager\Core\VersionInstaller();
+
+        // 调用installDependencies方法
+        // 使用反射调用私有方法
+        $reflection = new \ReflectionClass($installer);
+        $method = $reflection->getMethod('installDependencies');
+        $method->setAccessible(true);
+
+        try {
+            $method->invoke($installer, $dependencies);
+            return true;
+        } catch (\Exception $e) {
+            throw new \Exception("安装依赖失败: " . $e->getMessage());
         }
-        
-        return true;
     }
 }

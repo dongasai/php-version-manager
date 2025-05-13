@@ -323,40 +323,224 @@ class VersionInstaller
 
         // 检查是否在Docker容器中
         $inDocker = file_exists('/.dockerenv');
-        $sudoCmd = $inDocker ? '' : 'sudo ';
 
-        if ($inDocker) {
-            echo "\033[33m检测到Docker容器环境，不使用sudo\033[0m\n";
-        }
+        // 尝试不同的权限提升方式
+        $sudoCommands = [
+            'sudo ',           // 标准sudo
+            'su -c "',        // 使用su切换到root
+            ''                // 不使用权限提升
+        ];
 
-        $command = '';
+        // 构建基本命令
+        $baseCommand = '';
         switch ($packageManager) {
             case 'apt':
-                $command = $sudoCmd . 'apt-get update && ' . $sudoCmd . 'apt-get install -y ' . implode(' ', $dependencies);
+                $baseCommand = 'apt-get update && apt-get install -y ' . implode(' ', $dependencies);
                 break;
             case 'yum':
-                $command = $sudoCmd . 'yum install -y ' . implode(' ', $dependencies);
+                $baseCommand = 'yum install -y ' . implode(' ', $dependencies);
                 break;
             case 'dnf':
-                $command = $sudoCmd . 'dnf install -y ' . implode(' ', $dependencies);
+                $baseCommand = 'dnf install -y ' . implode(' ', $dependencies);
                 break;
             case 'apk':
-                $command = $sudoCmd . 'apk add ' . implode(' ', $dependencies);
+                $baseCommand = 'apk add ' . implode(' ', $dependencies);
                 break;
             default:
                 throw new Exception("不支持的包管理器: {$packageManager}");
         }
 
-        $output = [];
-        $returnCode = 0;
-        exec($command, $output, $returnCode);
+        // 尝试不同的权限提升方式
+        $success = false;
+        $lastError = '';
 
-        if ($returnCode !== 0) {
-            throw new Exception("依赖安装失败: " . implode("\n", $output));
+        foreach ($sudoCommands as $sudoCmd) {
+            $command = $sudoCmd . $baseCommand;
+            // 如果是su命令，需要添加结束引号
+            if ($sudoCmd === 'su -c "') {
+                $command .= '"';
+            }
+
+            echo "\033[33m尝试执行: {$command}\033[0m\n";
+
+            try {
+                $result = $this->executeCommand($command);
+                $success = true;
+                echo "\n\033[32m依赖安装成功\033[0m\n";
+                break;
+            } catch (Exception $e) {
+                $lastError = $e->getMessage();
+                // 如果错误为空，说明命令执行成功但没有输出错误信息
+                if (trim($lastError) === '') {
+                    $success = true;
+                    echo "\n\033[32m依赖已安装或不需要安装\033[0m\n";
+                    break;
+                }
+                echo "\033[33m执行失败: {$lastError}\033[0m\n";
+                echo "\033[33m尝试下一种权限提升方式...\033[0m\n";
+                continue;
+            }
         }
 
-        echo "依赖安装完成\n";
+        if (!$success) {
+            // 如果所有方式都失败，尝试使用临时脚本
+            echo "\033[33m所有直接执行方式均失败，尝试使用临时脚本...\033[0m\n";
+
+            // 创建临时脚本
+            $scriptPath = $this->tempDir . '/install_deps_' . time() . '.sh';
+            $scriptContent = "#!/bin/bash\n" . $baseCommand . "\n";
+            file_put_contents($scriptPath, $scriptContent);
+            chmod($scriptPath, 0755);
+
+            try {
+                // 尝试使用sudo执行脚本
+                $command = "sudo {$scriptPath}";
+                echo "\033[33m尝试执行: {$command}\033[0m\n";
+                $result = $this->executeCommand($command);
+                $success = true;
+                echo "\n\033[32m依赖安装成功\033[0m\n";
+            } catch (Exception $e) {
+                $lastError = $e->getMessage();
+                // 如果错误为空，说明命令执行成功但没有输出错误信息
+                if (trim($lastError) === '') {
+                    $success = true;
+                    echo "\n\033[32m依赖已安装或不需要安装\033[0m\n";
+                } else {
+                    echo "\033[33m脚本执行失败: {$lastError}\033[0m\n";
+
+                    // 尝试使用su执行脚本
+                    try {
+                        $command = "su -c \"{$scriptPath}\"";
+                        echo "\033[33m尝试执行: {$command}\033[0m\n";
+                        $result = $this->executeCommand($command);
+                        $success = true;
+                        echo "\n\033[32m依赖安装成功\033[0m\n";
+                    } catch (Exception $e) {
+                        $lastError = $e->getMessage();
+                        // 如果错误为空，说明命令执行成功但没有输出错误信息
+                        if (trim($lastError) === '') {
+                            $success = true;
+                            echo "\n\033[32m依赖已安装或不需要安装\033[0m\n";
+                        } else {
+                            echo "\033[33m脚本执行失败: {$lastError}\033[0m\n";
+                        }
+                    }
+                }
+            }
+
+            // 清理临时脚本
+            if (file_exists($scriptPath)) {
+                unlink($scriptPath);
+            }
+        }
+
+        if (!$success) {
+            throw new Exception("依赖安装失败: " . $lastError);
+        }
+
         return true;
+    }
+
+    /**
+     * 执行命令并实时显示输出
+     *
+     * @param string $command 要执行的命令
+     * @return bool 是否执行成功
+     * @throws Exception 执行失败时抛出异常
+     */
+    private function executeCommand($command)
+    {
+        // 使用proc_open实现实时输出
+        $descriptorspec = [
+            0 => ["pipe", "r"],  // stdin
+            1 => ["pipe", "w"],  // stdout
+            2 => ["pipe", "w"]   // stderr
+        ];
+
+        $process = proc_open($command, $descriptorspec, $pipes);
+
+        if (is_resource($process)) {
+            // 关闭stdin
+            fclose($pipes[0]);
+
+            // 设置非阻塞模式
+            stream_set_blocking($pipes[1], 0);
+            stream_set_blocking($pipes[2], 0);
+
+            $output = '';
+            $error = '';
+
+            // 循环读取输出，直到进程结束
+            while (true) {
+                $status = proc_get_status($process);
+
+                // 读取stdout
+                $stdout = fread($pipes[1], 4096);
+                if ($stdout) {
+                    echo $stdout;
+                    $output .= $stdout;
+                }
+
+                // 读取stderr
+                $stderr = fread($pipes[2], 4096);
+                if ($stderr) {
+                    echo $stderr;
+                    $error .= $stderr;
+                }
+
+                // 如果进程已结束，则退出循环
+                if (!$status['running']) {
+                    // 读取剩余输出
+                    $stdout = stream_get_contents($pipes[1]);
+                    if ($stdout) {
+                        echo $stdout;
+                        $output .= $stdout;
+                    }
+
+                    $stderr = stream_get_contents($pipes[2]);
+                    if ($stderr) {
+                        echo $stderr;
+                        $error .= $stderr;
+                    }
+
+                    break;
+                }
+
+                // 避免 CPU 占用过高
+                usleep(100000); // 100ms
+            }
+
+            // 关闭管道
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+
+            // 关闭进程
+            $returnCode = proc_close($process);
+
+            // 如果返回非零状态码且有错误输出，则抛出异常
+            if ($returnCode !== 0 && !empty(trim($error))) {
+                throw new Exception($error);
+            }
+
+            // 如果返回非零状态码但没有错误输出，可能是因为没有需要安装的包
+            if ($returnCode !== 0) {
+                // 检查输出中是否包含“已经是最新版本”或“已安装”等信息
+                if (strpos($output, 'already the newest version') !== false ||
+                    strpos($output, 'already installed') !== false ||
+                    strpos($output, '0 newly installed') !== false ||
+                    strpos($output, '0 upgraded') !== false) {
+                    // 这是正常情况，依赖已经安装
+                    return true;
+                }
+
+                // 如果没有匹配到上述模式，则抛出异常
+                throw new Exception($error);
+            }
+
+            return true;
+        } else {
+            throw new Exception("无法启动进程");
+        }
     }
 
     /**

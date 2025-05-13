@@ -15,10 +15,10 @@ class Base extends GenericVersionDriver
     public function __construct()
     {
         parent::__construct();
-        $this->name = 'php80_base';
-        $this->description = 'PHP 8.0 基础版本安装驱动';
+        $this->name = 'php80';
+        $this->description = 'PHP 8.0 版本安装驱动';
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -27,7 +27,7 @@ class Base extends GenericVersionDriver
         // 只支持PHP 8.0.x版本
         return preg_match('/^8\.0\.\d+$/', $version);
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -35,7 +35,7 @@ class Base extends GenericVersionDriver
     {
         // 获取基本配置选项
         $configureOptions = parent::getConfigureOptions($version, $options);
-        
+
         // 添加PHP 8.0特定的配置选项
         $php80Options = [
             '--with-pear',
@@ -47,10 +47,23 @@ class Base extends GenericVersionDriver
             '--with-xpm',
             '--with-avif',
         ];
-        
+
         // 合并配置选项
         $configureOptions = array_merge($configureOptions, $php80Options);
-        
+
         return $configureOptions;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getSourceUrl($version, $mirror = null)
+    {
+        // 如果是PHP 8.0.0，则使用特定的URL
+        if ($version === '8.0.0') {
+            return "https://www.php.net/distributions/php-8.0.0.tar.gz";
+        }
+
+        return parent::getSourceUrl($version, $mirror);
     }
 }

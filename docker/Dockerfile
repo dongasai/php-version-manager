@@ -1,44 +1,23 @@
-FROM php:7.1-cli
+FROM ubuntu:22.04
+
+# 设置非交互式安装
+ENV DEBIAN_FRONTEND=noninteractive
 
 # 使用阿里云镜像
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
-    sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
+RUN sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+    sed -i 's/security.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list
 
-# 安装基本工具和依赖
+# 安装基本工具和依赖(只安装基本依赖,其他的依赖需要通过pvm来处理)
 RUN apt-get update && apt-get install -y \
     curl \
-    wget \
-    git \
-    zip \
-    unzip \
-    libzip-dev \
-    libxml2-dev \
-    libssl-dev \
-    libcurl4-openssl-dev \
-    libpng-dev \
-    libjpeg-dev \
-    libonig-dev \
-    sudo \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    wget
 
-# 安装PHP扩展
-RUN docker-php-ext-install \
-    zip \
-    xml \
-    dom \
-    mbstring \
-    curl \
-    pdo \
-    pdo_mysql
 
-# 安装Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer && \
-    # 配置Composer使用阿里云镜像
-    composer config -g repo.packagist composer https://packagist.pages.dev/
+# 注意：我们不预先安装PHP,只安装基本依赖curl /wget 来下载 install.sh ，其他的而是留给PVM工具来安装和管理
 
 # 创建非root用户
 RUN useradd -m -s /bin/bash developer && \
+    mkdir -p /etc/sudoers.d && \
     echo "developer ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/developer
 
 # 创建工作目录

@@ -18,7 +18,7 @@ class Php5Driver extends GenericVersionDriver
         $this->name = 'php5';
         $this->description = 'PHP 5.x版本安装驱动';
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -28,18 +28,18 @@ class Php5Driver extends GenericVersionDriver
         if (!preg_match('/^\d+\.\d+\.\d+$/', $version)) {
             return false;
         }
-        
+
         // 检查版本是否在支持范围内
         list($major, $minor, $patch) = explode('.', $version);
-        
+
         // 支持PHP 5.4及以上版本
         if ($major != 5 || $minor < 4) {
             return false;
         }
-        
+
         return true;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -47,7 +47,7 @@ class Php5Driver extends GenericVersionDriver
     {
         // 获取版本信息
         list($major, $minor, $patch) = explode('.', $version);
-        
+
         // 基本配置选项
         $configureOptions = [
             "--prefix={$this->versionsDir}/{$version}",
@@ -73,12 +73,12 @@ class Php5Driver extends GenericVersionDriver
             "--enable-soap",
             "--enable-sockets",
         ];
-        
+
         // PHP 5.5及以上版本支持opcache
         if ($minor >= 5) {
             $configureOptions[] = "--enable-opcache";
         }
-        
+
         // PHP 5.4特定配置
         if ($minor == 4) {
             // PHP 5.4使用旧版本的mysql扩展
@@ -86,24 +86,24 @@ class Php5Driver extends GenericVersionDriver
             $configureOptions[] = "--with-mysqli=mysqlnd";
             $configureOptions[] = "--with-pdo-mysql=mysqlnd";
         }
-        
+
         // 添加自定义配置选项
         if (isset($options['configure_options']) && is_array($options['configure_options'])) {
             $configureOptions = array_merge($configureOptions, $options['configure_options']);
         }
-        
+
         return $configureOptions;
     }
-    
+
     /**
      * {@inheritdoc}
      */
-    protected function getSourceUrl($version)
+    protected function getSourceUrl($version, $mirror = null)
     {
         // 使用PHP官方源码URL
         return "https://www.php.net/distributions/php-{$version}.tar.gz";
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -124,18 +124,18 @@ class Php5Driver extends GenericVersionDriver
             'libzip-dev',
             'libicu-dev',
         ];
-        
+
         // 获取版本信息
         list($major, $minor, $patch) = explode('.', $version);
-        
+
         // PHP 5.4特定依赖
         if ($minor == 4) {
             $dependencies[] = 'libmysqlclient-dev';
         }
-        
+
         return $dependencies;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -143,56 +143,56 @@ class Php5Driver extends GenericVersionDriver
     {
         // 当前目录
         $currentDir = getcwd();
-        
+
         // 进入源码目录
         chdir($sourceDir);
-        
+
         // 配置
         $configureCommand = './configure ' . implode(' ', $configureOptions);
         $output = [];
         $returnCode = 0;
-        
+
         exec($configureCommand . ' 2>&1', $output, $returnCode);
-        
+
         if ($returnCode !== 0) {
             chdir($currentDir);
             throw new \Exception("配置PHP失败: " . implode("\n", $output));
         }
-        
+
         // 编译
         $output = [];
         $returnCode = 0;
-        
+
         // 获取CPU核心数
         $cpuCores = $this->getCpuCores();
-        
+
         exec("make -j{$cpuCores} 2>&1", $output, $returnCode);
-        
+
         if ($returnCode !== 0) {
             chdir($currentDir);
             throw new \Exception("编译PHP失败: " . implode("\n", $output));
         }
-        
+
         // 安装
         $output = [];
         $returnCode = 0;
-        
+
         exec('make install 2>&1', $output, $returnCode);
-        
+
         if ($returnCode !== 0) {
             chdir($currentDir);
             throw new \Exception("安装PHP失败: " . implode("\n", $output));
         }
-        
+
         // 复制配置文件
         $this->copyConfigFiles($version);
-        
+
         // 返回到原目录
         chdir($currentDir);
-        
+
         return true;
     }
-    
+
     /**
      * 获取CPU核心数
      *
@@ -201,16 +201,16 @@ class Php5Driver extends GenericVersionDriver
     private function getCpuCores()
     {
         $cores = 1;
-        
+
         if (is_file('/proc/cpuinfo')) {
             $cpuinfo = file_get_contents('/proc/cpuinfo');
             preg_match_all('/^processor/m', $cpuinfo, $matches);
             $cores = count($matches[0]);
         }
-        
+
         return $cores > 0 ? $cores : 1;
     }
-    
+
     /**
      * 复制配置文件
      *
@@ -222,33 +222,33 @@ class Php5Driver extends GenericVersionDriver
         $versionDir = $this->versionsDir . '/' . $version;
         $configDir = $versionDir . '/etc';
         $configScanDir = $configDir . '/conf.d';
-        
+
         // 创建配置目录
         if (!is_dir($configDir)) {
             mkdir($configDir, 0755, true);
         }
-        
+
         if (!is_dir($configScanDir)) {
             mkdir($configScanDir, 0755, true);
         }
-        
+
         // 复制php.ini文件
         $phpIniDevelopment = 'php.ini-development';
         $phpIniProduction = 'php.ini-production';
-        
+
         if (file_exists($phpIniDevelopment)) {
             copy($phpIniDevelopment, $configDir . '/php.ini-development');
         }
-        
+
         if (file_exists($phpIniProduction)) {
             copy($phpIniProduction, $configDir . '/php.ini-production');
         }
-        
+
         // 创建默认配置文件
         if (file_exists($phpIniDevelopment)) {
             copy($phpIniDevelopment, $configDir . '/php.ini');
         }
-        
+
         return true;
     }
 }

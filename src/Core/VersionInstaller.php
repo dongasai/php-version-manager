@@ -8,8 +8,8 @@ use VersionManager\Core\Download\DownloadManager;
 use VersionManager\Core\Security\SignatureVerifier;
 use VersionManager\Core\Security\PermissionManager;
 use VersionManager\Core\Security\SecurityUpdater;
-use VersionManager\Core\Version\Drivers\Php5Driver;
 use VersionManager\Core\Version\GenericVersionDriver;
+use VersionManager\Core\Version\VersionDriverFactory;
 
 /**
  * PHP版本安装类
@@ -269,7 +269,13 @@ class VersionInstaller
         if (isset($options['from_source']) && $options['from_source']) {
             return $this->installFromSource($version, $options);
         } else {
-            return $this->installFromBinary($version, $options);
+            try {
+                return $this->installFromBinary($version, $options);
+            } catch (\Exception $e) {
+                // 如果二进制包安装失败，尝试从源码安装
+                echo "\033[33m二进制包安装失败，尝试从源码安装...\033[0m\n";
+                return $this->installFromSource($version, $options);
+            }
         }
     }
 
@@ -302,19 +308,27 @@ class VersionInstaller
 
         echo "安装依赖...\n";
 
+        // 检查是否在Docker容器中
+        $inDocker = file_exists('/.dockerenv');
+        $sudoCmd = $inDocker ? '' : 'sudo ';
+
+        if ($inDocker) {
+            echo "\033[33m检测到Docker容器环境，不使用sudo\033[0m\n";
+        }
+
         $command = '';
         switch ($packageManager) {
             case 'apt':
-                $command = 'sudo apt-get update && sudo apt-get install -y ' . implode(' ', $dependencies);
+                $command = $sudoCmd . 'apt-get update && ' . $sudoCmd . 'apt-get install -y ' . implode(' ', $dependencies);
                 break;
             case 'yum':
-                $command = 'sudo yum install -y ' . implode(' ', $dependencies);
+                $command = $sudoCmd . 'yum install -y ' . implode(' ', $dependencies);
                 break;
             case 'dnf':
-                $command = 'sudo dnf install -y ' . implode(' ', $dependencies);
+                $command = $sudoCmd . 'dnf install -y ' . implode(' ', $dependencies);
                 break;
             case 'apk':
-                $command = 'sudo apk add ' . implode(' ', $dependencies);
+                $command = $sudoCmd . 'apk add ' . implode(' ', $dependencies);
                 break;
             default:
                 throw new Exception("不支持的包管理器: {$packageManager}");
@@ -817,5 +831,26 @@ class VersionInstaller
         }
 
         return rmdir($dir);
+    }
+
+    /**
+     * 初始化版本驱动类
+     */
+    private function initVersionDrivers()
+    {
+        // 使用版本驱动工厂初始化驱动
+        $this->versionDrivers['generic'] = VersionDriverFactory::getDriver();
+    }
+
+    /**
+     * 获取版本驱动类
+     *
+     * @param string $version PHP版本
+     * @return mixed 版本驱动类
+     */
+    private function getVersionDriver($version)
+    {
+        // 使用版本驱动工厂获取驱动
+        return VersionDriverFactory::getDriver($version);
     }
 }

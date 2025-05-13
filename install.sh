@@ -51,18 +51,26 @@ install_dependencies() {
     local pkg_manager=$(detect_package_manager)
     echo -e "${BLUE}使用 ${pkg_manager} 安装依赖...${NC}"
 
+    # 检查是否在Docker容器中
+    if [ -f /.dockerenv ]; then
+        echo -e "${YELLOW}检测到Docker容器环境，不使用sudo${NC}"
+        USE_SUDO=""
+    else
+        USE_SUDO="sudo"
+    fi
+
     case $pkg_manager in
         apt)
-            sudo apt-get update
-            sudo apt-get install -y curl wget build-essential libssl-dev libcurl4-openssl-dev libxml2-dev
+            $USE_SUDO apt-get update
+            $USE_SUDO apt-get install -y curl wget build-essential libssl-dev libcurl4-openssl-dev libxml2-dev
             ;;
         yum|dnf)
-            sudo $pkg_manager update -y
-            sudo $pkg_manager install -y curl wget gcc make openssl-devel libcurl-devel libxml2-devel
+            $USE_SUDO $pkg_manager update -y
+            $USE_SUDO $pkg_manager install -y curl wget gcc make openssl-devel libcurl-devel libxml2-devel
             ;;
         apk)
-            sudo apk update
-            sudo apk add curl wget gcc make openssl-dev curl-dev libxml2-dev
+            $USE_SUDO apk update
+            $USE_SUDO apk add curl wget gcc make openssl-dev curl-dev libxml2-dev
             ;;
         *)
             echo -e "${RED}错误: 不支持的包管理器${NC}"
@@ -88,20 +96,28 @@ install_base_php() {
     local pkg_manager=$(detect_package_manager)
     echo -e "${BLUE}安装PHP ${DEFAULT_PHP_VERSION}...${NC}"
 
+    # 检查是否在Docker容器中
+    if [ -f /.dockerenv ]; then
+        echo -e "${YELLOW}检测到Docker容器环境，不使用sudo${NC}"
+        USE_SUDO=""
+    else
+        USE_SUDO="sudo"
+    fi
+
     case $pkg_manager in
         apt)
-            sudo apt-get update
-            sudo apt-get install -y php php-cli php-common php-curl php-xml php-mbstring
+            $USE_SUDO apt-get update
+            $USE_SUDO apt-get install -y php php-cli php-common php-curl php-xml php-mbstring
             ;;
         yum)
-            sudo yum install -y php php-cli php-common php-curl php-xml php-mbstring
+            $USE_SUDO yum install -y php php-cli php-common php-curl php-xml php-mbstring
             ;;
         dnf)
-            sudo dnf install -y php php-cli php-common php-curl php-xml php-mbstring
+            $USE_SUDO dnf install -y php php-cli php-common php-curl php-xml php-mbstring
             ;;
         apk)
-            sudo apk update
-            sudo apk add php php-cli php-common php-curl php-xml php-mbstring
+            $USE_SUDO apk update
+            $USE_SUDO apk add php php-cli php-common php-curl php-xml php-mbstring
             ;;
         *)
             echo -e "${RED}错误: 不支持的包管理器，无法自动安装PHP${NC}"
@@ -124,11 +140,19 @@ install_base_php() {
 install_composer() {
     echo -e "${BLUE}安装Composer...${NC}"
 
+    # 检查是否在Docker容器中
+    if [ -f /.dockerenv ]; then
+        echo -e "${YELLOW}检测到Docker容器环境，不使用sudo${NC}"
+        USE_SUDO=""
+    else
+        USE_SUDO="sudo"
+    fi
+
     # 下载Composer安装脚本
     curl -sS https://getcomposer.org/installer | php
 
     # 移动到全局目录
-    sudo mv composer.phar /usr/local/bin/composer
+    $USE_SUDO mv composer.phar /usr/local/bin/composer
 
     # 验证安装
     if command -v composer &> /dev/null; then
@@ -155,18 +179,26 @@ create_pvm_dirs() {
 clone_pvm_repo() {
     echo -e "${BLUE}克隆PVM仓库...${NC}"
 
+    # 检查是否在Docker容器中
+    if [ -f /.dockerenv ]; then
+        echo -e "${YELLOW}检测到Docker容器环境，不使用sudo${NC}"
+        USE_SUDO=""
+    else
+        USE_SUDO="sudo"
+    fi
+
     # 如果git未安装，则安装git
     if ! command -v git &> /dev/null; then
         local pkg_manager=$(detect_package_manager)
         case $pkg_manager in
             apt)
-                sudo apt-get install -y git
+                $USE_SUDO apt-get install -y git
                 ;;
             yum|dnf)
-                sudo $pkg_manager install -y git
+                $USE_SUDO $pkg_manager install -y git
                 ;;
             apk)
-                sudo apk add git
+                $USE_SUDO apk add git
                 ;;
             *)
                 echo -e "${RED}错误: 不支持的包管理器，无法自动安装git${NC}"

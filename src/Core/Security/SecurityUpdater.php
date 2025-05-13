@@ -6,7 +6,7 @@ use VersionManager\Core\VersionSwitcher;
 
 /**
  * 安全更新类
- * 
+ *
  * 负责检查和应用安全更新
  */
 class SecurityUpdater
@@ -17,28 +17,28 @@ class SecurityUpdater
      * @var bool
      */
     private $enabled = true;
-    
+
     /**
      * 是否自动更新
      *
      * @var bool
      */
     private $autoUpdate = false;
-    
+
     /**
      * 安全更新API URL
      *
      * @var string
      */
     private $apiUrl = 'https://www.php.net/releases/index.php?json&version=';
-    
+
     /**
      * 版本切换器
      *
      * @var VersionSwitcher
      */
     private $versionSwitcher;
-    
+
     /**
      * 构造函数
      */
@@ -46,7 +46,7 @@ class SecurityUpdater
     {
         $this->versionSwitcher = new VersionSwitcher();
     }
-    
+
     /**
      * 设置是否启用安全更新
      *
@@ -58,7 +58,7 @@ class SecurityUpdater
         $this->enabled = $enabled;
         return $this;
     }
-    
+
     /**
      * 设置是否自动更新
      *
@@ -70,7 +70,7 @@ class SecurityUpdater
         $this->autoUpdate = $autoUpdate;
         return $this;
     }
-    
+
     /**
      * 设置安全更新API URL
      *
@@ -82,7 +82,7 @@ class SecurityUpdater
         $this->apiUrl = $apiUrl;
         return $this;
     }
-    
+
     /**
      * 检查安全更新
      *
@@ -94,23 +94,23 @@ class SecurityUpdater
         if (!$this->enabled) {
             return false;
         }
-        
+
         // 提取主版本号和次版本号
         $versionParts = explode('.', $version);
         $majorMinor = $versionParts[0] . '.' . $versionParts[1];
-        
+
         // 获取安全更新信息
         $updateInfo = $this->getSecurityUpdateInfo($majorMinor);
         if (!$updateInfo) {
             return false;
         }
-        
+
         // 检查是否有更新
         $latestVersion = $updateInfo['version'];
         if (version_compare($version, $latestVersion, '>=')) {
             return false;
         }
-        
+
         // 返回更新信息
         return [
             'current_version' => $version,
@@ -120,7 +120,7 @@ class SecurityUpdater
             'update_url' => isset($updateInfo['announcement']) ? $updateInfo['announcement'] : '',
         ];
     }
-    
+
     /**
      * 检查所有已安装版本的安全更新
      *
@@ -131,22 +131,22 @@ class SecurityUpdater
         if (!$this->enabled) {
             return [];
         }
-        
+
         $updates = [];
-        
+
         // 获取所有已安装的PHP版本
         $installedVersions = $this->versionSwitcher->getInstalledVersions();
-        
+
         foreach ($installedVersions as $version) {
             $updateInfo = $this->checkSecurityUpdate($version);
             if ($updateInfo) {
                 $updates[$version] = $updateInfo;
             }
         }
-        
+
         return $updates;
     }
-    
+
     /**
      * 应用安全更新
      *
@@ -159,33 +159,33 @@ class SecurityUpdater
         if (!$this->enabled) {
             return false;
         }
-        
+
         // 检查安全更新
         $updateInfo = $this->checkSecurityUpdate($version);
         if (!$updateInfo) {
             return false;
         }
-        
+
         // 获取最新版本
         $latestVersion = $updateInfo['latest_version'];
-        
+
         // 安装最新版本
         $installer = new \VersionManager\Core\VersionInstaller();
         $success = $installer->install($latestVersion);
-        
+
         if (!$success) {
             throw new \Exception("无法安装PHP {$latestVersion}");
         }
-        
+
         // 如果当前使用的是需要更新的版本，则切换到新版本
         $currentVersion = $this->versionSwitcher->getCurrentVersion();
         if ($currentVersion === $version) {
             $this->versionSwitcher->switchVersion($latestVersion);
         }
-        
+
         return true;
     }
-    
+
     /**
      * 应用所有安全更新
      *
@@ -196,12 +196,12 @@ class SecurityUpdater
         if (!$this->enabled) {
             return [];
         }
-        
+
         $results = [];
-        
+
         // 检查所有安全更新
         $updates = $this->checkAllSecurityUpdates();
-        
+
         foreach ($updates as $version => $updateInfo) {
             try {
                 $success = $this->applySecurityUpdate($version);
@@ -216,10 +216,10 @@ class SecurityUpdater
                 ];
             }
         }
-        
+
         return $results;
     }
-    
+
     /**
      * 获取安全更新信息
      *
@@ -229,27 +229,60 @@ class SecurityUpdater
     private function getSecurityUpdateInfo($majorMinor)
     {
         $url = $this->apiUrl . $majorMinor;
-        
+
+        // 检查curl扩展是否可用
+        if (!function_exists('curl_init')) {
+            // 如果没有curl扩展，尝试使用file_get_contents
+            if (function_exists('file_get_contents') && ini_get('allow_url_fopen')) {
+                $context = stream_context_create([
+                    'http' => [
+                        'method' => 'GET',
+                        'header' => "User-Agent: PHP Version Manager\r\n",
+                        'timeout' => 30,
+                    ]
+                ]);
+
+                $response = @file_get_contents($url, false, $context);
+
+                if ($response === false) {
+                    return false;
+                }
+
+                $data = json_decode($response, true);
+                if (!$data || !isset($data['version'])) {
+                    return false;
+                }
+
+                return $data;
+            }
+
+            // 如果也不支持file_get_contents或allow_url_fopen关闭，则返回false
+            return false;
+        }
+
+        // 使用curl获取数据
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'PHP Version Manager');
+
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
+
         curl_close($ch);
-        
+
         if ($httpCode !== 200 || !$response) {
             return false;
         }
-        
+
         $data = json_decode($response, true);
         if (!$data || !isset($data['version'])) {
             return false;
         }
-        
+
         return $data;
     }
 }

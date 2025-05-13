@@ -33,6 +33,7 @@ class Application
     {
         // 在这里注册所有命令
         $this->commands = [
+            'init' => Commands\InitCommand::class,
             'install' => Commands\InstallCommand::class,
             'use' => Commands\UseCommand::class,
             'remove' => Commands\RemoveCommand::class,

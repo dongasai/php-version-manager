@@ -29,12 +29,46 @@ if (!$loaded) {
     exit(1);
 }
 
-// 引导应用程序
+// 检查基础PHP环境
 try {
+    $environmentChecker = new VersionManager\Core\System\EnvironmentChecker();
+    $checkResult = $environmentChecker->check();
+
+    // 获取命令
+    $command = isset($argv[1]) ? $argv[1] : 'help';
+
+    // 如果命令不是'init'或'help'或'--version'或'-v'，则检查环境
+    if ($command !== 'init' && $command !== 'help' && $command !== '--version' && $command !== '-v') {
+        // 如果环境不满足要求
+        if (!$checkResult['is_ok']) {
+            echo "\033[31m错误: PVM运行环境不满足要求\033[0m" . PHP_EOL . PHP_EOL;
+            echo $environmentChecker->getDetailedInfo() . PHP_EOL;
+            echo "\033[33m请运行 'pvm init --fix' 命令初始化PVM运行环境\033[0m" . PHP_EOL;
+            exit(1);
+        }
+
+        // 检查PVM是否已经初始化
+        $homeDir = getenv('HOME');
+        $pvmDir = $homeDir . '/.pvm';
+
+        if (!is_dir($pvmDir) || !is_dir($pvmDir . '/versions') || !is_dir($pvmDir . '/config')) {
+            echo "\033[33m警告: PVM尚未初始化\033[0m" . PHP_EOL;
+            echo "\033[33m请运行 'pvm init' 命令初始化PVM运行环境\033[0m" . PHP_EOL . PHP_EOL;
+        }
+
+        // 如果有缺失的推荐扩展，显示警告
+        if (!empty($checkResult['missing_recommended_extensions'])) {
+            echo "\033[33m警告: 缺失推荐的PHP扩展: " .
+                 implode(', ', $checkResult['missing_recommended_extensions']) . "\033[0m" . PHP_EOL;
+            echo "\033[33m这些扩展不是必需的，但安装它们可能会提高PVM的功能\033[0m" . PHP_EOL . PHP_EOL;
+        }
+    }
+
+    // 引导应用程序
     $app = new VersionManager\Console\Application();
     $exitCode = $app->run($argv);
     exit($exitCode);
 } catch (Exception $e) {
-    echo 'Error: ' . $e->getMessage() . PHP_EOL;
+    echo "\033[31m错误: " . $e->getMessage() . "\033[0m" . PHP_EOL;
     exit(1);
 }

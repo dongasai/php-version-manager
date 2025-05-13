@@ -19,6 +19,7 @@ class HelpCommand implements CommandInterface
         echo "用法: pvm [命令] [参数]" . PHP_EOL . PHP_EOL;
 
         echo "可用命令:" . PHP_EOL;
+        echo "  init      初始化PVM运行环境" . PHP_EOL;
         echo "  install   安装指定版本的PHP" . PHP_EOL;
         echo "  use       切换到指定的PHP版本" . PHP_EOL;
         echo "  remove    删除指定的PHP版本" . PHP_EOL;

@@ -2,22 +2,21 @@
 
 namespace VersionManager\Core\Version\Drivers\PHP71;
 
-use VersionManager\Core\Version\GenericVersionDriver;
+
+
+use VersionManager\Core\Tags\PhpTag;
+use VersionManager\Core\Version\AbstractVersionDriver;
 
 /**
  * PHP 7.1 基础版本安装驱动类
  */
-class Base extends GenericVersionDriver
+class Base extends AbstractVersionDriver
 {
-    /**
-     * 构造函数
-     */
-    public function __construct()
-    {
-        parent::__construct();
-        $this->name = 'php71';
-        $this->description = 'PHP 7.1 版本安装驱动';
-    }
+    protected $name ='php71';
+    protected $description = 'PHP 7.1 版本安装驱动';
+
+
+
 
     /**
      * {@inheritdoc}
@@ -60,4 +59,22 @@ class Base extends GenericVersionDriver
 
         return parent::getSourceUrl($version, $mirror);
     }
+
+    public function getTags(): array
+    {
+        return [
+            PhpTag::PHP71
+        ];
+    }
+
+    public function install($version, array $options = [])
+    {
+        // TODO: Implement install() method.
+    }
+
+    public function remove($version, array $options = [])
+    {
+        // TODO: Implement remove() method.
+    }
+
 }

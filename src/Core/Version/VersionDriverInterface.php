@@ -29,22 +29,9 @@ interface VersionDriverInterface
      * @return string
      */
     public function getDescription();
-    
-    /**
-     * 检查是否支持指定的PHP版本
-     *
-     * @param string $version PHP版本
-     * @return bool
-     */
-    public function isSupported($version);
-    
-    /**
-     * 检查PHP版本是否已安装
-     *
-     * @param string $version PHP版本
-     * @return bool
-     */
-    public function isInstalled($version);
+
+
+
     
     /**
      * 安装PHP版本
@@ -71,14 +58,8 @@ interface VersionDriverInterface
      * @return array
      */
     public function getInfo($version);
-    
-    /**
-     * 获取PHP版本的二进制文件路径
-     *
-     * @param string $version PHP版本
-     * @return string
-     */
-    public function getBinaryPath($version);
+
+
     
     /**
      * 获取PHP版本的配置目录

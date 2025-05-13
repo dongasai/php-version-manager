@@ -46,7 +46,7 @@ class DownloadManager
      *
      * @var bool
      */
-    private $useMultiThread = true;
+    private $useMultiThread = false;
 
     /**
      * 是否验证签名
@@ -209,7 +209,15 @@ class DownloadManager
     private function downloadSingleThread($url, $destination)
     {
         if ($this->showProgress) {
-            echo "下载文件: " . basename($url) . PHP_EOL;
+            echo "\033[1;34m下载文件: " . basename($url) . "\033[0m" . PHP_EOL;
+
+            // 获取文件大小
+            $fileSize = $this->getFileSize($url);
+            if ($fileSize !== false) {
+                echo "\033[33m文件大小: " . $this->formatSize($fileSize) . "\033[0m" . PHP_EOL;
+            }
+
+            echo "\033[33m开始下载...\033[0m" . PHP_EOL;
         }
 
         // 使用curl下载
@@ -226,7 +234,31 @@ class DownloadManager
             curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, function($resource, $downloadSize, $downloaded, $uploadSize, $uploaded) {
                 if ($downloadSize > 0) {
                     $percent = round($downloaded / $downloadSize * 100);
-                    echo "\r下载进度: {$percent}% (" . $this->formatSize($downloaded) . " / " . $this->formatSize($downloadSize) . ")";
+                    $progressWidth = 50; // 进度条宽度
+                    $progressDone = round($progressWidth * ($percent / 100));
+                    $progressRemain = $progressWidth - $progressDone;
+                    $progressBar = str_repeat("=", $progressDone) . str_repeat(" ", $progressRemain);
+
+                    // 使用颜色输出
+                    echo "\r\033[32m["; // 绿色
+                    echo $progressBar;
+                    echo "]\033[0m "; // 重置颜色
+                    echo "{$percent}% (" . $this->formatSize($downloaded) . " / " . $this->formatSize($downloadSize) . ")";
+
+                    // 计算下载速度
+                    static $lastTime = 0;
+                    static $lastDownloaded = 0;
+                    $currentTime = microtime(true);
+
+                    if ($lastTime > 0 && $currentTime - $lastTime >= 1) {
+                        $speed = ($downloaded - $lastDownloaded) / ($currentTime - $lastTime);
+                        echo " " . $this->formatSize($speed) . "/s";
+                        $lastTime = $currentTime;
+                        $lastDownloaded = $downloaded;
+                    } elseif ($lastTime == 0) {
+                        $lastTime = $currentTime;
+                        $lastDownloaded = $downloaded;
+                    }
                 }
             });
         }
@@ -239,6 +271,7 @@ class DownloadManager
 
         if ($this->showProgress) {
             echo PHP_EOL;
+            echo "\033[32m下载完成!\033[0m" . PHP_EOL;
         }
 
         if (!$success) {
@@ -248,6 +281,13 @@ class DownloadManager
         // 添加到缓存
         if ($this->useCache) {
             $this->cacheManager->setDownloadCache($url, $destination);
+        }
+
+        if ($this->showProgress) {
+            $fileSize = filesize($destination);
+            echo "\033[1;32m文件下载完成: " . basename($url) . "\033[0m" . PHP_EOL;
+            echo "\033[32m文件大小: " . $this->formatSize($fileSize) . "\033[0m" . PHP_EOL;
+            echo "\033[32m保存路径: " . $destination . "\033[0m" . PHP_EOL;
         }
 
         return true;
@@ -263,15 +303,18 @@ class DownloadManager
      */
     private function downloadMultiThread($url, $destination)
     {
-        if ($this->showProgress) {
-            echo "多线程下载文件: " . basename($url) . PHP_EOL;
-        }
-
         // 获取文件大小
         $fileSize = $this->getFileSize($url);
         if ($fileSize === false) {
             // 如果无法获取文件大小，则使用单线程下载
             return $this->downloadSingleThread($url, $destination);
+        }
+
+        if ($this->showProgress) {
+            echo "\033[1;34m多线程下载文件: " . basename($url) . "\033[0m" . PHP_EOL;
+            echo "\033[33m文件大小: " . $this->formatSize($fileSize) . "\033[0m" . PHP_EOL;
+            echo "\033[33m线程数: {$this->threadCount}\033[0m" . PHP_EOL;
+            echo "\033[33m开始下载...\033[0m" . PHP_EOL;
         }
 
         // 计算每个线程下载的大小
@@ -326,6 +369,12 @@ class DownloadManager
             $this->cacheManager->setDownloadCache($url, $destination);
         }
 
+        if ($this->showProgress) {
+            echo "\033[1;32m文件下载完成: " . basename($url) . "\033[0m" . PHP_EOL;
+            echo "\033[32m文件大小: " . $this->formatSize($fileSize) . "\033[0m" . PHP_EOL;
+            echo "\033[32m保存路径: " . $destination . "\033[0m" . PHP_EOL;
+        }
+
         return true;
     }
 
@@ -359,7 +408,34 @@ class DownloadManager
                     $partSize = $end - $start + 1;
                     $percent = round($downloaded / $partSize * 100);
                     $totalPercent = round(($start + $downloaded) / $fileSize * 100);
-                    echo "\r线程 {$partNumber}/{$totalParts}: {$percent}% | 总进度: {$totalPercent}% (" . $this->formatSize($start + $downloaded) . " / " . $this->formatSize($fileSize) . ")";
+
+                    // 进度条
+                    $progressWidth = 30; // 进度条宽度
+                    $progressDone = round($progressWidth * ($totalPercent / 100));
+                    $progressRemain = $progressWidth - $progressDone;
+                    $progressBar = str_repeat("=", $progressDone) . str_repeat(" ", $progressRemain);
+
+                    // 使用颜色输出
+                    echo "\r\033[36m线程 {$partNumber}/{$totalParts}:\033[0m "; // 青色
+                    echo "\033[32m["; // 绿色
+                    echo $progressBar;
+                    echo "]\033[0m "; // 重置颜色
+                    echo "{$totalPercent}% (" . $this->formatSize($start + $downloaded) . " / " . $this->formatSize($fileSize) . ")";
+
+                    // 计算下载速度
+                    static $lastTime = 0;
+                    static $lastDownloaded = 0;
+                    $currentTime = microtime(true);
+
+                    if ($lastTime > 0 && $currentTime - $lastTime >= 1) {
+                        $speed = ($downloaded - $lastDownloaded) / ($currentTime - $lastTime);
+                        echo " " . $this->formatSize($speed) . "/s";
+                        $lastTime = $currentTime;
+                        $lastDownloaded = $downloaded;
+                    } elseif ($lastTime == 0) {
+                        $lastTime = $currentTime;
+                        $lastDownloaded = $downloaded;
+                    }
                 }
             });
         }
@@ -372,6 +448,7 @@ class DownloadManager
 
         if ($this->showProgress) {
             echo PHP_EOL;
+            echo "\033[32m线程 {$partNumber} 下载完成!\033[0m" . PHP_EOL;
         }
 
         if (!$success) {

@@ -212,11 +212,15 @@ class VersionInstaller
                 }
             }
 
-            // 询问用户是否继续
-            echo "\033[33m是否继续安装? (y/n) \033[0m";
-            $answer = trim(fgets(STDIN));
-            if (strtolower($answer) !== 'y') {
-                throw new Exception("用户取消安装");
+            // 如果没有设置yes选项，则询问用户是否继续
+            if (!isset($options['yes']) || !$options['yes']) {
+                echo "\033[33m是否继续安装? (y/n) \033[0m";
+                $answer = trim(fgets(STDIN));
+                if (strtolower($answer) !== 'y') {
+                    throw new Exception("用户取消安装");
+                }
+            } else {
+                echo "\033[33m自动确认安装\033[0m\n";
             }
         }
 
@@ -241,20 +245,29 @@ class VersionInstaller
                 }
             }
 
-            // 询问用户是否安装最新版本
-            echo "\033[33m是否安装最新版本? (y/n) \033[0m";
-            $answer = trim(fgets(STDIN));
-            if (strtolower($answer) === 'y') {
+            // 如果没有设置yes选项，则询问用户是否安装最新版本
+            if (!isset($options['yes']) || !$options['yes']) {
+                echo "\033[33m是否安装最新版本? (y/n) \033[0m";
+                $answer = trim(fgets(STDIN));
+                if (strtolower($answer) === 'y') {
+                    return $this->install($securityUpdate['latest_version'], $options);
+                }
+            } else {
+                echo "\033[33m自动确认安装最新版本 {$securityUpdate['latest_version']}\033[0m\n";
                 return $this->install($securityUpdate['latest_version'], $options);
             }
         } elseif ($supportLevel === SupportedVersions::SUPPORT_UNTESTED) {
             echo "\033[33m警告: PHP版本 {$version} 在当前系统上尚未经过测试\033[0m\n";
 
-            // 询问用户是否继续
-            echo "\033[33m是否继续安装? (y/n) \033[0m";
-            $answer = trim(fgets(STDIN));
-            if (strtolower($answer) !== 'y') {
-                throw new Exception("用户取消安装");
+            // 如果没有设置yes选项，则询问用户是否继续
+            if (!isset($options['yes']) || !$options['yes']) {
+                echo "\033[33m是否继续安装? (y/n) \033[0m";
+                $answer = trim(fgets(STDIN));
+                if (strtolower($answer) !== 'y') {
+                    throw new Exception("用户取消安装");
+                }
+            } else {
+                echo "\033[33m自动确认安装\033[0m\n";
             }
         }
 

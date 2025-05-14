@@ -14,11 +14,17 @@ class Base extends GenericVersionDriver
      */
     public function __construct()
     {
-        parent::__construct();
-        $this->name = 'php74';
-        $this->description = 'PHP 7.4版本安装驱动';
+        parent::__construct('php74', 'PHP 7.4版本安装驱动');
     }
-    
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getTags(): array
+    {
+        return ['php74'];
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -27,7 +33,7 @@ class Base extends GenericVersionDriver
         // 只支持PHP 7.4.x版本
         return preg_match('/^7\.4\.\d+$/', $version);
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -35,7 +41,7 @@ class Base extends GenericVersionDriver
     {
         // 获取基本配置选项
         $configureOptions = parent::getConfigureOptions($version, $options);
-        
+
         // 添加PHP 7.4特定的配置选项
         $php74Options = [
             '--enable-gd',
@@ -44,13 +50,13 @@ class Base extends GenericVersionDriver
             '--with-freetype',
             '--with-xpm',
         ];
-        
+
         // 合并配置选项
         $configureOptions = array_merge($configureOptions, $php74Options);
-        
+
         return $configureOptions;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -73,7 +79,7 @@ class Base extends GenericVersionDriver
             'libsodium-dev',
             'libargon2-dev',
         ];
-        
+
         return $dependencies;
     }
 }

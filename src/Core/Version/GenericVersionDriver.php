@@ -5,14 +5,27 @@ namespace VersionManager\Core\Version;
 use VersionManager\Core\Config\MirrorConfig;
 
 /**
- * 版本安装助手
+ * 通用版本安装驱动类
  *
  * 用于处理没有特定驱动的情况
  */
-class GenericVersionDriver
+class GenericVersionDriver extends AbstractVersionDriver
 {
+    /**
+     * 构造函数
+     */
+    public function __construct()
+    {
+        parent::__construct('generic', '通用版本安装驱动');
+    }
 
-
+    /**
+     * {@inheritdoc}
+     */
+    public function getTags(): array
+    {
+        return ['generic'];
+    }
 
     /**
      * {@inheritdoc}

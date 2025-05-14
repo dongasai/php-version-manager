@@ -51,9 +51,9 @@ install_dependencies() {
     local pkg_manager=$(detect_package_manager)
     echo -e "${BLUE}使用 ${pkg_manager} 安装依赖...${NC}"
 
-    # 检查是否在Docker容器中
-    if [ -f /.dockerenv ]; then
-        echo -e "${YELLOW}检测到Docker容器环境，不使用sudo${NC}"
+    # 检查用户权限
+    if [ "$(id -u)" = "0" ]; then
+        # 如果当前用户是root，不需要sudo
         USE_SUDO=""
     else
         USE_SUDO="sudo"
@@ -96,9 +96,9 @@ install_base_php() {
     local pkg_manager=$(detect_package_manager)
     echo -e "${BLUE}安装PHP ${DEFAULT_PHP_VERSION}...${NC}"
 
-    # 检查是否在Docker容器中
-    if [ -f /.dockerenv ]; then
-        echo -e "${YELLOW}检测到Docker容器环境，不使用sudo${NC}"
+    # 检查用户权限
+    if [ "$(id -u)" = "0" ]; then
+        # 如果当前用户是root，不需要sudo
         USE_SUDO=""
     else
         USE_SUDO="sudo"
@@ -140,9 +140,9 @@ install_base_php() {
 install_composer() {
     echo -e "${BLUE}安装Composer...${NC}"
 
-    # 检查是否在Docker容器中
-    if [ -f /.dockerenv ]; then
-        echo -e "${YELLOW}检测到Docker容器环境，不使用sudo${NC}"
+    # 检查用户权限
+    if [ "$(id -u)" = "0" ]; then
+        # 如果当前用户是root，不需要sudo
         USE_SUDO=""
     else
         USE_SUDO="sudo"
@@ -179,9 +179,9 @@ create_pvm_dirs() {
 clone_pvm_repo() {
     echo -e "${BLUE}克隆PVM仓库...${NC}"
 
-    # 检查是否在Docker容器中
-    if [ -f /.dockerenv ]; then
-        echo -e "${YELLOW}检测到Docker容器环境，不使用sudo${NC}"
+    # 检查用户权限
+    if [ "$(id -u)" = "0" ]; then
+        # 如果当前用户是root，不需要sudo
         USE_SUDO=""
     else
         USE_SUDO="sudo"

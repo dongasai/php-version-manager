@@ -1,6 +1,6 @@
 # PHP Version Manager Makefile
 
-.PHONY: build dev shell run test test-ubuntu test-debian test-centos test-fedora test-alpine test-arm64 test-all clean run-tests-ubuntu compat-test-ubuntu compat-test-debian compat-test-centos compat-test-fedora compat-test-alpine compat-test-arm64 compat-test-all
+.PHONY: build dev shell run test test-ubuntu test-debian test-centos test-fedora test-alpine test-arm64 test-all clean run-tests-ubuntu compat-test-ubuntu compat-test-debian compat-test-centos compat-test-fedora compat-test-alpine compat-test-arm64 compat-test-all test-all-versions test-in-containers
 
 # 构建所有容器
 build:
@@ -80,6 +80,20 @@ test-arm64:
 
 # 测试所有环境
 test-all: test-ubuntu test-debian test-centos test-fedora test-alpine test-arm64
+
+# 在开发容器中测试所有PHP版本
+test-all-versions:
+	docker-compose run --rm dev bash -c "cd /app && chmod +x docker/test_all_versions.sh && ./docker/test_all_versions.sh"
+
+# 在所有容器中测试安装
+test-in-containers:
+	chmod +x docker/test_in_containers.sh
+	./docker/test_in_containers.sh --all
+
+# 在指定容器中测试指定版本
+test-version-in-container:
+	chmod +x docker/test_in_containers.sh
+	./docker/test_in_containers.sh -c $(CONTAINER) -v $(VERSION)
 
 # 清理容器
 clean:

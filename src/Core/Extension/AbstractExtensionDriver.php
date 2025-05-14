@@ -374,4 +374,47 @@ abstract class AbstractExtensionDriver implements ExtensionDriverInterface
         // 写入扩展配置
         return $this->writeExtensionConfig($phpVersion, $mergedConfig);
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function remove($phpVersion, array $options = [])
+    {
+        // 检查扩展是否已安装
+        if (!$this->isInstalled($phpVersion)) {
+            throw new \Exception("扩展 {$this->getName()} 未安装");
+        }
+
+        // 如果是内置扩展，则只能禁用而不能删除
+        if ($this->getType() === ExtensionType::BUILTIN) {
+            if (isset($options['disable']) && $options['disable']) {
+                return $this->disable($phpVersion);
+            } else {
+                throw new \Exception("无法删除内置扩展 {$this->getName()}，只能禁用");
+            }
+        }
+
+        // 禁用扩展
+        $this->disable($phpVersion);
+
+        // 删除扩展配置文件
+        $configFile = $this->getExtensionConfigFile($phpVersion);
+        if (file_exists($configFile)) {
+            unlink($configFile);
+        }
+
+        // 如果是 PECL 扩展，则使用 pecl uninstall 命令删除
+        if ($this->getType() === ExtensionType::PECL) {
+            $command = "pecl uninstall {$this->getName()}";
+            $output = [];
+            $returnCode = 0;
+            exec($command . ' 2>&1', $output, $returnCode);
+
+            if ($returnCode !== 0) {
+                throw new \Exception("删除扩展 {$this->getName()} 失败: " . implode("\n", $output));
+            }
+        }
+
+        return true;
+    }
 }

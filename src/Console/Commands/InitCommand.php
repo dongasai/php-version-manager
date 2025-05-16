@@ -143,29 +143,88 @@ class InitCommand implements CommandInterface
             $extensionPackages[] = "php-{$extension}";
         }
 
-        // 检查是否在Docker容器中
-        $inDocker = file_exists('/.dockerenv');
-        $sudoCmd = $inDocker ? '' : 'sudo ';
+        // 我们将尝试多种权限提升方式，不区分环境类型
 
         switch ($packageManager) {
             case 'apt':
-                $installCommand = $sudoCmd . "apt-get update && " . $sudoCmd . "apt-get install -y " . implode(' ', $extensionPackages);
+                $installCommand = "apt-get update && apt-get install -y " . implode(' ', $extensionPackages);
                 break;
             case 'yum':
-                $installCommand = $sudoCmd . "yum install -y " . implode(' ', $extensionPackages);
+                $installCommand = "yum install -y " . implode(' ', $extensionPackages);
                 break;
             case 'dnf':
-                $installCommand = $sudoCmd . "dnf install -y " . implode(' ', $extensionPackages);
+                $installCommand = "dnf install -y " . implode(' ', $extensionPackages);
                 break;
             case 'apk':
-                $installCommand = $sudoCmd . "apk add " . implode(' ', $extensionPackages);
+                $installCommand = "apk add " . implode(' ', $extensionPackages);
                 break;
             default:
                 echo "❌ 不支持的包管理器: {$packageManager}\n";
                 return false;
         }
 
-        echo "\n正在执行: {$installCommand}\n\n";
+        // 首先尝试使用sudo执行命令
+        echo "\n正在尝试使用sudo执行命令...\n";
+        $installCommandWithSudo = "sudo " . str_replace("sudo ", "", $installCommand);
+        $success = $this->executeCommand($installCommandWithSudo);
+
+        // 如果使用sudo失败，尝试不使用sudo
+        if (!$success) {
+            echo "\n尝试不使用sudo执行命令...\n";
+
+            // 重新构建不使用sudo的命令
+            $installCommandWithoutSudo = str_replace("sudo ", "", $installCommand);
+            $success = $this->executeCommand($installCommandWithoutSudo);
+        }
+
+        if (!$success) {
+            echo "\n❌ 安装扩展失败\n";
+            echo "请尝试手动执行以下命令安装扩展：\n";
+            echo "sudo " . str_replace("sudo ", "", $installCommand) . "\n";
+            return false;
+        }
+
+        echo "\n✅ 扩展安装完成\n";
+
+        // 重新检查环境
+        $newCheckResult = $this->environmentChecker->check();
+        return $newCheckResult['is_ok'];
+    }
+
+    /**
+     * 检测包管理器
+     *
+     * @return string|null 包管理器名称，如果未检测到则返回null
+     */
+    private function detectPackageManager()
+    {
+        $packageManagers = [
+            'apt' => 'apt-get',
+            'yum' => 'yum',
+            'dnf' => 'dnf',
+            'apk' => 'apk'
+        ];
+
+        foreach ($packageManagers as $name => $command) {
+            $output = [];
+            exec("which {$command} 2>/dev/null", $output, $returnCode);
+            if ($returnCode === 0 && !empty($output)) {
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 执行命令
+     *
+     * @param string $command 要执行的命令
+     * @return bool 是否执行成功
+     */
+    private function executeCommand($command)
+    {
+        echo "\n正在执行: {$command}\n\n";
 
         // 使用proc_open实现实时输出
         $descriptorspec = [
@@ -174,7 +233,7 @@ class InitCommand implements CommandInterface
             2 => ["pipe", "w"]   // stderr
         ];
 
-        $process = proc_open($installCommand, $descriptorspec, $pipes);
+        $process = proc_open($command, $descriptorspec, $pipes);
 
         if (is_resource($process)) {
             // 关闭stdin
@@ -234,45 +293,11 @@ class InitCommand implements CommandInterface
             // 关闭进程
             $returnCode = proc_close($process);
 
-            if ($returnCode !== 0) {
-                echo "\n❌ 安装扩展失败\n";
-                return false;
-            }
-
-            echo "\n✅ 扩展安装完成\n";
+            return $returnCode === 0;
         } else {
             echo "❌ 无法启动安装进程\n";
             return false;
         }
-
-        // 重新检查环境
-        $newCheckResult = $this->environmentChecker->check();
-        return $newCheckResult['is_ok'];
-    }
-
-    /**
-     * 检测包管理器
-     *
-     * @return string|null 包管理器名称，如果未检测到则返回null
-     */
-    private function detectPackageManager()
-    {
-        $packageManagers = [
-            'apt' => 'apt-get',
-            'yum' => 'yum',
-            'dnf' => 'dnf',
-            'apk' => 'apk'
-        ];
-
-        foreach ($packageManagers as $name => $command) {
-            $output = [];
-            exec("which {$command} 2>/dev/null", $output, $returnCode);
-            if ($returnCode === 0 && !empty($output)) {
-                return $name;
-            }
-        }
-
-        return null;
     }
 
     /**

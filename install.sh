@@ -319,8 +319,17 @@ clone_pvm_repo() {
         esac
     fi
 
-    # 复制当前目录到PVM目录
-    cp -r "$(pwd)" "$PVM_DIR/repo"
+    # 设置PVM仓库URL
+    local PVM_REPO_URL="https://github.com/dongasai/php-version-manager.git"
+
+    # 通过HTTP克隆项目到PVM目录
+    echo -e "${YELLOW}正在从 ${PVM_REPO_URL} 克隆项目...${NC}"
+    git clone "$PVM_REPO_URL" "$PVM_DIR/repo"
+
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}克隆仓库失败，请检查网络连接或仓库URL${NC}"
+        exit 1
+    fi
 
     # 进入仓库目录并安装依赖
     cd "$PVM_DIR/repo"

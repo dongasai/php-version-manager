@@ -321,8 +321,7 @@ class VersionInstaller
 
         echo "安装依赖...\n";
 
-        // 检查是否在Docker容器中
-        $inDocker = file_exists('/.dockerenv');
+        // 不区分环境类型，统一处理
 
         // 尝试不同的权限提升方式
         $sudoCommands = [

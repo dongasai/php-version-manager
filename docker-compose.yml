@@ -7,13 +7,7 @@ services:
     container_name: pvm-dev
     volumes:
       - .:/app
-      - ./docker/init.sh:/init.sh
     tty: true
-    command: ["/bin/bash", "-c", "chmod +x /init.sh && /init.sh && /bin/bash"]
-    environment:
-      - DEBIAN_FRONTEND=noninteractive
-    user: root
-  # Ubuntu 容器
   ubuntu:
     build:
       context: ./docker/ubuntu

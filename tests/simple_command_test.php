@@ -31,11 +31,11 @@ if (!file_exists($pvmBin)) {
 
 // 测试命令
 $commands = [
-    'help' => [''],
-    'version' => [''],
-    'version list' => ['list'],
-    'version available' => ['available'],
-    'list' => [''],
+    'help' => ['help'],
+    'version' => ['version'],
+    'version list' => ['version', 'list'],
+    'version available' => ['version', 'available'],
+    'list' => ['list'],
     'ext list' => ['ext', 'list'],
     'cache list' => ['cache', 'list'],
     'security check' => ['security', 'check'],
@@ -48,17 +48,21 @@ $passedTests = 0;
 
 foreach ($commands as $name => $args) {
     echo "{$BLUE}测试 {$name} 命令...{$NC}\n";
-    
+
     // 执行命令
     $fullCommand = array_merge([$pvmBin], $args);
     $process = new Process($fullCommand);
     $process->setTimeout(60); // 1分钟超时
     $process->run();
-    
+
+    // 显示命令详情
+    echo "  命令: " . implode(' ', $fullCommand) . "\n";
+    echo "  退出码: " . $process->getExitCode() . "\n";
+
     // 验证命令执行成功
     if ($process->isSuccessful()) {
         echo "  命令执行成功\n";
-        
+
         // 显示命令输出的前几行
         $output = explode("\n", $process->getOutput());
         $outputLines = array_slice($output, 0, 3);
@@ -67,11 +71,11 @@ foreach ($commands as $name => $args) {
                 echo "  输出: {$line}\n";
             }
         }
-        
+
         if (count($output) > 3) {
             echo "  ...(更多输出省略)...\n";
         }
-        
+
         $passedTests++;
         $results[$name] = true;
     } else {
@@ -79,7 +83,7 @@ foreach ($commands as $name => $args) {
         echo "  错误: " . $process->getErrorOutput() . "\n";
         $results[$name] = false;
     }
-    
+
     echo "\n";
 }
 
@@ -93,7 +97,7 @@ echo "失败测试数: " . ($totalTests - $passedTests) . "\n\n";
 echo "{$BLUE}详细测试结果:{$NC}\n";
 foreach ($results as $commandName => $passed) {
     echo "{$commandName}: ";
-    
+
     if ($passed) {
         echo "{$GREEN}通过{$NC}\n";
     } else {

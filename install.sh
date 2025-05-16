@@ -14,11 +14,36 @@ NC='\033[0m' # No Color
 PVM_VERSION="1.0.0"
 DEFAULT_PHP_VERSION="7.4"
 
+# 解析命令行参数
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --dir=*)
+            CUSTOM_DIR="${1#*=}"
+            shift
+            ;;
+        --help)
+            echo "用法: ./install.sh [选项]"
+            echo ""
+            echo "选项:"
+            echo "  --dir=PATH    指定安装目录，默认为 $HOME/.pvm"
+            echo "  --help        显示此帮助信息"
+            exit 0
+            ;;
+        *)
+            echo "未知选项: $1"
+            echo "使用 --help 查看帮助信息"
+            exit 1
+            ;;
+    esac
+done
+
 # 目录设置
-PVM_DIR="$HOME/.pvm"
+PVM_DIR="${CUSTOM_DIR:-$HOME/.pvm}"
 BIN_DIR="$PVM_DIR/bin"
 VERSIONS_DIR="$PVM_DIR/versions"
 SHIMS_DIR="$PVM_DIR/shims"
+
+echo -e "${BLUE}安装目录: ${PVM_DIR}${NC}"
 
 # 打印信息
 echo -e "${BLUE}PHP Version Manager (PVM) 安装脚本${NC}"
@@ -279,9 +304,26 @@ install_composer() {
 create_pvm_dirs() {
     echo -e "${BLUE}创建PVM目录结构...${NC}"
 
+    # 检查并清理现有的bin和shims目录
+    if [ -d "$BIN_DIR" ]; then
+        echo -e "${YELLOW}清理现有bin目录...${NC}"
+        rm -rf "$BIN_DIR"
+    fi
+
+    if [ -d "$SHIMS_DIR" ]; then
+        echo -e "${YELLOW}清理现有shims目录...${NC}"
+        rm -rf "$SHIMS_DIR"
+    fi
+
+    # 创建必要的目录
     mkdir -p "$BIN_DIR"
     mkdir -p "$VERSIONS_DIR"
     mkdir -p "$SHIMS_DIR"
+
+    # 创建配置目录（如果不存在）
+    if [ ! -d "$PVM_DIR/config" ]; then
+        mkdir -p "$PVM_DIR/config"
+    fi
 
     echo -e "${GREEN}目录结构创建完成${NC}"
 }
@@ -321,6 +363,12 @@ clone_pvm_repo() {
 
     # 设置PVM仓库URL
     local PVM_REPO_URL="https://github.com/dongasai/php-version-manager.git"
+
+    # 检查仓库目录是否已存在，如果存在则先删除
+    if [ -d "$PVM_DIR/repo" ]; then
+        echo -e "${YELLOW}检测到仓库目录已存在，正在清理...${NC}"
+        rm -rf "$PVM_DIR/repo"
+    fi
 
     # 通过HTTP克隆项目到PVM目录
     echo -e "${YELLOW}正在从 ${PVM_REPO_URL} 克隆项目...${NC}"
@@ -363,11 +411,19 @@ configure_shell() {
             ;;
     esac
 
+    # 检查配置文件中是否已有PVM配置
+    if grep -q "PHP Version Manager" "$shell_config"; then
+        echo -e "${YELLOW}检测到Shell配置文件中已有PVM配置，将更新配置...${NC}"
+
+        # 使用sed删除旧的配置
+        sed -i '/# PHP Version Manager/,/source.*pvm.sh/d' "$shell_config"
+    fi
+
     # 添加PVM配置到Shell配置文件
     cat >> "$shell_config" << EOF
 
 # PHP Version Manager
-export PVM_DIR="\$HOME/.pvm"
+export PVM_DIR="$PVM_DIR"
 export PATH="\$PVM_DIR/shims:\$PVM_DIR/bin:\$PATH"
 source "\$PVM_DIR/repo/shell/pvm.sh"
 EOF
@@ -410,9 +466,58 @@ show_php_version_menu() {
     esac
 }
 
+# 检查目标安装目录
+check_install_directory() {
+    echo -e "${BLUE}检查安装目录...${NC}"
+
+    # 检查PVM目录是否已存在
+    if [ -d "$PVM_DIR" ]; then
+        echo -e "${YELLOW}检测到目录 $PVM_DIR 已存在${NC}"
+
+        # 检查是否已安装PVM
+        if [ -d "$PVM_DIR/repo" ] && [ -f "$BIN_DIR/pvm" ]; then
+            echo -e "${YELLOW}检测到PVM已安装在此目录${NC}"
+
+            # 询问用户是否继续
+            read -p "是否重新安装PVM? 这将覆盖现有安装 (y/n) " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${BLUE}安装已取消${NC}"
+                exit 0
+            fi
+
+            echo -e "${YELLOW}将重新安装PVM...${NC}"
+
+            # 备份现有配置
+            if [ -d "$PVM_DIR/config" ]; then
+                echo -e "${BLUE}备份现有配置...${NC}"
+                backup_dir="$PVM_DIR/config_backup_$(date +%Y%m%d%H%M%S)"
+                cp -r "$PVM_DIR/config" "$backup_dir"
+                echo -e "${GREEN}配置已备份到 $backup_dir${NC}"
+            fi
+        else
+            # 目录存在但不是完整的PVM安装
+            echo -e "${YELLOW}目录存在但不是完整的PVM安装${NC}"
+
+            # 询问用户是否继续
+            read -p "是否在此目录安装PVM? (y/n) " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${BLUE}安装已取消${NC}"
+                exit 0
+            fi
+        fi
+    else
+        echo -e "${GREEN}安装目录不存在，将创建新目录${NC}"
+    fi
+}
+
 # 主安装流程
 main() {
     echo -e "${BLUE}开始安装PVM...${NC}"
+
+    # 检查目标安装目录
+    check_install_directory
 
     # 安装依赖
     install_dependencies

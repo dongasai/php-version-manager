@@ -19,6 +19,7 @@ spl_autoload_register(function ($class) {
 use Tests\Console\Command\VersionCommandTest;
 use Tests\Console\Command\InstallCommandTest;
 use Tests\Console\Command\ExtensionCommandTest;
+use Tests\Console\Command\UpdateCommandTest;
 
 // 设置颜色
 $GREEN = "\033[32m";
@@ -40,6 +41,7 @@ $testClasses = [
     'VersionCommand' => VersionCommandTest::class,
     'InstallCommand' => InstallCommandTest::class,
     'ExtensionCommand' => ExtensionCommandTest::class,
+    'UpdateCommand' => UpdateCommandTest::class,
 ];
 
 $results = [];
@@ -48,24 +50,24 @@ $passedTests = 0;
 
 foreach ($testClasses as $name => $class) {
     echo "{$BLUE}测试 {$name}...{$NC}\n";
-    
+
     $test = new $class();
     $methods = get_class_methods($test);
-    
+
     // 过滤出测试方法
     $testMethods = array_filter($methods, function($method) {
         return strpos($method, 'test') === 0;
     });
-    
+
     foreach ($testMethods as $method) {
         $totalTests++;
         echo "  运行 {$method}... ";
-        
+
         try {
             $test->setUp();
             $test->$method();
             $test->tearDown();
-            
+
             echo "{$GREEN}通过{$NC}\n";
             $passedTests++;
             $results[$name][$method] = true;
@@ -74,7 +76,7 @@ foreach ($testClasses as $name => $class) {
             $results[$name][$method] = false;
         }
     }
-    
+
     echo "\n";
 }
 
@@ -89,14 +91,14 @@ echo "{$BLUE}详细测试结果:{$NC}\n";
 foreach ($results as $className => $classResults) {
     $classPassedTests = count(array_filter($classResults));
     $classTotalTests = count($classResults);
-    
+
     echo "{$className}: {$classPassedTests}/{$classTotalTests} ";
-    
+
     if ($classPassedTests === $classTotalTests) {
         echo "{$GREEN}全部通过{$NC}\n";
     } else {
         echo "{$RED}部分失败{$NC}\n";
-        
+
         // 显示失败的测试
         foreach ($classResults as $method => $passed) {
             if (!$passed) {

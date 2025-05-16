@@ -48,6 +48,7 @@ class Application
             'env' => Commands\EnvCommand::class,
             'service' => Commands\ServiceCommand::class,
             'monitor' => Commands\MonitorCommand::class,
+            'update' => Commands\UpdateCommand::class,
         ];
     }
 

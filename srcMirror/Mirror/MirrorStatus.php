@@ -8,6 +8,24 @@ namespace Mirror\Mirror;
 class MirrorStatus
 {
     /**
+     * 格式化文件大小
+     *
+     * @param int $size 文件大小（字节）
+     * @return string 格式化后的大小
+     */
+    public function formatSize($size)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $i = 0;
+
+        while ($size >= 1024 && $i < count($units) - 1) {
+            $size /= 1024;
+            $i++;
+        }
+
+        return round($size, 2) . ' ' . $units[$i];
+    }
+    /**
      * 获取镜像状态
      *
      * @return array
@@ -18,10 +36,10 @@ class MirrorStatus
         $peclDir = ROOT_DIR . '/data/pecl';
         $extensionsDir = ROOT_DIR . '/data/extensions';
         $composerDir = ROOT_DIR . '/data/composer';
-        
+
         $phpFiles = is_dir($phpDir) ? glob($phpDir . '/*.tar.gz') : [];
         $peclFiles = is_dir($peclDir) ? glob($peclDir . '/*.tgz') : [];
-        
+
         $extensionFiles = [];
         if (is_dir($extensionsDir)) {
             $extensionDirs = glob($extensionsDir . '/*', GLOB_ONLYDIR);
@@ -30,13 +48,13 @@ class MirrorStatus
                 $extensionFiles = array_merge($extensionFiles, $files);
             }
         }
-        
+
         $composerFiles = is_dir($composerDir) ? glob($composerDir . '/*.phar') : [];
-        
+
         $allFiles = array_merge($phpFiles, $peclFiles, $extensionFiles, $composerFiles);
         $totalSize = 0;
         $lastUpdate = 0;
-        
+
         foreach ($allFiles as $file) {
             $totalSize += filesize($file);
             $mtime = filemtime($file);
@@ -44,7 +62,7 @@ class MirrorStatus
                 $lastUpdate = $mtime;
             }
         }
-        
+
         return [
             'php_files' => count($phpFiles),
             'pecl_files' => count($peclFiles),
@@ -65,18 +83,18 @@ class MirrorStatus
     {
         $phpDir = ROOT_DIR . '/data/php';
         $files = is_dir($phpDir) ? glob($phpDir . '/*.tar.gz') : [];
-        
+
         $result = [];
         foreach ($files as $file) {
             $filename = basename($file);
             if (preg_match('/php-([0-9.]+)\.tar\.gz/', $filename, $matches)) {
                 $version = $matches[1];
                 $majorVersion = explode('.', $version)[0] . '.' . explode('.', $version)[1];
-                
+
                 if (!isset($result[$majorVersion])) {
                     $result[$majorVersion] = [];
                 }
-                
+
                 $result[$majorVersion][] = [
                     'version' => $version,
                     'filename' => $filename,
@@ -85,7 +103,7 @@ class MirrorStatus
                 ];
             }
         }
-        
+
         return $result;
     }
 
@@ -98,18 +116,18 @@ class MirrorStatus
     {
         $peclDir = ROOT_DIR . '/data/pecl';
         $files = is_dir($peclDir) ? glob($peclDir . '/*.tgz') : [];
-        
+
         $result = [];
         foreach ($files as $file) {
             $filename = basename($file);
             if (preg_match('/([a-zA-Z0-9_]+)-([0-9.]+)\.tgz/', $filename, $matches)) {
                 $extension = $matches[1];
                 $version = $matches[2];
-                
+
                 if (!isset($result[$extension])) {
                     $result[$extension] = [];
                 }
-                
+
                 $result[$extension][] = [
                     'version' => $version,
                     'filename' => $filename,
@@ -118,7 +136,7 @@ class MirrorStatus
                 ];
             }
         }
-        
+
         return $result;
     }
 
@@ -131,19 +149,19 @@ class MirrorStatus
     {
         $extensionsDir = ROOT_DIR . '/data/extensions';
         $result = [];
-        
+
         if (is_dir($extensionsDir)) {
             $extensionDirs = glob($extensionsDir . '/*', GLOB_ONLYDIR);
-            
+
             foreach ($extensionDirs as $dir) {
                 $extension = basename($dir);
                 $files = glob($dir . '/*.tar.gz');
-                
+
                 $result[$extension] = [];
-                
+
                 foreach ($files as $file) {
                     $filename = basename($file);
-                    
+
                     $result[$extension][] = [
                         'filename' => $filename,
                         'size' => filesize($file),
@@ -152,7 +170,7 @@ class MirrorStatus
                 }
             }
         }
-        
+
         return $result;
     }
 
@@ -165,13 +183,13 @@ class MirrorStatus
     {
         $composerDir = ROOT_DIR . '/data/composer';
         $files = is_dir($composerDir) ? glob($composerDir . '/*.phar') : [];
-        
+
         $result = [];
         foreach ($files as $file) {
             $filename = basename($file);
             if (preg_match('/composer-([0-9.]+)\.phar/', $filename, $matches)) {
                 $version = $matches[1];
-                
+
                 $result[] = [
                     'version' => $version,
                     'filename' => $filename,
@@ -180,7 +198,7 @@ class MirrorStatus
                 ];
             }
         }
-        
+
         return $result;
     }
 }

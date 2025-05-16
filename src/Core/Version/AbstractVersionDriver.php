@@ -4,7 +4,7 @@ namespace VersionManager\Core\Version;
 
 /**
  * 抽象版本安装驱动基类
- * 
+ *
  * 实现一些通用功能
  */
 abstract class AbstractVersionDriver implements VersionDriverInterface
@@ -15,28 +15,28 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
      * @var string
      */
     protected $name;
-    
+
     /**
      * 驱动描述
      *
      * @var string
      */
     protected $description;
-    
+
     /**
      * PVM根目录
      *
      * @var string
      */
     protected $pvmRoot;
-    
+
     /**
      * 版本目录
      *
      * @var string
      */
     protected $versionsDir;
-    
+
     /**
      * 构造函数
      *
@@ -49,17 +49,17 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
         $this->description = $description;
         $this->pvmRoot = getenv('HOME') . '/.pvm';
         $this->versionsDir = $this->pvmRoot . '/versions';
-        
+
         // 确保目录存在
         if (!is_dir($this->pvmRoot)) {
             mkdir($this->pvmRoot, 0755, true);
         }
-        
+
         if (!is_dir($this->versionsDir)) {
             mkdir($this->versionsDir, 0755, true);
         }
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -67,7 +67,7 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
     {
         return $this->name;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -75,7 +75,16 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
     {
         return $this->description;
     }
-    
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getTags(): array
+    {
+        // 默认返回驱动名称作为标签
+        return [$this->name];
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -83,10 +92,10 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
     {
         $versionDir = $this->versionsDir . '/' . $version;
         $phpBin = $versionDir . '/bin/php';
-        
+
         return is_dir($versionDir) && file_exists($phpBin) && is_executable($phpBin);
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -94,7 +103,7 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
     {
         return $this->versionsDir . '/' . $version . '/bin/php';
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -102,7 +111,7 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
     {
         return $this->versionsDir . '/' . $version . '/etc';
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -110,7 +119,7 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
     {
         return $this->versionsDir . '/' . $version . '/lib/php/extensions';
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -124,57 +133,57 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
             'config_path' => $this->getConfigPath($version),
             'extension_path' => $this->getExtensionPath($version),
         ];
-        
+
         if ($this->isInstalled($version)) {
             $phpBin = $this->getBinaryPath($version);
-            
+
             // 获取PHP版本信息
             $output = [];
             exec($phpBin . ' -v', $output);
-            
+
             if (!empty($output)) {
                 $info['version_string'] = $output[0];
             }
-            
+
             // 获取PHP编译选项
             $output = [];
             exec($phpBin . ' -i | grep "Configure Command"', $output);
-            
+
             if (!empty($output)) {
                 $info['configure_command'] = trim(str_replace('Configure Command =>', '', $output[0]));
             }
-            
+
             // 获取PHP扩展
             $output = [];
             exec($phpBin . ' -m', $output);
-            
+
             $extensions = [];
             $inExtensions = false;
-            
+
             foreach ($output as $line) {
                 $line = trim($line);
-                
+
                 if ($line === '[PHP Modules]') {
                     $inExtensions = true;
                     continue;
                 }
-                
+
                 if ($line === '[Zend Modules]') {
                     $inExtensions = false;
                     continue;
                 }
-                
+
                 if ($inExtensions && !empty($line)) {
                     $extensions[] = $line;
                 }
             }
-            
+
             $info['extensions'] = $extensions;
         }
-        
+
         return $info;
     }
-    
+
     /**
      * 获取操作系统信息
      *
@@ -185,27 +194,27 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
         $type = '';
         $version = '';
         $arch = php_uname('m');
-        
+
         // 读取/etc/os-release文件
         if (file_exists('/etc/os-release')) {
             $osRelease = parse_ini_file('/etc/os-release');
-            
+
             if (isset($osRelease['ID'])) {
                 $type = strtolower($osRelease['ID']);
             }
-            
+
             if (isset($osRelease['VERSION_ID'])) {
                 $version = $osRelease['VERSION_ID'];
             }
         }
-        
+
         return [
             'type' => $type,
             'version' => $version,
             'arch' => $arch,
         ];
     }
-    
+
     /**
      * 创建临时目录
      *
@@ -215,14 +224,14 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
     protected function createTempDir($prefix = 'pvm_')
     {
         $tempDir = sys_get_temp_dir() . '/' . $prefix . uniqid();
-        
+
         if (!is_dir($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
-        
+
         return $tempDir;
     }
-    
+
     /**
      * 递归删除目录
      *
@@ -234,26 +243,26 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
         if (!is_dir($dir)) {
             return false;
         }
-        
+
         $objects = scandir($dir);
-        
+
         foreach ($objects as $object) {
             if ($object === '.' || $object === '..') {
                 continue;
             }
-            
+
             $path = $dir . '/' . $object;
-            
+
             if (is_dir($path)) {
                 $this->removeDirectory($path);
             } else {
                 unlink($path);
             }
         }
-        
+
         return rmdir($dir);
     }
-    
+
     /**
      * 下载文件
      *
@@ -266,16 +275,16 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
         $command = "curl -L -o {$destination} {$url}";
         $output = [];
         $returnCode = 0;
-        
+
         exec($command . ' 2>&1', $output, $returnCode);
-        
+
         if ($returnCode !== 0) {
             throw new \Exception("下载文件失败: " . implode("\n", $output));
         }
-        
+
         return true;
     }
-    
+
     /**
      * 解压文件
      *
@@ -286,7 +295,7 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
     protected function extractFile($file, $destination)
     {
         $extension = pathinfo($file, PATHINFO_EXTENSION);
-        
+
         switch ($extension) {
             case 'gz':
             case 'tgz':
@@ -304,16 +313,16 @@ abstract class AbstractVersionDriver implements VersionDriverInterface
             default:
                 throw new \Exception("不支持的压缩格式: {$extension}");
         }
-        
+
         $output = [];
         $returnCode = 0;
-        
+
         exec($command . ' 2>&1', $output, $returnCode);
-        
+
         if ($returnCode !== 0) {
             throw new \Exception("解压文件失败: " . implode("\n", $output));
         }
-        
+
         return true;
     }
 }

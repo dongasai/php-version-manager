@@ -14,11 +14,10 @@ class Base extends GenericVersionDriver
      */
     public function __construct()
     {
-        parent::__construct();
-        $this->name = 'php73';
-        $this->description = 'PHP 7.3版本安装驱动';
+        // 传递名称和描述给父类构造函数
+        parent::__construct('php73', 'PHP 7.3版本安装驱动');
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -27,7 +26,7 @@ class Base extends GenericVersionDriver
         // 只支持PHP 7.3.x版本
         return preg_match('/^7\.3\.\d+$/', $version);
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -35,7 +34,7 @@ class Base extends GenericVersionDriver
     {
         // 获取基本配置选项
         $configureOptions = parent::getConfigureOptions($version, $options);
-        
+
         // 添加PHP 7.3特定的配置选项
         $php73Options = [
             '--with-gd',
@@ -45,13 +44,13 @@ class Base extends GenericVersionDriver
             '--with-freetype-dir',
             '--with-xpm-dir',
         ];
-        
+
         // 合并配置选项
         $configureOptions = array_merge($configureOptions, $php73Options);
-        
+
         return $configureOptions;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -72,7 +71,7 @@ class Base extends GenericVersionDriver
             'libonig-dev',
             'libsqlite3-dev',
         ];
-        
+
         return $dependencies;
     }
 }

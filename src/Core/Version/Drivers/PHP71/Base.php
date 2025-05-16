@@ -12,8 +12,13 @@ use VersionManager\Core\Version\AbstractVersionDriver;
  */
 class Base extends AbstractVersionDriver
 {
-    protected $name ='php71';
-    protected $description = 'PHP 7.1 版本安装驱动';
+    /**
+     * 构造函数
+     */
+    public function __construct()
+    {
+        parent::__construct('php71', 'PHP 7.1 版本安装驱动');
+    }
 
 
 

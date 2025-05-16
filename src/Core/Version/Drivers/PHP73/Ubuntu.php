@@ -12,11 +12,10 @@ class Ubuntu extends Base
      */
     public function __construct()
     {
-        parent::__construct();
-        $this->name = 'php73_ubuntu';
-        $this->description = 'PHP 7.3 Ubuntu版本安装驱动';
+        // 传递名称和描述给父类构造函数
+        parent::__construct('php73_ubuntu', 'PHP 7.3 Ubuntu版本安装驱动');
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -24,17 +23,17 @@ class Ubuntu extends Base
     {
         // 获取基本依赖
         $dependencies = parent::getDependencies($version);
-        
+
         // 添加Ubuntu特定的依赖
         $ubuntuDependencies = [
             'libreadline-dev',
             'libsodium-dev',
             'libargon2-dev',
         ];
-        
+
         return array_merge($dependencies, $ubuntuDependencies);
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -44,9 +43,9 @@ class Ubuntu extends Base
         $command = 'apt-get update && apt-get install -y ' . implode(' ', $dependencies);
         $output = [];
         $returnCode = 0;
-        
+
         exec($command, $output, $returnCode);
-        
+
         return $returnCode === 0;
     }
 }

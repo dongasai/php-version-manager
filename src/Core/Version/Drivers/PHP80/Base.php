@@ -14,9 +14,8 @@ class Base extends GenericVersionDriver
      */
     public function __construct()
     {
-        parent::__construct();
-        $this->name = 'php80';
-        $this->description = 'PHP 8.0 版本安装驱动';
+        // 传递名称和描述给父类构造函数
+        parent::__construct('php80', 'PHP 8.0 版本安装驱动');
     }
 
     /**

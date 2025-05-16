@@ -12,9 +12,8 @@ class Debian extends Base
      */
     public function __construct()
     {
-        parent::__construct();
-        $this->name = 'php71_debian';
-        $this->description = 'PHP 7.1 Debian版本安装驱动';
+        // 传递名称和描述给父类构造函数
+        parent::__construct('php71_debian', 'PHP 7.1 Debian版本安装驱动');
     }
 
     /**

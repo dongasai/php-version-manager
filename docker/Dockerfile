@@ -30,8 +30,6 @@ RUN chown -R developer:developer /app
 # 切换到非root用户
 USER developer
 
-# 设置环境变量
-ENV PATH="/app/vendor/bin:${PATH}"
 
 # 默认命令
 CMD ["/bin/bash"]

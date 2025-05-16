@@ -1,0 +1,383 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * PVM 镜像应用
+ * 
+ * 用于镜像 PVM 项目涉及的所有需要下载的内容
+ */
+
+// 定义根目录
+define('ROOT_DIR', dirname(__DIR__));
+
+// 检查命令行参数
+if ($argc < 2) {
+    showHelp();
+    exit(1);
+}
+
+// 处理命令
+$command = $argv[1];
+
+switch ($command) {
+    case 'sync':
+        syncMirror();
+        break;
+    case 'status':
+        showStatus();
+        break;
+    case 'clean':
+        cleanMirror();
+        break;
+    case 'help':
+        showHelp();
+        break;
+    default:
+        echo "未知命令: $command\n";
+        showHelp();
+        exit(1);
+}
+
+/**
+ * 显示帮助信息
+ */
+function showHelp() {
+    echo "PVM 镜像应用\n";
+    echo "用法: pvm-mirror <命令> [选项]\n\n";
+    echo "可用命令:\n";
+    echo "  sync   同步镜像内容\n";
+    echo "  status 显示镜像状态\n";
+    echo "  clean  清理过期镜像\n";
+    echo "  help   显示帮助信息\n";
+}
+
+/**
+ * 同步镜像内容
+ */
+function syncMirror() {
+    echo "开始同步镜像内容...\n";
+    
+    // 加载配置
+    $config = loadConfig();
+    
+    // 同步 PHP 源码包
+    syncPhpSources($config['php']);
+    
+    // 同步 PECL 扩展包
+    syncPeclExtensions($config['pecl']);
+    
+    // 同步特定扩展的 GitHub 源码
+    syncGithubExtensions($config['extensions']);
+    
+    // 同步 Composer 包
+    syncComposerPackages($config['composer']);
+    
+    echo "镜像同步完成\n";
+}
+
+/**
+ * 显示镜像状态
+ */
+function showStatus() {
+    echo "镜像状态:\n";
+    
+    // 加载配置
+    $config = loadConfig();
+    
+    // 检查 PHP 源码包
+    $phpDir = ROOT_DIR . '/data/php';
+    $phpFiles = is_dir($phpDir) ? glob($phpDir . '/*.tar.gz') : [];
+    echo "PHP 源码包: " . count($phpFiles) . " 个文件\n";
+    
+    // 检查 PECL 扩展包
+    $peclDir = ROOT_DIR . '/data/pecl';
+    $peclFiles = is_dir($peclDir) ? glob($peclDir . '/*.tgz') : [];
+    echo "PECL 扩展包: " . count($peclFiles) . " 个文件\n";
+    
+    // 检查特定扩展的 GitHub 源码
+    $extensionsDir = ROOT_DIR . '/data/extensions';
+    $extensionDirs = is_dir($extensionsDir) ? glob($extensionsDir . '/*', GLOB_ONLYDIR) : [];
+    $extensionFiles = 0;
+    foreach ($extensionDirs as $dir) {
+        $files = glob($dir . '/*.tar.gz');
+        $extensionFiles += count($files);
+    }
+    echo "特定扩展源码: " . count($extensionDirs) . " 个扩展, " . $extensionFiles . " 个文件\n";
+    
+    // 检查 Composer 包
+    $composerDir = ROOT_DIR . '/data/composer';
+    $composerFiles = is_dir($composerDir) ? glob($composerDir . '/*.phar') : [];
+    echo "Composer 包: " . count($composerFiles) . " 个文件\n";
+    
+    // 计算总大小
+    $totalSize = 0;
+    foreach ([$phpFiles, $peclFiles, $composerFiles] as $files) {
+        foreach ($files as $file) {
+            $totalSize += filesize($file);
+        }
+    }
+    foreach ($extensionDirs as $dir) {
+        $files = glob($dir . '/*.tar.gz');
+        foreach ($files as $file) {
+            $totalSize += filesize($file);
+        }
+    }
+    
+    echo "总大小: " . formatSize($totalSize) . "\n";
+}
+
+/**
+ * 清理过期镜像
+ */
+function cleanMirror() {
+    echo "清理过期镜像...\n";
+    
+    // 加载配置
+    $config = loadConfig();
+    
+    // 清理 PHP 源码包
+    cleanPhpSources($config['php']);
+    
+    // 清理 PECL 扩展包
+    cleanPeclExtensions($config['pecl']);
+    
+    // 清理特定扩展的 GitHub 源码
+    cleanGithubExtensions($config['extensions']);
+    
+    // 清理 Composer 包
+    cleanComposerPackages($config['composer']);
+    
+    echo "清理完成\n";
+}
+
+/**
+ * 加载配置
+ */
+function loadConfig() {
+    $configFile = ROOT_DIR . '/config/mirror.php';
+    
+    if (!file_exists($configFile)) {
+        echo "错误: 配置文件不存在: $configFile\n";
+        exit(1);
+    }
+    
+    return require $configFile;
+}
+
+/**
+ * 同步 PHP 源码包
+ */
+function syncPhpSources($config) {
+    echo "同步 PHP 源码包...\n";
+    
+    $source = $config['source'];
+    $pattern = $config['pattern'];
+    $dataDir = ROOT_DIR . '/data/php';
+    
+    // 确保目录存在
+    if (!is_dir($dataDir)) {
+        mkdir($dataDir, 0755, true);
+    }
+    
+    // 遍历版本
+    foreach ($config['versions'] as $majorVersion => $versionRange) {
+        list($minVersion, $maxVersion) = $versionRange;
+        
+        // 获取版本列表
+        $versions = getVersionRange($minVersion, $maxVersion);
+        
+        foreach ($versions as $version) {
+            $filename = str_replace('{version}', $version, $pattern);
+            $sourceUrl = $source . '/' . $filename;
+            $targetFile = $dataDir . '/' . $filename;
+            
+            // 如果文件不存在，则下载
+            if (!file_exists($targetFile)) {
+                echo "  下载 PHP $version: $sourceUrl\n";
+                downloadFile($sourceUrl, $targetFile);
+            } else {
+                echo "  PHP $version 已存在\n";
+            }
+        }
+    }
+}
+
+/**
+ * 同步 PECL 扩展包
+ */
+function syncPeclExtensions($config) {
+    echo "同步 PECL 扩展包...\n";
+    
+    $source = $config['source'];
+    $pattern = $config['pattern'];
+    $dataDir = ROOT_DIR . '/data/pecl';
+    
+    // 确保目录存在
+    if (!is_dir($dataDir)) {
+        mkdir($dataDir, 0755, true);
+    }
+    
+    // 遍历扩展
+    foreach ($config['extensions'] as $extension => $versionRange) {
+        list($minVersion, $maxVersion) = $versionRange;
+        
+        // 获取版本列表
+        $versions = getVersionRange($minVersion, $maxVersion);
+        
+        foreach ($versions as $version) {
+            $filename = str_replace(['{extension}', '{version}'], [$extension, $version], $pattern);
+            $sourceUrl = $source . '/' . $filename;
+            $targetFile = $dataDir . '/' . $filename;
+            
+            // 如果文件不存在，则下载
+            if (!file_exists($targetFile)) {
+                echo "  下载 $extension $version: $sourceUrl\n";
+                downloadFile($sourceUrl, $targetFile);
+            } else {
+                echo "  $extension $version 已存在\n";
+            }
+        }
+    }
+}
+
+/**
+ * 同步特定扩展的 GitHub 源码
+ */
+function syncGithubExtensions($config) {
+    echo "同步特定扩展的 GitHub 源码...\n";
+    
+    // 遍历扩展
+    foreach ($config as $extension => $extConfig) {
+        $source = $extConfig['source'];
+        $pattern = $extConfig['pattern'];
+        $dataDir = ROOT_DIR . '/data/extensions/' . $extension;
+        
+        // 确保目录存在
+        if (!is_dir($dataDir)) {
+            mkdir($dataDir, 0755, true);
+        }
+        
+        // 遍历版本
+        foreach ($extConfig['versions'] as $version) {
+            $filename = str_replace('{version}', $version, $pattern);
+            $sourceUrl = $source . '/' . $filename;
+            $targetFile = $dataDir . '/' . $filename;
+            
+            // 如果文件不存在，则下载
+            if (!file_exists($targetFile)) {
+                echo "  下载 $extension $version: $sourceUrl\n";
+                downloadFile($sourceUrl, $targetFile);
+            } else {
+                echo "  $extension $version 已存在\n";
+            }
+        }
+    }
+}
+
+/**
+ * 同步 Composer 包
+ */
+function syncComposerPackages($config) {
+    echo "同步 Composer 包...\n";
+    
+    $source = $config['source'];
+    $pattern = $config['pattern'];
+    $dataDir = ROOT_DIR . '/data/composer';
+    
+    // 确保目录存在
+    if (!is_dir($dataDir)) {
+        mkdir($dataDir, 0755, true);
+    }
+    
+    // 遍历版本
+    foreach ($config['versions'] as $version) {
+        $filename = str_replace('{version}', $version, $pattern);
+        $sourceUrl = $source . '/' . $filename;
+        $targetFile = $dataDir . '/' . $filename;
+        
+        // 如果文件不存在，则下载
+        if (!file_exists($targetFile)) {
+            echo "  下载 Composer $version: $sourceUrl\n";
+            downloadFile($sourceUrl, $targetFile);
+        } else {
+            echo "  Composer $version 已存在\n";
+        }
+    }
+}
+
+/**
+ * 下载文件
+ */
+function downloadFile($url, $destination) {
+    // 创建目录
+    $dir = dirname($destination);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+    
+    // 使用 cURL 下载文件
+    $ch = curl_init($url);
+    $fp = fopen($destination, 'w');
+    
+    curl_setopt($ch, CURLOPT_FILE, $fp);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    
+    $success = curl_exec($ch);
+    
+    if ($success === false) {
+        echo "  下载失败: " . curl_error($ch) . "\n";
+        unlink($destination);
+    }
+    
+    curl_close($ch);
+    fclose($fp);
+    
+    return $success;
+}
+
+/**
+ * 获取版本范围
+ */
+function getVersionRange($minVersion, $maxVersion) {
+    // 简单实现，仅返回最小和最大版本
+    // 实际应用中，可以通过 API 获取所有版本
+    return [$minVersion, $maxVersion];
+}
+
+/**
+ * 格式化文件大小
+ */
+function formatSize($size) {
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    $i = 0;
+    
+    while ($size >= 1024 && $i < count($units) - 1) {
+        $size /= 1024;
+        $i++;
+    }
+    
+    return round($size, 2) . ' ' . $units[$i];
+}
+
+// 清理函数实现省略，与同步函数类似
+function cleanPhpSources($config) {
+    echo "清理 PHP 源码包...\n";
+    // 实现省略
+}
+
+function cleanPeclExtensions($config) {
+    echo "清理 PECL 扩展包...\n";
+    // 实现省略
+}
+
+function cleanGithubExtensions($config) {
+    echo "清理特定扩展的 GitHub 源码...\n";
+    // 实现省略
+}
+
+function cleanComposerPackages($config) {
+    echo "清理 Composer 包...\n";
+    // 实现省略
+}

@@ -8,13 +8,18 @@ namespace VersionManager\Core\Version\Drivers\PHP73;
 class Ubuntu extends Base
 {
     /**
-     * 构造函数
+     * 驱动名称
+     *
+     * @var string
      */
-    public function __construct()
-    {
-        // 传递名称和描述给父类构造函数
-        parent::__construct('php73_ubuntu', 'PHP 7.3 Ubuntu版本安装驱动');
-    }
+    protected $name = 'php73_ubuntu';
+
+    /**
+     * 驱动描述
+     *
+     * @var string
+     */
+    protected $description = 'PHP 7.3 Ubuntu版本安装驱动';
 
     /**
      * {@inheritdoc}

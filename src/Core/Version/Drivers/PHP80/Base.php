@@ -10,13 +10,18 @@ use VersionManager\Core\Version\GenericVersionDriver;
 class Base extends GenericVersionDriver
 {
     /**
-     * 构造函数
+     * 驱动名称
+     *
+     * @var string
      */
-    public function __construct()
-    {
-        // 传递名称和描述给父类构造函数
-        parent::__construct('php80', 'PHP 8.0 版本安装驱动');
-    }
+    protected $name = 'php80';
+
+    /**
+     * 驱动描述
+     *
+     * @var string
+     */
+    protected $description = 'PHP 8.0 版本安装驱动';
 
     /**
      * {@inheritdoc}

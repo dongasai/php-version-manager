@@ -12,11 +12,25 @@ use VersionManager\Core\Config\MirrorConfig;
 class GenericVersionDriver extends AbstractVersionDriver
 {
     /**
+     * 驱动名称
+     *
+     * @var string
+     */
+    protected $name = 'generic';
+
+    /**
+     * 驱动描述
+     *
+     * @var string
+     */
+    protected $description = '通用版本安装驱动';
+
+    /**
      * 构造函数
      */
     public function __construct()
     {
-        parent::__construct('generic', '通用版本安装驱动');
+        parent::__construct();
     }
 
     /**

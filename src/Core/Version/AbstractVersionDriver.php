@@ -41,14 +41,18 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
 
     /**
      * 构造函数
-     *
-     * @param string $name 驱动名称
-     * @param string $description 驱动描述
      */
-    public function __construct($name, $description = '')
+    public function __construct()
     {
-        $this->name = $name;
-        $this->description = $description;
+        // 设置默认值（如果子类没有设置）
+        if (empty($this->name)) {
+            $this->name = 'unknown';
+        }
+
+        if (empty($this->description)) {
+            $this->description = 'Unknown driver';
+        }
+
         $this->pvmRoot = getenv('HOME') . '/.pvm';
         $this->versionsDir = $this->pvmRoot . '/versions';
 
@@ -246,23 +250,37 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
             return false;
         }
 
-        $objects = scandir($dir);
+        echo "正在清理目录: " . basename($dir) . "\n";
 
-        foreach ($objects as $object) {
-            if ($object === '.' || $object === '..') {
-                continue;
+        // 使用系统命令删除目录，这样更快
+        $command = "rm -rf " . escapeshellarg($dir);
+        passthru($command, $returnCode);
+
+        if ($returnCode !== 0) {
+            echo "警告: 使用系统命令删除目录失败，尝试使用PHP递归删除\n";
+
+            // 如果系统命令失败，则使用PHP递归删除
+            $objects = scandir($dir);
+
+            foreach ($objects as $object) {
+                if ($object === '.' || $object === '..') {
+                    continue;
+                }
+
+                $path = $dir . '/' . $object;
+
+                if (is_dir($path)) {
+                    $this->removeDirectory($path);
+                } else {
+                    unlink($path);
+                }
             }
 
-            $path = $dir . '/' . $object;
-
-            if (is_dir($path)) {
-                $this->removeDirectory($path);
-            } else {
-                unlink($path);
-            }
+            return rmdir($dir);
         }
 
-        return rmdir($dir);
+        echo "目录清理完成\n";
+        return true;
     }
 
     /**
@@ -326,5 +344,32 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
         }
 
         return true;
+    }
+
+    /**
+     * 获取配置选项
+     *
+     * @param string $version PHP版本
+     * @param array $options 安装选项
+     * @return array
+     */
+    protected function getConfigureOptions($version, array $options = [])
+    {
+        // 安装目录
+        $prefix = $this->versionsDir . '/' . $version;
+
+        // 基本配置选项
+        $configureOptions = [
+            "--prefix={$prefix}",
+            "--with-config-file-path={$prefix}/etc",
+            "--with-config-file-scan-dir={$prefix}/etc/conf.d",
+        ];
+
+        // 如果指定了配置选项，则使用指定的选项
+        if (isset($options['configure_options']) && is_array($options['configure_options'])) {
+            $configureOptions = array_merge($configureOptions, $options['configure_options']);
+        }
+
+        return $configureOptions;
     }
 }

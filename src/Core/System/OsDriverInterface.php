@@ -2,12 +2,14 @@
 
 namespace VersionManager\Core\System;
 
+use VersionManager\Core\Tags\TaggableInterface;
+
 /**
  * 操作系统驱动接口
  *
  * 定义操作系统驱动需要实现的方法
  */
-interface OsDriverInterface
+interface OsDriverInterface extends TaggableInterface
 {
     /**
      * 获取操作系统名称

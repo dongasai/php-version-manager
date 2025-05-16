@@ -208,94 +208,78 @@ class ExtensionDriverFactory
             }
         }
 
-        // 解析扩展名称中的发行版和架构信息
-        $distro = null;
-        $arch = null;
-
-        if (strpos($extension, ':') !== false) {
-            $parts = explode(':', $extension);
-            if (count($parts) >= 3) {
-                $distro = $parts[0];
-                $arch = $parts[1];
-            } elseif (count($parts) == 2) {
-                $distro = $parts[0];
-            }
-        }
-
         // 获取扩展目录中的所有PHP文件
         $files = glob($extensionDir . '/*.php');
         if (empty($files)) {
             return null;
         }
 
-        // 匹配规则和分数
-        $bestMatch = null;
-        $bestScore = -1;
+        // 收集所有驱动类
+        $driverClasses = [];
+        $baseClass = null;
 
         foreach ($files as $file) {
             $className = basename($file, '.php');
-            $classNameLower = strtolower($className);
-            $score = 0;
+            $fullClassName = __NAMESPACE__ . '\\Drivers\\' . ucfirst($extensionName) . '\\' . $className;
 
-            // 基础分数
-            $score += 1;
-
-            // 如果有PHP版本信息，则检查是否匹配
-            if ($phpVersion) {
-                // 提取主版本号和次版本号，如PHP 7.4变为74
-                $phpMajor = (int)substr($phpVersion, 0, 1);
-                $phpMinor = (int)substr($phpVersion, 2, 1);
-                $phpVersionCode = $phpMajor . $phpMinor;
-
-                // 检查是否包含PHP版本号，如Php74
-                if (strpos($classNameLower, 'php' . $phpVersionCode) !== false) {
-                    $score += 25; // PHP版本完全匹配给予最高分
+            if (class_exists($fullClassName)) {
+                if ($className === 'Base') {
+                    $baseClass = $fullClassName;
+                } else {
+                    $driverClasses[] = $fullClassName;
                 }
-                // 检查是否包含PHP主版本号，如Php7
-                elseif (strpos($classNameLower, 'php' . $phpMajor) !== false) {
-                    $score += 20; // PHP主版本匹配给予高分
-                }
-            }
-
-            // 如果有发行版和架构信息，则检查是否完全匹配
-            if ($distro && $arch) {
-                $distroArch = strtolower($distro) . strtolower($arch);
-                if (strpos($classNameLower, $distroArch) !== false) {
-                    $score += 15; // 完全匹配给予高分
-                }
-            }
-
-            // 如果有发行版和版本信息，则检查是否匹配
-            if ($distro && $distroVersion) {
-                // 检查是否包含发行版和版本号，如Ubuntu22
-                $distroWithVersion = strtolower($distro) . $distroVersion;
-                if (strpos($classNameLower, $distroWithVersion) !== false) {
-                    $score += 15; // 发行版+版本匹配给予高分
-                }
-            }
-            // 如果只有发行版信息，则检查是否匹配
-            elseif ($distro) {
-                // 检查是否包含发行版名称，如Ubuntu
-                if (strpos($classNameLower, strtolower($distro)) !== false) {
-                    $score += 10; // 发行版匹配给予中等分
-                }
-            }
-
-            // 如果有架构信息，则检查是否匹配
-            if ($arch && strpos($classNameLower, strtolower($arch)) !== false) {
-                $score += 5; // 架构匹配给予低分
-            }
-
-            // 更新最佳匹配
-            if ($score > $bestScore) {
-                $bestScore = $score;
-                $bestMatch = __NAMESPACE__ . '\\Drivers\\' . ucfirst($extensionName) . '\\' . $className;
             }
         }
 
-        // 检查类是否存在
-        if ($bestMatch && class_exists($bestMatch)) {
-            return $bestMatch;
+        // 如果没有找到任何驱动类，则返回null
+        if (empty($driverClasses) && $baseClass === null) {
+            return null;
+        }
+
+        // 如果只有Base类，则直接返回
+        if (empty($driverClasses) && $baseClass !== null) {
+            return $baseClass;
+        }
+
+        // 准备标签
+        $requiredTags = [];
+        $optionalTags = [];
+
+        // 扩展名称是必选标签
+        $requiredTags[] = strtolower($extensionName);
+
+        // 从PHP版本中获取可选标签
+        if ($phpVersion) {
+            // 使用PhpTag类获取PHP版本标签
+            $phpTags = \VersionManager\Core\Tags\PhpTag::getTagsFromVersion($phpVersion);
+            $optionalTags = array_merge($optionalTags, $phpTags);
+        }
+
+        // 从操作系统信息中获取可选标签
+        if ($distro) {
+            // 使用OsTags类获取操作系统标签
+            $osTags = \VersionManager\Core\Tags\OsTags::getTagsFromOsInfo($distro, $distroVersion);
+            $optionalTags = array_merge($optionalTags, $osTags);
+        }
+
+        // 从架构信息中获取可选标签
+        if ($arch) {
+            // 使用ArchTags类获取架构标签
+            $archTags = \VersionManager\Core\Tags\ArchTags::getTagsFromArch($arch);
+            $optionalTags = array_merge($optionalTags, $archTags);
+        }
+
+        // 使用标签匹配器匹配最合适的驱动
+        $matchedClass = \VersionManager\Core\Tags\DriverMatcher::matchClass($driverClasses, $requiredTags, $optionalTags);
+
+        // 如果找到匹配的驱动，则返回
+        if ($matchedClass !== null) {
+            return $matchedClass;
+        }
+
+        // 如果没有找到匹配的驱动，但有Base类，则返回Base类
+        if ($baseClass !== null) {
+            return $baseClass;
         }
 
         return null;

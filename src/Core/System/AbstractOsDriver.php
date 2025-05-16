@@ -134,6 +134,45 @@ abstract class AbstractOsDriver implements OsDriverInterface
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function getTags(): array
+    {
+        $tags = [];
+
+        // 添加操作系统类型标签
+        if ($this->name) {
+            $tags[] = strtolower($this->name);
+
+            // 添加操作系统家族标签
+            if (in_array($this->name, ['ubuntu', 'debian'])) {
+                $tags[] = 'debian-based';
+            } elseif (in_array($this->name, ['centos', 'fedora', 'rhel'])) {
+                $tags[] = 'rhel-based';
+            }
+
+            // 添加版本标签
+            if ($this->version) {
+                $tags[] = strtolower($this->name) . '-' . $this->version;
+            }
+        }
+
+        // 添加架构标签
+        if ($this->arch) {
+            $tags[] = strtolower($this->arch);
+
+            // 添加架构家族标签
+            if (in_array($this->arch, ['x86_64', 'amd64'])) {
+                $tags[] = 'x86-family';
+            } elseif (in_array($this->arch, ['arm', 'arm64', 'aarch64'])) {
+                $tags[] = 'arm-family';
+            }
+        }
+
+        return $tags;
+    }
+
+    /**
      * 执行命令
      *
      * @param string $command 要执行的命令

@@ -2,12 +2,14 @@
 
 namespace VersionManager\Core\Version;
 
+use VersionManager\Core\Tags\TaggableInterface;
+
 /**
  * 抽象版本安装驱动基类
  *
  * 实现一些通用功能
  */
-abstract class AbstractVersionDriver implements VersionDriverInterface
+abstract class AbstractVersionDriver implements VersionDriverInterface, TaggableInterface
 {
     /**
      * 驱动名称

@@ -24,6 +24,13 @@ interface ExtensionDriverInterface
     public function getDescription();
 
     /**
+     * 获取扩展标签
+     *
+     * @return array
+     */
+    public function getTags(): array;
+
+    /**
      * 获取扩展版本
      *
      * @return string

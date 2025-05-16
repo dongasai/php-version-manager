@@ -5,13 +5,14 @@ namespace VersionManager\Core\Extension;
 use VersionManager\Core\ExtensionConfig;
 use VersionManager\Core\Extension\ExtensionType;
 use VersionManager\Core\Config\MirrorConfig;
+use VersionManager\Core\Tags\TaggableInterface;
 
 /**
  * 抽象扩展驱动基类
  *
  * 实现一些通用功能
  */
-abstract class AbstractExtensionDriver implements ExtensionDriverInterface
+abstract class AbstractExtensionDriver implements ExtensionDriverInterface, TaggableInterface
 {
     /**
      * 扩展名称
@@ -155,6 +156,29 @@ abstract class AbstractExtensionDriver implements ExtensionDriverInterface
     public function isZend()
     {
         return $this->isZend;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getTags(): array
+    {
+        $tags = [];
+
+        // 添加扩展名称作为标签
+        $tags[] = strtolower($this->name);
+
+        // 添加扩展类型作为标签
+        if ($this->type) {
+            $tags[] = strtolower($this->type);
+        }
+
+        // 添加Zend标签
+        if ($this->isZend) {
+            $tags[] = 'zend';
+        }
+
+        return $tags;
     }
 
     /**

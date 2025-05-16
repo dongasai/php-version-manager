@@ -93,8 +93,9 @@ check_php_installed() {
 
 # 安装基础PHP版本
 install_base_php() {
+    local php_version=${1:-$DEFAULT_PHP_VERSION}
     local pkg_manager=$(detect_package_manager)
-    echo -e "${BLUE}安装PHP ${DEFAULT_PHP_VERSION}...${NC}"
+    echo -e "${BLUE}安装PHP ${php_version}...${NC}"
 
     # 检查用户权限
     if [ "$(id -u)" = "0" ]; then
@@ -104,35 +105,122 @@ install_base_php() {
         USE_SUDO="sudo"
     fi
 
+    # 提取主要版本号
+    local php_major_version=$(echo $php_version | cut -d. -f1)
+    local php_minor_version=$(echo $php_version | cut -d. -f2)
+    local php_package_version="${php_major_version}.${php_minor_version}"
+
     case $pkg_manager in
         apt)
-            $USE_SUDO apt-get update
-            $USE_SUDO apt-get install -y php php-cli php-common php-curl php-xml php-mbstring
+            # 对于Ubuntu/Debian，可能需要添加PPA来安装特定版本
+            if [ "$php_major_version" -ge 5 ] && [ "$php_major_version" -le 8 ]; then
+                # 检查是否已安装add-apt-repository命令
+                if ! command -v add-apt-repository &> /dev/null; then
+                    $USE_SUDO apt-get update
+                    $USE_SUDO apt-get install -y software-properties-common
+                fi
+
+                # 添加PHP仓库
+                $USE_SUDO add-apt-repository -y ppa:ondrej/php
+                $USE_SUDO apt-get update
+
+                # 安装特定版本的PHP
+                $USE_SUDO apt-get install -y php${php_package_version} php${php_package_version}-cli php${php_package_version}-common php${php_package_version}-curl php${php_package_version}-xml php${php_package_version}-mbstring
+            else
+                echo -e "${RED}错误: 不支持的PHP版本 ${php_version}${NC}"
+                echo -e "${YELLOW}请选择PHP 5.x-8.x的版本${NC}"
+                exit 1
+            fi
             ;;
         yum)
-            $USE_SUDO yum install -y php php-cli php-common php-curl php-xml php-mbstring
+            # 对于CentOS/RHEL，可能需要添加EPEL和Remi仓库
+            if [ "$php_major_version" -ge 5 ] && [ "$php_major_version" -le 8 ]; then
+                # 安装EPEL仓库
+                $USE_SUDO yum install -y epel-release
+
+                # 安装Remi仓库
+                $USE_SUDO yum install -y https://rpms.remirepo.net/enterprise/remi-release-7.rpm
+
+                # 启用特定版本的PHP仓库
+                $USE_SUDO yum-config-manager --enable remi-php${php_major_version}${php_minor_version}
+
+                # 安装PHP
+                $USE_SUDO yum install -y php php-cli php-common php-curl php-xml php-mbstring
+            else
+                echo -e "${RED}错误: 不支持的PHP版本 ${php_version}${NC}"
+                echo -e "${YELLOW}请选择PHP 5.x-8.x的版本${NC}"
+                exit 1
+            fi
             ;;
         dnf)
-            $USE_SUDO dnf install -y php php-cli php-common php-curl php-xml php-mbstring
+            # 对于Fedora，可能需要添加仓库
+            if [ "$php_major_version" -ge 5 ] && [ "$php_major_version" -le 8 ]; then
+                # 安装DNF模块
+                $USE_SUDO dnf install -y dnf-utils
+
+                # 重置PHP模块
+                $USE_SUDO dnf module reset php -y
+
+                # 启用特定版本的PHP模块
+                $USE_SUDO dnf module enable php:${php_major_version}.${php_minor_version} -y
+
+                # 安装PHP
+                $USE_SUDO dnf install -y php php-cli php-common php-curl php-xml php-mbstring
+            else
+                echo -e "${RED}错误: 不支持的PHP版本 ${php_version}${NC}"
+                echo -e "${YELLOW}请选择PHP 5.x-8.x的版本${NC}"
+                exit 1
+            fi
             ;;
         apk)
-            $USE_SUDO apk update
-            $USE_SUDO apk add php php-cli php-common php-curl php-xml php-mbstring
+            # 对于Alpine，版本选择较为有限
+            if [ "$php_major_version" -ge 7 ] && [ "$php_major_version" -le 8 ]; then
+                $USE_SUDO apk update
+
+                # 安装特定版本的PHP
+                if [ "$php_major_version" -eq 7 ]; then
+                    $USE_SUDO apk add php7 php7-cli php7-common php7-curl php7-xml php7-mbstring
+                elif [ "$php_major_version" -eq 8 ]; then
+                    $USE_SUDO apk add php8 php8-cli php8-common php8-curl php8-xml php8-mbstring
+                fi
+            else
+                echo -e "${RED}错误: Alpine仅支持PHP 7.x-8.x${NC}"
+                echo -e "${YELLOW}请选择PHP 7.x-8.x的版本${NC}"
+                exit 1
+            fi
             ;;
         *)
             echo -e "${RED}错误: 不支持的包管理器，无法自动安装PHP${NC}"
-            echo -e "${YELLOW}请手动安装PHP ${DEFAULT_PHP_VERSION}后再运行此脚本${NC}"
+            echo -e "${YELLOW}请手动安装PHP ${php_version}后再运行此脚本${NC}"
             exit 1
             ;;
     esac
 
     # 验证安装
     if command -v php &> /dev/null; then
-        local php_version=$(php -r "echo PHP_VERSION;")
-        echo -e "${GREEN}成功安装PHP ${php_version}${NC}"
+        local installed_php_version=$(php -r "echo PHP_VERSION;")
+        echo -e "${GREEN}成功安装PHP ${installed_php_version}${NC}"
+
+        # 检查安装的版本是否与请求的版本匹配
+        local installed_major=$(php -r "echo PHP_MAJOR_VERSION;")
+        local installed_minor=$(php -r "echo PHP_MINOR_VERSION;")
+
+        if [ "$installed_major" != "$php_major_version" ] || [ "$installed_minor" != "$php_minor_version" ]; then
+            echo -e "${YELLOW}警告: 安装的PHP版本 (${installed_php_version}) 与请求的版本 (${php_version}) 不完全匹配${NC}"
+            echo -e "${YELLOW}这可能是由于包管理器的限制或仓库中没有精确的版本${NC}"
+        fi
     else
         echo -e "${RED}PHP安装失败${NC}"
         exit 1
+    fi
+}
+
+# 检查PHP版本
+check_php_version() {
+    if command -v php &> /dev/null; then
+        php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;'
+    else
+        echo "0.0"
     fi
 }
 
@@ -148,8 +236,31 @@ install_composer() {
         USE_SUDO="sudo"
     fi
 
-    # 下载Composer安装脚本
-    curl -sS https://getcomposer.org/installer | php
+    # 获取PHP版本
+    local php_version=$(check_php_version)
+    local php_major_version=$(echo $php_version | cut -d. -f1)
+    local php_minor_version=$(echo $php_version | cut -d. -f2)
+
+    echo -e "${BLUE}检测到PHP版本: ${php_version}${NC}"
+
+    # 根据PHP版本选择合适的Composer版本
+    if [ "$php_major_version" -lt 5 ] || ([ "$php_major_version" -eq 5 ] && [ "$php_minor_version" -lt 3 ]); then
+        echo -e "${RED}错误: PHP版本过低，Composer需要PHP 5.3.2+${NC}"
+        echo -e "${YELLOW}请升级PHP版本后再安装Composer${NC}"
+        exit 1
+    elif [ "$php_major_version" -lt 7 ] || ([ "$php_major_version" -eq 7 ] && [ "$php_minor_version" -lt 2 ]); then
+        # PHP 5.3.2 - 7.1.x: 使用Composer 1.x
+        echo -e "${YELLOW}PHP版本低于7.2，将安装Composer 1.x${NC}"
+        curl -sS https://getcomposer.org/installer | php -- --1
+    elif [ "$php_major_version" -lt 8 ] || ([ "$php_major_version" -eq 8 ] && [ "$php_minor_version" -lt 1 ]); then
+        # PHP 7.2.5 - 8.0.x: 可以使用Composer 2.2.x (最后支持PHP 7.2的版本)
+        echo -e "${YELLOW}PHP版本低于8.1，将安装Composer 2.2.x${NC}"
+        curl -sS https://getcomposer.org/installer | php -- --2.2
+    else
+        # PHP 8.1+: 使用最新的Composer
+        echo -e "${GREEN}PHP版本 8.1+，将安装最新版Composer${NC}"
+        curl -sS https://getcomposer.org/installer | php
+    fi
 
     # 移动到全局目录
     $USE_SUDO mv composer.phar /usr/local/bin/composer
@@ -256,6 +367,40 @@ EOF
     echo -e "${YELLOW}请运行 'source ${shell_config}' 或重新打开终端以使配置生效${NC}"
 }
 
+# 显示PHP版本选择菜单
+show_php_version_menu() {
+    echo -e "${BLUE}请选择要安装的PHP版本:${NC}"
+    echo "1) PHP 5.6 (旧版，兼容性好)"
+    echo "2) PHP 7.0 (旧版)"
+    echo "3) PHP 7.1 (旧版)"
+    echo "4) PHP 7.2 (稳定版)"
+    echo "5) PHP 7.3 (稳定版)"
+    echo "6) PHP 7.4 (推荐版本)"
+    echo "7) PHP 8.0 (新特性)"
+    echo "8) PHP 8.1 (新特性)"
+    echo "9) PHP 8.2 (最新版)"
+    echo "0) 跳过PHP安装"
+
+    read -p "请输入选项 [6]: " php_choice
+
+    # 默认选择PHP 7.4
+    php_choice=${php_choice:-6}
+
+    case $php_choice in
+        1) echo "5.6" ;;
+        2) echo "7.0" ;;
+        3) echo "7.1" ;;
+        4) echo "7.2" ;;
+        5) echo "7.3" ;;
+        6) echo "7.4" ;;
+        7) echo "8.0" ;;
+        8) echo "8.1" ;;
+        9) echo "8.2" ;;
+        0) echo "skip" ;;
+        *) echo "7.4" ;; # 默认为PHP 7.4
+    esac
+}
+
 # 主安装流程
 main() {
     echo -e "${BLUE}开始安装PVM...${NC}"
@@ -265,14 +410,81 @@ main() {
 
     # 检查PHP是否已安装
     if ! check_php_installed; then
-        echo -e "${YELLOW}正在安装基础PHP版本...${NC}"
-        install_base_php
+        echo -e "${YELLOW}未检测到PHP，需要安装基础PHP版本${NC}"
+
+        # 显示PHP版本选择菜单
+        local selected_version=$(show_php_version_menu)
+
+        if [ "$selected_version" != "skip" ]; then
+            echo -e "${BLUE}将安装PHP ${selected_version}...${NC}"
+            install_base_php "$selected_version"
+        else
+            echo -e "${YELLOW}跳过PHP安装，请注意这可能会影响后续步骤${NC}"
+        fi
+    else
+        # 检查PHP版本是否满足最低要求
+        local php_version=$(check_php_version)
+        local php_major_version=$(echo $php_version | cut -d. -f1)
+        local php_minor_version=$(echo $php_version | cut -d. -f2)
+
+        if [ "$php_major_version" -lt 5 ] || ([ "$php_major_version" -eq 5 ] && [ "$php_minor_version" -lt 3 ]); then
+            echo -e "${RED}警告: 当前PHP版本 ${php_version} 过低，可能无法正常使用PVM${NC}"
+            echo -e "${YELLOW}建议安装PHP 7.2+以获得最佳体验${NC}"
+
+            # 询问用户是否安装新版本
+            read -p "是否安装新版本的PHP? (y/n) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                # 显示PHP版本选择菜单
+                local selected_version=$(show_php_version_menu)
+
+                if [ "$selected_version" != "skip" ]; then
+                    echo -e "${BLUE}将安装PHP ${selected_version}...${NC}"
+                    install_base_php "$selected_version"
+                else
+                    echo -e "${YELLOW}继续使用当前PHP版本${NC}"
+                fi
+            fi
+        fi
     fi
 
     # 检查Composer是否已安装
     if ! command -v composer &> /dev/null; then
         echo -e "${YELLOW}正在安装Composer...${NC}"
         install_composer
+    else
+        # 检查已安装的Composer版本是否与PHP版本兼容
+        local composer_version=$(composer --version | cut -d' ' -f3)
+        local php_version=$(check_php_version)
+        local php_major_version=$(echo $php_version | cut -d. -f1)
+        local php_minor_version=$(echo $php_version | cut -d. -f2)
+
+        echo -e "${BLUE}检测到Composer版本: ${composer_version}${NC}"
+
+        # 检查Composer版本与PHP版本的兼容性
+        if [ "$php_major_version" -lt 7 ] && [[ "$composer_version" == 2.* ]]; then
+            echo -e "${YELLOW}警告: Composer 2.x 在PHP 5.x上可能存在兼容性问题${NC}"
+            echo -e "${YELLOW}建议使用Composer 1.x或升级PHP版本${NC}"
+
+            # 询问用户是否重新安装Composer
+            read -p "是否重新安装兼容的Composer版本? (y/n) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${BLUE}重新安装Composer...${NC}"
+                install_composer
+            fi
+        elif [ "$php_major_version" -eq 7 ] && [ "$php_minor_version" -lt 2 ] && [[ "$composer_version" == 2.3.* || "$composer_version" > 2.3 ]]; then
+            echo -e "${YELLOW}警告: Composer ${composer_version} 需要PHP 7.2.5+${NC}"
+            echo -e "${YELLOW}建议使用Composer 2.2.x或升级PHP版本${NC}"
+
+            # 询问用户是否重新安装Composer
+            read -p "是否重新安装兼容的Composer版本? (y/n) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${BLUE}重新安装Composer...${NC}"
+                install_composer
+            fi
+        fi
     fi
 
     # 创建PVM目录结构

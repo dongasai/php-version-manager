@@ -153,7 +153,7 @@ install_base_php() {
                 $USE_SUDO apt-get install -y php${php_package_version} php${php_package_version}-cli php${php_package_version}-common php${php_package_version}-curl php${php_package_version}-xml php${php_package_version}-mbstring
             else
                 echo -e "${RED}错误: 不支持的PHP版本 ${php_version}${NC}"
-                echo -e "${YELLOW}请选择PHP 5.x-8.x的版本${NC}"
+                echo -e "${YELLOW}请选择PHP 7.x-8.x的版本${NC}"
                 exit 1
             fi
             ;;
@@ -173,7 +173,7 @@ install_base_php() {
                 $USE_SUDO yum install -y php php-cli php-common php-curl php-xml php-mbstring
             else
                 echo -e "${RED}错误: 不支持的PHP版本 ${php_version}${NC}"
-                echo -e "${YELLOW}请选择PHP 5.x-8.x的版本${NC}"
+                echo -e "${YELLOW}请选择PHP 7.x-8.x的版本${NC}"
                 exit 1
             fi
             ;;
@@ -435,33 +435,31 @@ EOF
 # 显示PHP版本选择菜单
 show_php_version_menu() {
     echo -e "${BLUE}请选择要安装的PHP版本:${NC}"
-    echo "1) PHP 5.6 (旧版，兼容性好)"
-    echo "2) PHP 7.0 (旧版)"
-    echo "3) PHP 7.1 (旧版)"
-    echo "4) PHP 7.2 (稳定版)"
-    echo "5) PHP 7.3 (稳定版)"
-    echo "6) PHP 7.4 (推荐版本)"
-    echo "7) PHP 8.0 (新特性)"
-    echo "8) PHP 8.1 (新特性)"
-    echo "9) PHP 8.2 (最新版)"
-    echo "10) PHP 8.3 (最新版)"
+    echo "1) PHP 7.0 (旧版)"
+    echo "2) PHP 7.1 (旧版)"
+    echo "3) PHP 7.2 (稳定版)"
+    echo "4) PHP 7.3 (稳定版)"
+    echo "5) PHP 7.4 (推荐版本)"
+    echo "6) PHP 8.0 (新特性)"
+    echo "7) PHP 8.1 (新特性)"
+    echo "8) PHP 8.2 (最新版)"
+    echo "9) PHP 8.3 (最新版)"
     echo "0) 跳过PHP安装"
 
-    read -p "请输入选项 [6]: " php_choice
+    read -p "请输入选项 [5]: " php_choice
 
     # 默认选择PHP 7.4
-    php_choice=${php_choice:-6}
+    php_choice=${php_choice:-5}
 
     case $php_choice in
-        1) echo "5.6" ;;
-        2) echo "7.0" ;;
-        3) echo "7.1" ;;
-        4) echo "7.2" ;;
-        5) echo "7.3" ;;
-        6) echo "7.4" ;;
-        7) echo "8.0" ;;
-        8) echo "8.1" ;;
-        9) echo "8.2" ;;
+        1) echo "7.0" ;;
+        2) echo "7.1" ;;
+        3) echo "7.2" ;;
+        4) echo "7.3" ;;
+        5) echo "7.4" ;;
+        6) echo "8.0" ;;
+        7) echo "8.1" ;;
+        8) echo "8.2" ;;
         9) echo "8.3" ;;
         0) echo "skip" ;;
         *) echo "7.4" ;; # 默认为PHP 7.4

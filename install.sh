@@ -444,6 +444,7 @@ show_php_version_menu() {
     echo "7) PHP 8.0 (新特性)"
     echo "8) PHP 8.1 (新特性)"
     echo "9) PHP 8.2 (最新版)"
+    echo "10) PHP 8.3 (最新版)"
     echo "0) 跳过PHP安装"
 
     read -p "请输入选项 [6]: " php_choice
@@ -461,6 +462,7 @@ show_php_version_menu() {
         7) echo "8.0" ;;
         8) echo "8.1" ;;
         9) echo "8.2" ;;
+        9) echo "8.3" ;;
         0) echo "skip" ;;
         *) echo "7.4" ;; # 默认为PHP 7.4
     esac

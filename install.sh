@@ -169,20 +169,21 @@ install_base_php() {
     case $pkg_manager in
         apt)
             # 对于Ubuntu/Debian，使用系统默认源安装PHP
+            # 在Ubuntu系统中，安装php包会附带安装apache，我们只需要CLI版本
             if [ "$php_major_version" -ge 7 ] && [ "$php_major_version" -le 8 ]; then
                 $USE_SUDO apt-get update
 
                 # 尝试安装PHP，使用系统默认源
                 echo -e "${YELLOW}尝试从系统默认源安装PHP ${php_package_version}...${NC}"
 
-                # 检查系统源中是否有指定版本的PHP
-                if apt-cache show php${php_package_version} &> /dev/null; then
-                    # 安装特定版本的PHP
-                    $USE_SUDO apt-get install -y php${php_package_version} php${php_package_version}-cli php${php_package_version}-common php${php_package_version}-curl php${php_package_version}-xml php${php_package_version}-mbstring
+                # 检查系统源中是否有指定版本的PHP CLI
+                if apt-cache show php${php_package_version}-cli &> /dev/null; then
+                    # 安装特定版本的PHP CLI和必要的扩展
+                    $USE_SUDO apt-get install -y php${php_package_version}-cli php${php_package_version}-common php${php_package_version}-curl php${php_package_version}-xml php${php_package_version}-mbstring
                 else
                     # 如果找不到特定版本，尝试安装默认版本
                     echo -e "${YELLOW}系统源中未找到PHP ${php_package_version}，尝试安装默认PHP版本...${NC}"
-                    $USE_SUDO apt-get install -y php php-cli php-common php-curl php-xml php-mbstring
+                    $USE_SUDO apt-get install -y php-cli php-common php-curl php-xml php-mbstring
                 fi
             else
                 echo -e "${RED}错误: 不支持的PHP版本 ${php_version}${NC}"

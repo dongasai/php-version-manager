@@ -147,7 +147,7 @@ class InitCommand implements CommandInterface
 
         switch ($packageManager) {
             case 'apt':
-                $installCommand = "apt-get update && apt-get install -y " . implode(' ', $extensionPackages);
+                $installCommand = "apt-get update && apt-get install -y git wget curl " . implode(' ', $extensionPackages);
                 break;
             case 'yum':
                 $installCommand = "yum install -y " . implode(' ', $extensionPackages);

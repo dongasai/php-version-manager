@@ -7,6 +7,9 @@
  */
 
 return [
+    // 自定义数据目录
+    'data_dir' => '',
+
     // PHP 源码镜像配置
     'php' => [
         'source' => 'https://www.php.net/distributions',

@@ -21,7 +21,8 @@ class ComposerMirror
         
         $source = $config['source'];
         $pattern = $config['pattern'];
-        $dataDir = ROOT_DIR . '/data/composer';
+        $baseDir = $config['data_dir'] ?? ROOT_DIR . '/data';
+        $dataDir = $baseDir . '/composer';  // 强制添加composer子目录
         
         // 确保目录存在
         if (!is_dir($dataDir)) {

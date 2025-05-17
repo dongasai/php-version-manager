@@ -12,7 +12,12 @@ NC='\033[0m' # No Color
 
 # 版本信息
 PVM_VERSION="1.0.0"
-DEFAULT_PHP_VERSION="7.4"
+DEFAULT_PHP_VERSION="8.3"
+
+# 仓库源配置
+GITEE_REPO_URL="https://gitee.com/Dongasai/php-version-manager.git"
+GITHUB_REPO_URL="https://github.com/dongasai/php-version-manager.git"
+DEFAULT_REPO_SOURCE="gitee"  # 默认使用gitee源
 
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
@@ -21,11 +26,16 @@ while [[ $# -gt 0 ]]; do
             CUSTOM_DIR="${1#*=}"
             shift
             ;;
+        --source=*)
+            REPO_SOURCE="${1#*=}"
+            shift
+            ;;
         --help)
             echo "用法: ./install.sh [选项]"
             echo ""
             echo "选项:"
             echo "  --dir=PATH    指定安装目录，默认为 $HOME/.pvm"
+            echo "  --source=SOURCE 指定仓库源，可选值: gitee, github，默认为 gitee"
             echo "  --help        显示此帮助信息"
             exit 0
             ;;
@@ -36,6 +46,9 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# 设置仓库源
+REPO_SOURCE="${REPO_SOURCE:-$DEFAULT_REPO_SOURCE}"
 
 # 目录设置
 PVM_DIR="${CUSTOM_DIR:-$HOME/.pvm}"
@@ -48,6 +61,7 @@ echo -e "${BLUE}安装目录: ${PVM_DIR}${NC}"
 # 打印信息
 echo -e "${BLUE}PHP Version Manager (PVM) 安装脚本${NC}"
 echo -e "${BLUE}版本: ${PVM_VERSION}${NC}"
+echo -e "${BLUE}仓库源: ${REPO_SOURCE}${NC}"
 echo ""
 
 # 检查系统类型
@@ -131,9 +145,26 @@ install_base_php() {
     fi
 
     # 提取主要版本号
+    # 确保php_version是有效的版本号格式
+    if [[ ! "$php_version" =~ ^[0-9]+\.[0-9]+$ ]]; then
+        echo -e "${RED}错误: 无效的PHP版本格式: ${php_version}${NC}"
+        echo -e "${YELLOW}请选择有效的PHP版本，例如7.4或8.1${NC}"
+
+        # 如果版本无效，使用默认版本
+        php_version="$DEFAULT_PHP_VERSION"
+        echo -e "${YELLOW}使用默认版本 ${php_version}${NC}"
+    fi
+
     local php_major_version=$(echo $php_version | cut -d. -f1)
     local php_minor_version=$(echo $php_version | cut -d. -f2)
     local php_package_version="${php_major_version}.${php_minor_version}"
+
+    # 创建版本目录
+    local version_dir="$VERSIONS_DIR/$php_package_version"
+    local bin_dir="$version_dir/bin"
+
+    # 确保目录存在
+    mkdir -p "$bin_dir"
 
     case $pkg_manager in
         apt)
@@ -235,12 +266,31 @@ install_base_php() {
         # 检查安装的版本是否与请求的版本匹配
         local installed_major=$(php -r "echo PHP_MAJOR_VERSION;")
         local installed_minor=$(php -r "echo PHP_MINOR_VERSION;")
+        local installed_version_full="${installed_major}.${installed_minor}"
 
         if [ "$installed_major" != "$php_major_version" ] || [ "$installed_minor" != "$php_minor_version" ]; then
             echo -e "${YELLOW}警告: 安装的PHP版本 (${installed_php_version}) 与请求的版本 (${php_version}) 不完全匹配${NC}"
             echo -e "${YELLOW}这是因为使用了系统默认源，而该源中可能没有精确的版本${NC}"
             echo -e "${YELLOW}如果需要特定版本，您可能需要手动安装${NC}"
+
+            # 更新版本目录为实际安装的版本
+            version_dir="$VERSIONS_DIR/$installed_version_full"
+            bin_dir="$version_dir/bin"
+            mkdir -p "$bin_dir"
         fi
+
+        # 创建PHP可执行文件的符号链接到版本目录
+        local php_path=$(which php)
+        echo -e "${BLUE}创建PHP符号链接: ${php_path} -> ${bin_dir}/php${NC}"
+        ln -sf "$php_path" "$bin_dir/php"
+
+        # 创建符号链接到shims目录
+        echo -e "${BLUE}创建PHP符号链接到shims目录${NC}"
+        ln -sf "$bin_dir/php" "$SHIMS_DIR/php"
+
+        # 设置为当前版本
+        echo "$installed_version_full" > "$PVM_DIR/config/current"
+        echo -e "${GREEN}已将PHP ${installed_version_full}设置为当前版本${NC}"
     else
         echo -e "${RED}PHP安装失败${NC}"
         echo -e "${YELLOW}这可能是因为系统默认源中没有PHP或者版本不匹配${NC}"
@@ -274,8 +324,21 @@ install_composer() {
     local php_version=$(check_php_version)
     local php_major_version=$(echo $php_version | cut -d. -f1)
     local php_minor_version=$(echo $php_version | cut -d. -f2)
+    local php_version_full="${php_major_version}.${php_minor_version}"
 
     echo -e "${BLUE}检测到PHP版本: ${php_version}${NC}"
+
+    # 创建版本目录
+    local version_dir="$VERSIONS_DIR/$php_version_full"
+    local bin_dir="$version_dir/bin"
+
+    # 确保目录存在
+    mkdir -p "$bin_dir"
+
+    # 创建临时目录用于下载Composer
+    local temp_dir=$(mktemp -d)
+    echo -e "${BLUE}使用临时目录下载Composer: ${temp_dir}${NC}"
+    cd "$temp_dir"
 
     # 根据PHP版本选择合适的Composer版本
     if [ "$php_major_version" -lt 7 ]; then
@@ -285,28 +348,100 @@ install_composer() {
     elif [ "$php_major_version" -eq 7 ] && [ "$php_minor_version" -lt 2 ]; then
         # PHP 7.0 - 7.1.x: 使用Composer 1.x
         echo -e "${YELLOW}PHP版本低于7.2，将安装Composer 1.x${NC}"
-        curl -sS https://getcomposer.org/installer | php -- --1
+        curl -v https://getcomposer.org/installer -o composer-setup.php
+        php composer-setup.php --1
     elif [ "$php_major_version" -lt 8 ] || ([ "$php_major_version" -eq 8 ] && [ "$php_minor_version" -lt 1 ]); then
         # PHP 7.2.5 - 8.0.x: 可以使用Composer 2.2.x (最后支持PHP 7.2的版本)
         echo -e "${YELLOW}PHP版本低于8.1，将安装Composer 2.2.x${NC}"
-        curl -sS https://getcomposer.org/installer | php -- --2.2
+        curl -v https://getcomposer.org/installer -o composer-setup.php
+        php composer-setup.php --2.2
     else
         # PHP 8.1+: 使用最新的Composer
         echo -e "${GREEN}PHP版本 8.1+，将安装最新版Composer${NC}"
-        curl -sS https://getcomposer.org/installer | php
+        curl -v https://getcomposer.org/installer -o composer-setup.php
+        php composer-setup.php
     fi
 
-    # 移动到全局目录
-    $USE_SUDO mv composer.phar /usr/local/bin/composer
+    # 检查下载和安装结果
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Composer安装程序执行失败${NC}"
+        ls -la
+        return 1
+    fi
 
-    # 验证安装
-    if command -v composer &> /dev/null; then
-        local composer_version=$(composer --version | cut -d' ' -f3)
-        echo -e "${GREEN}成功安装Composer ${composer_version}${NC}"
+    # 列出当前目录内容
+    echo -e "${BLUE}临时目录内容:${NC}"
+    ls -la
+
+    # 移动到版本对应的bin目录
+    if [ -f "composer.phar" ]; then
+        echo -e "${BLUE}找到composer.phar文件，移动到版本目录...${NC}"
+        mv composer.phar "$bin_dir/composer"
+        chmod +x "$bin_dir/composer"
+        echo -e "${YELLOW}Composer已安装到版本目录: $bin_dir/composer${NC}"
+
+        # 创建符号链接到shims目录
+        ln -sf "$bin_dir/composer" "$SHIMS_DIR/composer"
+
+        # 验证安装
+        if [ -f "$bin_dir/composer" ]; then
+            local composer_version=$("$bin_dir/composer" --version | cut -d' ' -f3 2>/dev/null || echo "未知")
+            echo -e "${GREEN}成功安装Composer ${composer_version}${NC}"
+        else
+            echo -e "${RED}Composer安装失败${NC}"
+        fi
     else
-        echo -e "${RED}Composer安装失败${NC}"
-        exit 1
+        echo -e "${YELLOW}未找到composer.phar文件，尝试查找其他可能的文件名...${NC}"
+        # 尝试查找其他可能的文件名
+        local composer_file=$(find . -name "composer*.phar" | head -1)
+
+        if [ -n "$composer_file" ]; then
+            echo -e "${BLUE}找到Composer文件: $composer_file，移动到版本目录...${NC}"
+            mv "$composer_file" "$bin_dir/composer"
+            chmod +x "$bin_dir/composer"
+            echo -e "${YELLOW}Composer已安装到版本目录: $bin_dir/composer${NC}"
+
+            # 创建符号链接到shims目录
+            ln -sf "$bin_dir/composer" "$SHIMS_DIR/composer"
+
+            # 验证安装
+            if [ -f "$bin_dir/composer" ]; then
+                local composer_version=$("$bin_dir/composer" --version | cut -d' ' -f3 2>/dev/null || echo "未知")
+                echo -e "${GREEN}成功安装Composer ${composer_version}${NC}"
+            else
+                echo -e "${RED}Composer安装失败${NC}"
+            fi
+        else
+            echo -e "${RED}Composer下载失败，未找到composer相关文件${NC}"
+            # 尝试手动下载composer.phar
+            echo -e "${YELLOW}尝试手动下载composer.phar...${NC}"
+            curl -v https://getcomposer.org/download/latest-stable/composer.phar -o composer.phar
+
+            if [ -f "composer.phar" ]; then
+                echo -e "${BLUE}手动下载成功，移动到版本目录...${NC}"
+                mv composer.phar "$bin_dir/composer"
+                chmod +x "$bin_dir/composer"
+                echo -e "${YELLOW}Composer已安装到版本目录: $bin_dir/composer${NC}"
+
+                # 创建符号链接到shims目录
+                ln -sf "$bin_dir/composer" "$SHIMS_DIR/composer"
+
+                # 验证安装
+                if [ -f "$bin_dir/composer" ]; then
+                    local composer_version=$("$bin_dir/composer" --version | cut -d' ' -f3 2>/dev/null || echo "未知")
+                    echo -e "${GREEN}成功安装Composer ${composer_version}${NC}"
+                else
+                    echo -e "${RED}Composer安装失败${NC}"
+                fi
+            else
+                echo -e "${RED}手动下载也失败，无法安装Composer${NC}"
+            fi
+        fi
     fi
+
+    # 清理临时目录
+    cd - > /dev/null
+    rm -rf "$temp_dir"
 }
 
 # 创建PVM目录结构
@@ -370,8 +505,20 @@ clone_pvm_repo() {
         esac
     fi
 
-    # 设置PVM仓库URL
-    local PVM_REPO_URL="https://github.com/dongasai/php-version-manager.git"
+    # 根据选择的源设置PVM仓库URL
+    local PVM_REPO_URL=""
+    case $REPO_SOURCE in
+        gitee)
+            PVM_REPO_URL="$GITEE_REPO_URL"
+            ;;
+        github)
+            PVM_REPO_URL="$GITHUB_REPO_URL"
+            ;;
+        *)
+            echo -e "${YELLOW}未知的仓库源: ${REPO_SOURCE}，使用默认源 gitee${NC}"
+            PVM_REPO_URL="$GITEE_REPO_URL"
+            ;;
+    esac
 
     # 检查仓库目录是否已存在，如果存在则先删除
     if [ -d "$PVM_DIR/repo" ]; then
@@ -380,17 +527,71 @@ clone_pvm_repo() {
     fi
 
     # 通过HTTP克隆项目到PVM目录
-    echo -e "${YELLOW}正在从 ${PVM_REPO_URL} 克隆项目...${NC}"
+    echo -e "${YELLOW}正在从 ${PVM_REPO_URL} (${REPO_SOURCE}) 克隆项目...${NC}"
     git clone "$PVM_REPO_URL" "$PVM_DIR/repo"
 
+    # 如果克隆失败，尝试使用备用源
     if [ $? -ne 0 ]; then
-        echo -e "${RED}克隆仓库失败，请检查网络连接或仓库URL${NC}"
-        exit 1
+        echo -e "${YELLOW}从 ${REPO_SOURCE} 克隆失败，尝试使用备用源...${NC}"
+
+        # 切换源
+        if [ "$REPO_SOURCE" = "gitee" ]; then
+            REPO_SOURCE="github"
+            PVM_REPO_URL="$GITHUB_REPO_URL"
+        else
+            REPO_SOURCE="gitee"
+            PVM_REPO_URL="$GITEE_REPO_URL"
+        fi
+
+        echo -e "${YELLOW}正在从备用源 ${PVM_REPO_URL} (${REPO_SOURCE}) 克隆项目...${NC}"
+        git clone "$PVM_REPO_URL" "$PVM_DIR/repo"
+
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}克隆仓库失败，请检查网络连接或仓库URL${NC}"
+            exit 1
+        fi
     fi
 
     # 进入仓库目录并安装依赖
     cd "$PVM_DIR/repo"
-    composer install
+
+    # 获取PHP版本
+    local php_version=$(check_php_version)
+    local php_major_version=$(echo $php_version | cut -d. -f1)
+    local php_minor_version=$(echo $php_version | cut -d. -f2)
+    local php_version_full="${php_major_version}.${php_minor_version}"
+
+    # 版本目录中的composer
+    local version_composer="$VERSIONS_DIR/$php_version_full/bin/composer"
+
+    # 优先使用版本目录中的composer
+    if [ -f "$version_composer" ]; then
+        echo -e "${YELLOW}使用PHP ${php_version_full}版本目录中的Composer安装依赖...${NC}"
+        "$version_composer" install --no-dev
+
+        if [ $? -ne 0 ]; then
+            echo -e "${YELLOW}使用版本目录中的Composer安装依赖失败，尝试不使用autoloader...${NC}"
+            "$version_composer" install --no-dev --no-autoloader
+        fi
+    else
+        # 尝试使用系统全局composer
+        echo -e "${YELLOW}未找到版本目录中的Composer，尝试使用系统全局Composer安装依赖...${NC}"
+        if command -v composer &> /dev/null; then
+            composer install --no-dev
+
+            if [ $? -ne 0 ]; then
+                echo -e "${YELLOW}使用系统全局Composer安装依赖失败，尝试不使用autoloader...${NC}"
+                composer install --no-dev --no-autoloader
+            fi
+        else
+            echo -e "${RED}未找到Composer，跳过依赖安装${NC}"
+            echo -e "${YELLOW}PVM可能无法正常工作，建议手动安装Composer后重新运行此脚本${NC}"
+            echo -e "${YELLOW}或者手动进入 $PVM_DIR/repo 目录运行 composer install${NC}"
+        fi
+    fi
+
+    # 即使依赖安装失败，也继续安装PVM
+    echo -e "${BLUE}继续安装PVM...${NC}"
 
     # 创建符号链接
     ln -sf "$PVM_DIR/repo/bin/pvm" "$BIN_DIR/pvm"
@@ -460,19 +661,23 @@ show_php_version_menu() {
     # 默认选择PHP 7.4
     php_choice=${php_choice:-5}
 
+    local version=""
     case $php_choice in
-        1) echo "7.0" ;;
-        2) echo "7.1" ;;
-        3) echo "7.2" ;;
-        4) echo "7.3" ;;
-        5) echo "7.4" ;;
-        6) echo "8.0" ;;
-        7) echo "8.1" ;;
-        8) echo "8.2" ;;
-        9) echo "8.3" ;;
-        0) echo "skip" ;;
-        *) echo "7.4" ;; # 默认为PHP 7.4
+        1) version="7.0" ;;
+        2) version="7.1" ;;
+        3) version="7.2" ;;
+        4) version="7.3" ;;
+        5) version="7.4" ;;
+        6) version="8.0" ;;
+        7) version="8.1" ;;
+        8) version="8.2" ;;
+        9) version="8.3" ;;
+        0) version="skip" ;;
+        *) version="7.4" ;; # 默认为PHP 7.4
     esac
+
+    # 返回版本号，不输出到标准输出
+    echo "$version" >&1
 }
 
 # 检查目标安装目录
@@ -535,16 +740,11 @@ main() {
     if ! check_php_installed; then
         echo -e "${YELLOW}未检测到PHP，需要安装基础PHP版本${NC}"
 
-        # 显示PHP版本选择菜单
-        local selected_version=$(show_php_version_menu)
-
-        if [ "$selected_version" != "skip" ]; then
-            echo -e "${BLUE}将尝试从系统默认源安装PHP ${selected_version}...${NC}"
-            echo -e "${YELLOW}注意：仅使用系统默认源，不会添加第三方源${NC}"
-            install_base_php "$selected_version"
-        else
-            echo -e "${YELLOW}跳过PHP安装，请注意这可能会影响后续步骤${NC}"
-        fi
+        # 在开发容器中，直接使用默认版本
+        local selected_version="$DEFAULT_PHP_VERSION"
+        echo -e "${BLUE}在开发容器中使用默认PHP版本 ${selected_version}...${NC}"
+        echo -e "${YELLOW}注意：仅使用系统默认源，不会添加第三方源${NC}"
+        install_base_php "$selected_version"
     else
         # 检查PHP版本是否满足最低要求
         local php_version=$(check_php_version)
@@ -559,32 +759,45 @@ main() {
             read -p "是否安装新版本的PHP? (y/n) " -n 1 -r
             echo
             if [[ $REPLY =~ ^[Yy]$ ]]; then
-                # 显示PHP版本选择菜单
-                local selected_version=$(show_php_version_menu)
-
-                if [ "$selected_version" != "skip" ]; then
-                    echo -e "${BLUE}将尝试从系统默认源安装PHP ${selected_version}...${NC}"
-                    echo -e "${YELLOW}注意：仅使用系统默认源，不会添加第三方源${NC}"
-                    install_base_php "$selected_version"
-                else
-                    echo -e "${YELLOW}继续使用当前PHP版本${NC}"
-                fi
+                # 在开发容器中，直接使用默认版本
+                local selected_version="$DEFAULT_PHP_VERSION"
+                echo -e "${BLUE}在开发容器中使用默认PHP版本 ${selected_version}...${NC}"
+                echo -e "${YELLOW}注意：仅使用系统默认源，不会添加第三方源${NC}"
+                install_base_php "$selected_version"
             fi
         fi
     fi
 
     # 检查Composer是否已安装
+    local composer_installed=false
+
     if ! command -v composer &> /dev/null; then
         echo -e "${YELLOW}正在安装Composer...${NC}"
         install_composer
+
+        # 检查Composer是否成功安装到版本目录
+        local php_version=$(check_php_version)
+        local php_major_version=$(echo $php_version | cut -d. -f1)
+        local php_minor_version=$(echo $php_version | cut -d. -f2)
+        local php_version_full="${php_major_version}.${php_minor_version}"
+        local version_composer="$VERSIONS_DIR/$php_version_full/bin/composer"
+
+        if [ -f "$version_composer" ]; then
+            echo -e "${GREEN}Composer已成功安装到版本目录${NC}"
+            composer_installed=true
+        else
+            echo -e "${YELLOW}Composer安装可能失败，但将继续安装PVM${NC}"
+        fi
     else
         # 检查已安装的Composer版本是否与PHP版本兼容
         local composer_version=$(composer --version | cut -d' ' -f3)
         local php_version=$(check_php_version)
         local php_major_version=$(echo $php_version | cut -d. -f1)
         local php_minor_version=$(echo $php_version | cut -d. -f2)
+        local php_version_full="${php_major_version}.${php_minor_version}"
 
         echo -e "${BLUE}检测到Composer版本: ${composer_version}${NC}"
+        composer_installed=true
 
         # 检查Composer版本与PHP版本的兼容性
         if [ "$php_major_version" -eq 7 ] && [ "$php_minor_version" -lt 2 ] && [[ "$composer_version" == 2.3.* || "$composer_version" > 2.3 ]]; then
@@ -597,7 +810,37 @@ main() {
             if [[ $REPLY =~ ^[Yy]$ ]]; then
                 echo -e "${BLUE}重新安装Composer...${NC}"
                 install_composer
+
+                # 检查Composer是否成功安装到版本目录
+                local version_composer="$VERSIONS_DIR/$php_version_full/bin/composer"
+
+                if [ -f "$version_composer" ]; then
+                    echo -e "${GREEN}Composer已成功安装到版本目录${NC}"
+                    composer_installed=true
+                else
+                    echo -e "${YELLOW}Composer安装可能失败，但将继续安装PVM${NC}"
+                    composer_installed=false
+                fi
             fi
+        fi
+
+        # 如果系统已安装Composer，但没有安装到版本目录，则安装到版本目录
+        local version_composer="$VERSIONS_DIR/$php_version_full/bin/composer"
+        if [ "$composer_installed" = true ] && [ ! -f "$version_composer" ]; then
+            echo -e "${YELLOW}系统已安装Composer，但未安装到版本目录，正在安装到版本目录...${NC}"
+
+            # 创建版本目录
+            mkdir -p "$VERSIONS_DIR/$php_version_full/bin"
+
+            # 复制系统Composer到版本目录
+            local system_composer=$(which composer)
+            cp "$system_composer" "$version_composer"
+            chmod +x "$version_composer"
+
+            # 创建符号链接到shims目录
+            ln -sf "$version_composer" "$SHIMS_DIR/composer"
+
+            echo -e "${GREEN}Composer已复制到版本目录: $version_composer${NC}"
         fi
     fi
 

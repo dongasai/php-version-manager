@@ -21,7 +21,8 @@ class PhpMirror
         
         $source = $config['source'];
         $pattern = $config['pattern'];
-        $dataDir = ROOT_DIR . '/data/php';
+        $baseDir = $config['data_dir'] ?? ROOT_DIR . '/data';
+        $dataDir = $baseDir . '/php';  // 强制添加php子目录
         
         // 确保目录存在
         if (!is_dir($dataDir)) {
@@ -53,6 +54,7 @@ class PhpMirror
         return true;
     }
 
+    
     /**
      * 清理PHP源码包
      *

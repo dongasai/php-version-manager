@@ -19,11 +19,13 @@ class ExtensionMirror
     {
         echo "同步特定扩展的 GitHub 源码...\n";
         
+        $baseDir = $config['data_dir'] ?? ROOT_DIR . '/data';
+        
         // 遍历扩展
         foreach ($config as $extension => $extConfig) {
             $source = $extConfig['source'];
             $pattern = $extConfig['pattern'];
-            $dataDir = ROOT_DIR . '/data/extensions/' . $extension;
+            $dataDir = $baseDir . '/extensions/' . $extension; // 强制添加二级目录结构
             
             // 确保目录存在
             if (!is_dir($dataDir)) {

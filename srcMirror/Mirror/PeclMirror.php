@@ -21,7 +21,8 @@ class PeclMirror
         
         $source = $config['source'];
         $pattern = $config['pattern'];
-        $dataDir = ROOT_DIR . '/data/pecl';
+        $baseDir = $config['data_dir'] ?? ROOT_DIR . '/data';
+        $dataDir = $baseDir . '/pecl';  // 强制添加pecl子目录
         
         // 确保目录存在
         if (!is_dir($dataDir)) {

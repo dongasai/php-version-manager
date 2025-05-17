@@ -1,13 +1,4 @@
 services:
-  # 开发容器
-  dev:
-    build:
-      context: ./docker
-      dockerfile: Dockerfile
-    container_name: pvm-dev
-    volumes:
-      - .:/app
-    tty: true
   ubuntu:
     build:
       context: ./docker/ubuntu

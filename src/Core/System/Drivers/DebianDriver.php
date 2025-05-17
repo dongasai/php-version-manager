@@ -352,17 +352,19 @@ class DebianDriver extends AbstractOsDriver
             return true;
         }
 
-        $command = "apt-get update && apt-get install -y {$package}";
-
         // 检查是否有sudo权限
+        $sudo = "";
         if (posix_getuid() !== 0) {
             // 检查sudo命令是否存在
             if ($this->commandExists('sudo')) {
-                $command = "sudo {$command}";
+                $sudo = "sudo ";
             } else {
                 throw new \Exception("需要root权限安装依赖");
             }
         }
+
+        // 使用sudo分别执行每个命令
+        $command = "{$sudo}apt-get update && {$sudo}apt-get install -y {$package}";
 
         return $this->executeCommand($command);
     }
@@ -390,17 +392,20 @@ class DebianDriver extends AbstractOsDriver
         }
 
         $packageList = implode(' ', $packagesToInstall);
-        $command = "apt-get update && apt-get install -y {$packageList}";
 
         // 检查是否有sudo权限
+        $sudo = "";
         if (posix_getuid() !== 0) {
             // 检查sudo命令是否存在
             if ($this->commandExists('sudo')) {
-                $command = "sudo {$command}";
+                $sudo = "sudo ";
             } else {
                 throw new \Exception("需要root权限安装依赖");
             }
         }
+
+        // 使用sudo分别执行每个命令
+        $command = "{$sudo}apt-get update && {$sudo}apt-get install -y {$packageList}";
 
         return $this->executeCommand($command);
     }

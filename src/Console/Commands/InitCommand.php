@@ -165,7 +165,26 @@ class InitCommand implements CommandInterface
 
         // 首先尝试使用sudo执行命令
         echo "\n正在尝试使用sudo执行命令...\n";
-        $installCommandWithSudo = "sudo " . str_replace("sudo ", "", $installCommand);
+
+        // 修复命令格式，确保每个命令都使用sudo
+        $installCommandWithSudo = str_replace("sudo ", "", $installCommand);
+
+        // 根据包管理器处理命令
+        switch ($packageManager) {
+            case 'apt':
+                $installCommandWithSudo = "sudo apt-get update && sudo apt-get install -y " . implode(' ', $extensionPackages);
+                break;
+            case 'yum':
+                $installCommandWithSudo = "sudo yum install -y " . implode(' ', $extensionPackages);
+                break;
+            case 'dnf':
+                $installCommandWithSudo = "sudo dnf install -y " . implode(' ', $extensionPackages);
+                break;
+            case 'apk':
+                $installCommandWithSudo = "sudo apk add " . implode(' ', $extensionPackages);
+                break;
+        }
+
         $success = $this->executeCommand($installCommandWithSudo);
 
         // 如果使用sudo失败，尝试不使用sudo

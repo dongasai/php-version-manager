@@ -3,7 +3,7 @@
 // 自动加载
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use Symfony\Component\Process\Process;
+use VersionManager\Core\Process\Process;
 
 // 设置颜色
 $GREEN = "\033[32m";
@@ -60,7 +60,7 @@ foreach ($commands as $name => $args) {
     echo "  退出码: " . $process->getExitCode() . "\n";
 
     // 验证命令执行成功
-    if ($process->isSuccessful()) {
+    if ($process->getExitCode() === 0) {
         echo "  命令执行成功\n";
 
         // 显示命令输出的前几行

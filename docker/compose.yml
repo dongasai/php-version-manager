@@ -1,17 +1,17 @@
-version: '3.8'
-
 services:
-  app:
+  dev:
     build:
       context: .
     volumes:
-      - nashhd:/home/developer
+      - pvm_dev_data2:/home/developer
+      - ../:/app
     ports:
       - "8081:8080"
+    container_name: pvm-dev
     environment:
       - DEBIAN_FRONTEND=noninteractive
     restart: unless-stopped
 
 volumes:
-  nashhd:
+  pvm_dev_data2:
     external: true

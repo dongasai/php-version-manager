@@ -3,8 +3,7 @@
 namespace Tests\Console\Command;
 
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Process\Process;
-use Symfony\Component\Console\Tester\CommandTester;
+use VersionManager\Core\Process\Process;
 
 /**
  * 命令测试基类
@@ -17,7 +16,7 @@ abstract class AbstractCommandTest extends TestCase
      * @var string
      */
     protected $pvmBin;
-    
+
     /**
      * 测试前准备
      */
@@ -25,11 +24,11 @@ abstract class AbstractCommandTest extends TestCase
     {
         // 设置PVM可执行文件路径
         $this->pvmBin = realpath(__DIR__ . '/../../../bin/pvm');
-        
+
         // 确保PVM可执行文件存在
         $this->assertFileExists($this->pvmBin, 'PVM可执行文件不存在');
     }
-    
+
     /**
      * 执行PVM命令
      *
@@ -44,10 +43,10 @@ abstract class AbstractCommandTest extends TestCase
         $process = new Process($fullCommand, null, $env);
         $process->setTimeout(300); // 5分钟超时
         $process->run();
-        
+
         return $process;
     }
-    
+
     /**
      * 验证命令输出包含指定文本
      *
@@ -63,7 +62,7 @@ abstract class AbstractCommandTest extends TestCase
             $message ?: "命令输出应该包含 '$text'"
         );
     }
-    
+
     /**
      * 验证命令输出不包含指定文本
      *
@@ -79,7 +78,7 @@ abstract class AbstractCommandTest extends TestCase
             $message ?: "命令输出不应该包含 '$text'"
         );
     }
-    
+
     /**
      * 验证命令执行成功
      *
@@ -88,12 +87,13 @@ abstract class AbstractCommandTest extends TestCase
      */
     protected function assertCommandSuccessful(Process $process, $message = '')
     {
-        $this->assertTrue(
-            $process->isSuccessful(),
+        $this->assertEquals(
+            0,
+            $process->getExitCode(),
             $message ?: "命令应该执行成功，但返回了错误: " . $process->getErrorOutput()
         );
     }
-    
+
     /**
      * 验证命令执行失败
      *
@@ -102,12 +102,13 @@ abstract class AbstractCommandTest extends TestCase
      */
     protected function assertCommandFailed(Process $process, $message = '')
     {
-        $this->assertFalse(
-            $process->isSuccessful(),
+        $this->assertNotEquals(
+            0,
+            $process->getExitCode(),
             $message ?: "命令应该执行失败，但返回了成功"
         );
     }
-    
+
     /**
      * 验证命令退出码
      *
@@ -123,7 +124,7 @@ abstract class AbstractCommandTest extends TestCase
             $message ?: "命令应该返回退出码 $exitCode"
         );
     }
-    
+
     /**
      * 验证文件存在
      *
@@ -137,7 +138,7 @@ abstract class AbstractCommandTest extends TestCase
             $message ?: "文件 '$path' 应该存在"
         );
     }
-    
+
     /**
      * 验证文件不存在
      *
@@ -151,7 +152,7 @@ abstract class AbstractCommandTest extends TestCase
             $message ?: "文件 '$path' 不应该存在"
         );
     }
-    
+
     /**
      * 验证目录存在
      *
@@ -165,7 +166,7 @@ abstract class AbstractCommandTest extends TestCase
             $message ?: "目录 '$path' 应该存在"
         );
     }
-    
+
     /**
      * 验证目录不存在
      *

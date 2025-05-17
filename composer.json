@@ -3,9 +3,7 @@
     "description": "A simple PHP CLI version management tool.",
     "type": "library",
     "require": {
-        "php": ">=7.1",
-        "symfony/console": "^4.0",
-        "symfony/process": "^4.0"
+        "php": ">=7.1"
     },
     "autoload": {
         "psr-4": {

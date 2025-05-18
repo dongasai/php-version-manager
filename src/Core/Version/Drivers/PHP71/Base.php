@@ -76,7 +76,8 @@ class Base extends AbstractVersionDriver
             "--with-mhash",
             "--with-mysql-sock=/var/run/mysqld/mysqld.sock",
             "--with-mysqli=mysqlnd",
-            "--with-openssl",
+            "--with-openssl=/usr",
+            "--with-openssl-dir=/usr",
             "--with-pdo-mysql=mysqlnd",
             "--with-pdo-sqlite",
             "--with-readline",
@@ -226,6 +227,48 @@ class Base extends AbstractVersionDriver
         // 进入源码目录
         chdir($sourceDir);
 
+        // 检查OpenSSL库是否存在
+        echo "检查OpenSSL库...\n";
+        $opensslLibs = [
+            '/usr/lib/libssl.so',
+            '/usr/lib/x86_64-linux-gnu/libssl.so',
+            '/usr/lib64/libssl.so',
+            '/usr/local/lib/libssl.so'
+        ];
+
+        $opensslFound = false;
+        foreach ($opensslLibs as $lib) {
+            if (file_exists($lib)) {
+                echo "找到OpenSSL库: {$lib}\n";
+                $opensslFound = true;
+                break;
+            }
+        }
+
+        if (!$opensslFound) {
+            echo "警告: 未找到OpenSSL库，可能会导致配置失败\n";
+            echo "尝试安装libssl-dev或openssl-devel包\n";
+        }
+
+        // 检查OpenSSL头文件是否存在
+        $opensslHeaders = [
+            '/usr/include/openssl/ssl.h',
+            '/usr/local/include/openssl/ssl.h'
+        ];
+
+        $opensslHeaderFound = false;
+        foreach ($opensslHeaders as $header) {
+            if (file_exists($header)) {
+                echo "找到OpenSSL头文件: {$header}\n";
+                $opensslHeaderFound = true;
+                break;
+            }
+        }
+
+        if (!$opensslHeaderFound) {
+            echo "警告: 未找到OpenSSL头文件，可能会导致配置失败\n";
+        }
+
         // 配置
         $configureCommand = './configure ' . implode(' ', $configureOptions);
 
@@ -234,6 +277,24 @@ class Base extends AbstractVersionDriver
         passthru($configureCommand, $returnCode);
 
         if ($returnCode !== 0) {
+            // 尝试查找错误信息
+            if (file_exists('config.log')) {
+                echo "配置失败，查看config.log中的错误信息...\n";
+                $configLog = file_get_contents('config.log');
+
+                // 查找OpenSSL相关错误
+                if (strpos($configLog, 'Cannot find OpenSSL') !== false) {
+                    echo "错误: 找不到OpenSSL库\n";
+                    echo "请安装libssl-dev (Debian/Ubuntu) 或 openssl-devel (CentOS/RHEL)\n";
+                }
+
+                // 输出最后100行日志
+                $logLines = explode("\n", $configLog);
+                $lastLines = array_slice($logLines, -100);
+                echo "config.log最后100行:\n";
+                echo implode("\n", $lastLines) . "\n";
+            }
+
             chdir($currentDir);
             throw new \Exception("配置PHP失败，返回代码: {$returnCode}");
         }
@@ -345,6 +406,55 @@ class Base extends AbstractVersionDriver
         return true;
     }
 
+    /**
+     * 安装依赖项
+     *
+     * @return bool
+     * @throws \Exception
+     */
+    protected function installDependencies()
+    {
+        // 检测操作系统类型
+        $osInfo = $this->getOsInfo();
+
+        echo "检测到操作系统: {$osInfo['type']} {$osInfo['version']}\n";
+        echo "正在安装PHP 7.1所需的依赖项...\n";
+
+        switch ($osInfo['type']) {
+            case 'debian':
+            case 'ubuntu':
+                $command = 'apt-get update && apt-get install -y libssl-dev libcurl4-openssl-dev libxml2-dev libpng-dev libjpeg-dev libfreetype6-dev libmcrypt-dev libreadline-dev';
+                break;
+            case 'centos':
+            case 'fedora':
+            case 'rhel':
+                $command = 'yum install -y openssl-devel curl-devel libxml2-devel libpng-devel libjpeg-devel freetype-devel libmcrypt-devel readline-devel';
+                break;
+            case 'alpine':
+                $command = 'apk add --no-cache openssl-dev curl-dev libxml2-dev libpng-dev libjpeg-dev freetype-dev libmcrypt-dev readline-dev';
+                break;
+            default:
+                throw new \Exception("不支持的操作系统类型: {$osInfo['type']}");
+        }
+
+        echo "执行: {$command}\n";
+        passthru($command, $returnCode);
+
+        if ($returnCode !== 0) {
+            echo "警告: 安装依赖项失败，尝试不使用sudo...\n";
+            $command = str_replace('apt-get', 'apt-get --no-install-recommends', $command);
+            passthru($command, $returnCode);
+
+            if ($returnCode !== 0) {
+                echo "警告: 安装依赖项失败，将继续尝试编译PHP...\n";
+                return false;
+            }
+        }
+
+        echo "依赖项安装完成\n";
+        return true;
+    }
+
     public function install($version, array $options = [])
     {
         // 检查版本是否支持
@@ -355,6 +465,14 @@ class Base extends AbstractVersionDriver
         // 检查版本是否已安装
         if ($this->isInstalled($version)) {
             throw new \Exception("PHP版本 {$version} 已经安装");
+        }
+
+        // 安装依赖项
+        try {
+            $this->installDependencies();
+        } catch (\Exception $e) {
+            echo "警告: " . $e->getMessage() . "\n";
+            echo "将继续尝试编译PHP，但可能会失败...\n";
         }
 
         // 创建临时目录

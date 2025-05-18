@@ -1,5 +1,10 @@
 FROM ubuntu:22.04
 
+# 安装BATS测试框架
+RUN apt-get update && \
+    apt-get install -y bats && \
+    rm -rf /var/lib/apt/lists/*
+
 # 设置非交互式安装
 ENV DEBIAN_FRONTEND=noninteractive
 

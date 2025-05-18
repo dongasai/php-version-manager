@@ -1,4 +1,50 @@
 services:
+  # Ubuntu 容器
+  ubuntu-18.04:
+    build:
+      context: ./docker/ubuntu-18.04
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+
+  ubuntu-20.04:
+    build:
+      context: ./docker/ubuntu-20.04
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+
+  ubuntu-22.04:
+    build:
+      context: ./docker/ubuntu-22.04
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+
+  ubuntu-24.04:
+    build:
+      context: ./docker/ubuntu-24.04
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+
+  # 保留原有的 ubuntu 服务，指向 22.04
   ubuntu:
     build:
       context: ./docker/ubuntu
@@ -11,6 +57,29 @@ services:
       - DEBIAN_FRONTEND=noninteractive
 
   # Debian 容器
+  debian-11:
+    build:
+      context: ./docker/debian-11
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+
+  debian-12:
+    build:
+      context: ./docker/debian-12
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+
+  # 保留原有的 debian 服务，指向 11
   debian:
     build:
       context: ./docker/debian
@@ -23,6 +92,34 @@ services:
       - DEBIAN_FRONTEND=noninteractive
 
   # CentOS 容器
+  centos-7:
+    build:
+      context: ./docker/centos-7
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+
+  centos-stream-8:
+    build:
+      context: ./docker/centos-stream-8
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+
+  centos-stream-9:
+    build:
+      context: ./docker/centos-stream-9
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+
+  # 保留原有的 centos 服务，指向 7
   centos:
     build:
       context: ./docker/centos
@@ -33,6 +130,34 @@ services:
     command: /bin/bash
 
   # Fedora 容器
+  fedora-36:
+    build:
+      context: ./docker/fedora-36
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+
+  fedora-38:
+    build:
+      context: ./docker/fedora-38
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+
+  fedora-40:
+    build:
+      context: ./docker/fedora-40
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+
+  # 保留原有的 fedora 服务，指向 36
   fedora:
     build:
       context: ./docker/fedora
@@ -43,6 +168,34 @@ services:
     command: /bin/bash
 
   # Alpine 容器
+  alpine-3.16:
+    build:
+      context: ./docker/alpine-3.16
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+
+  alpine-3.18:
+    build:
+      context: ./docker/alpine-3.18
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+
+  alpine-3.19:
+    build:
+      context: ./docker/alpine-3.19
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+
+  # 保留原有的 alpine 服务，指向 3.16
   alpine:
     build:
       context: ./docker/alpine
@@ -56,6 +209,16 @@ services:
   arm64:
     build:
       context: ./docker/arm64
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    tty: true
+    command: /bin/bash
+
+  # Alibaba Linux 3 容器
+  alinux3:
+    build:
+      context: ./docker/alinux3
       dockerfile: Dockerfile
     volumes:
       - .:/app

@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="bootstrap.php" colors="true">
-    <testsuites>
-        <testsuite name="PVM Test Suite">
-            <directory>Console/Command</directory>
-        </testsuite>
-    </testsuites>
-    <filter>
-        <whitelist>
-            <directory suffix=".php">../src</directory>
-        </whitelist>
-    </filter>
-    <php>
-        <env name="APP_ENV" value="test"/>
-        <env name="PVM_HOME" value="/tmp/pvm_test"/>
-    </php>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="bootstrap.php" colors="true" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
+  <coverage>
+    <include>
+      <directory suffix=".php">../src</directory>
+    </include>
+  </coverage>
+  <testsuites>
+    <testsuite name="PVM Test Suite">
+      <directory>Console/Command</directory>
+    </testsuite>
+  </testsuites>
+  <php>
+    <env name="APP_ENV" value="test"/>
+    <env name="PVM_HOME" value="/tmp/pvm_test"/>
+  </php>
 </phpunit>

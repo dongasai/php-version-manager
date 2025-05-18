@@ -1,17 +1,11 @@
-FROM centos:7
+FROM fedora:38
 
-# 安装BATS测试框架
-RUN yum install -y epel-release && \
-    yum install -y bats && \
-    yum clean all
-
-# 替换为阿里云镜像源
-RUN cd /etc/yum.repos.d/ && \
-    sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
-    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=https://mirrors.aliyun.com|g' /etc/yum.repos.d/CentOS-*
+# 替换为国内镜像源
+RUN sed -i 's|metalink=|#metalink=|g' /etc/yum.repos.d/fedora*.repo && \
+    sed -i 's|#baseurl=http://download.example/pub/fedora/linux|baseurl=https://mirrors.aliyun.com/fedora|g' /etc/yum.repos.d/fedora*.repo
 
 # 安装基本工具和依赖
-RUN yum -y update && yum -y install \
+RUN dnf -y update && dnf -y install \
     curl \
     wget \
     git \
@@ -25,7 +19,7 @@ RUN yum -y update && yum -y install \
     libjpeg-devel \
     libzip-devel \
     sudo \
-    && yum clean all
+    && dnf clean all
 
 # 创建工作目录
 WORKDIR /app

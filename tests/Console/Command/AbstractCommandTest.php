@@ -27,6 +27,11 @@ abstract class AbstractCommandTest extends TestCase
 
         // 确保PVM可执行文件存在
         $this->assertFileExists($this->pvmBin, 'PVM可执行文件不存在');
+
+        // 初始化PVM环境
+        $initProcess = new Process([$this->pvmBin, 'init']);
+        $initProcess->run();
+        $this->assertEquals(0, $initProcess->getExitCode(), 'PVM初始化失败');
     }
 
     /**

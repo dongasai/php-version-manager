@@ -128,82 +128,138 @@ class InitCommand implements CommandInterface
             return false;
         }
 
-        // 获取缺失的扩展
+        // 获取缺失的扩展和命令
         $missingExtensions = $checkResult['missing_required_extensions'];
+        $missingCommands = $checkResult['missing_required_commands'];
+        $composerInstalled = $checkResult['composer_installed'];
 
-        if (empty($missingExtensions)) {
+        // 如果没有缺失的组件，直接返回成功
+        if (empty($missingExtensions) && empty($missingCommands) && $composerInstalled) {
             return true;
         }
 
-        // 构建安装命令
-        $installCommand = '';
-        $extensionPackages = [];
+        // 安装缺失的PHP扩展
+        if (!empty($missingExtensions)) {
+            echo "\n正在安装缺失的PHP扩展...\n";
 
-        foreach ($missingExtensions as $extension) {
-            $extensionPackages[] = "php-{$extension}";
-        }
+            // 构建安装命令
+            $extensionPackages = [];
+            foreach ($missingExtensions as $extension) {
+                $extensionPackages[] = "php-{$extension}";
+            }
 
-        // 我们将尝试多种权限提升方式，不区分环境类型
+            // 根据包管理器构建命令
+            $installExtensionsCommand = "";
+            switch ($packageManager) {
+                case 'apt':
+                    $installExtensionsCommand = "sudo apt-get update && sudo apt-get install -y " . implode(' ', $extensionPackages);
+                    break;
+                case 'yum':
+                    $installExtensionsCommand = "sudo yum install -y " . implode(' ', $extensionPackages);
+                    break;
+                case 'dnf':
+                    $installExtensionsCommand = "sudo dnf install -y " . implode(' ', $extensionPackages);
+                    break;
+                case 'apk':
+                    $installExtensionsCommand = "sudo apk add " . implode(' ', $extensionPackages);
+                    break;
+                default:
+                    echo "❌ 不支持的包管理器: {$packageManager}\n";
+                    return false;
+            }
 
-        switch ($packageManager) {
-            case 'apt':
-                $installCommand = "apt-get update && apt-get install -y git wget curl " . implode(' ', $extensionPackages);
-                break;
-            case 'yum':
-                $installCommand = "yum install -y " . implode(' ', $extensionPackages);
-                break;
-            case 'dnf':
-                $installCommand = "dnf install -y " . implode(' ', $extensionPackages);
-                break;
-            case 'apk':
-                $installCommand = "apk add " . implode(' ', $extensionPackages);
-                break;
-            default:
-                echo "❌ 不支持的包管理器: {$packageManager}\n";
+            // 执行安装命令
+            $success = $this->executeCommand($installExtensionsCommand);
+
+            // 如果使用sudo失败，尝试不使用sudo
+            if (!$success) {
+                echo "\n尝试不使用sudo执行命令...\n";
+                $installExtensionsCommand = str_replace("sudo ", "", $installExtensionsCommand);
+                $success = $this->executeCommand($installExtensionsCommand);
+            }
+
+            if (!$success) {
+                echo "\n❌ 安装PHP扩展失败\n";
+                echo "请尝试手动执行以下命令安装扩展：\n";
+                echo "sudo apt-get update && sudo apt-get install -y " . implode(' ', $extensionPackages) . "\n";
                 return false;
+            }
+
+            echo "\n✅ PHP扩展安装完成\n";
         }
 
-        // 首先尝试使用sudo执行命令
-        echo "\n正在尝试使用sudo执行命令...\n";
+        // 安装缺失的系统命令
+        if (!empty($missingCommands)) {
+            echo "\n正在安装缺失的系统命令...\n";
 
-        // 修复命令格式，确保每个命令都使用sudo
-        $installCommandWithSudo = str_replace("sudo ", "", $installCommand);
+            // 根据包管理器构建命令
+            $installCommandsCommand = "";
+            switch ($packageManager) {
+                case 'apt':
+                    $installCommandsCommand = "sudo apt-get update && sudo apt-get install -y " . implode(' ', $missingCommands);
+                    break;
+                case 'yum':
+                    $installCommandsCommand = "sudo yum install -y " . implode(' ', $missingCommands);
+                    break;
+                case 'dnf':
+                    $installCommandsCommand = "sudo dnf install -y " . implode(' ', $missingCommands);
+                    break;
+                case 'apk':
+                    $installCommandsCommand = "sudo apk add " . implode(' ', $missingCommands);
+                    break;
+                default:
+                    echo "❌ 不支持的包管理器: {$packageManager}\n";
+                    return false;
+            }
 
-        // 根据包管理器处理命令
-        switch ($packageManager) {
-            case 'apt':
-                $installCommandWithSudo = "sudo apt-get update && sudo apt-get install -y " . implode(' ', $extensionPackages);
-                break;
-            case 'yum':
-                $installCommandWithSudo = "sudo yum install -y " . implode(' ', $extensionPackages);
-                break;
-            case 'dnf':
-                $installCommandWithSudo = "sudo dnf install -y " . implode(' ', $extensionPackages);
-                break;
-            case 'apk':
-                $installCommandWithSudo = "sudo apk add " . implode(' ', $extensionPackages);
-                break;
+            // 执行安装命令
+            $success = $this->executeCommand($installCommandsCommand);
+
+            // 如果使用sudo失败，尝试不使用sudo
+            if (!$success) {
+                echo "\n尝试不使用sudo执行命令...\n";
+                $installCommandsCommand = str_replace("sudo ", "", $installCommandsCommand);
+                $success = $this->executeCommand($installCommandsCommand);
+            }
+
+            if (!$success) {
+                echo "\n❌ 安装系统命令失败\n";
+                echo "请尝试手动执行以下命令安装系统命令：\n";
+                echo "sudo apt-get update && sudo apt-get install -y " . implode(' ', $missingCommands) . "\n";
+                return false;
+            }
+
+            echo "\n✅ 系统命令安装完成\n";
         }
 
-        $success = $this->executeCommand($installCommandWithSudo);
+        // 安装Composer
+        if (!$composerInstalled) {
+            echo "\n正在安装Composer...\n";
 
-        // 如果使用sudo失败，尝试不使用sudo
-        if (!$success) {
-            echo "\n尝试不使用sudo执行命令...\n";
+            // 检查curl是否已安装
+            $curlInstalled = $this->commandExists('curl');
 
-            // 重新构建不使用sudo的命令
-            $installCommandWithoutSudo = str_replace("sudo ", "", $installCommand);
-            $success = $this->executeCommand($installCommandWithoutSudo);
+            if (!$curlInstalled) {
+                echo "❌ 安装Composer需要curl，但curl未安装\n";
+                echo "请先安装curl后再尝试安装Composer\n";
+                return false;
+            }
+
+            // 安装Composer
+            $installComposerCommand = "curl -sS https://getcomposer.org/installer | php && sudo mv composer.phar /usr/local/bin/composer && chmod +x /usr/local/bin/composer";
+            $success = $this->executeCommand($installComposerCommand);
+
+            if (!$success) {
+                echo "\n❌ 安装Composer失败\n";
+                echo "请尝试手动执行以下命令安装Composer：\n";
+                echo "curl -sS https://getcomposer.org/installer | php\n";
+                echo "sudo mv composer.phar /usr/local/bin/composer\n";
+                echo "chmod +x /usr/local/bin/composer\n";
+                return false;
+            }
+
+            echo "\n✅ Composer安装完成\n";
         }
-
-        if (!$success) {
-            echo "\n❌ 安装扩展失败\n";
-            echo "请尝试手动执行以下命令安装扩展：\n";
-            echo "sudo " . str_replace("sudo ", "", $installCommand) . "\n";
-            return false;
-        }
-
-        echo "\n✅ 扩展安装完成\n";
 
         // 重新检查环境
         $newCheckResult = $this->environmentChecker->check();
@@ -233,6 +289,20 @@ class InitCommand implements CommandInterface
         }
 
         return null;
+    }
+
+    /**
+     * 检查命令是否存在
+     *
+     * @param string $command 命令名称
+     * @return bool 是否存在
+     */
+    private function commandExists($command)
+    {
+        $output = [];
+        $returnCode = 0;
+        exec("which {$command} 2>/dev/null", $output, $returnCode);
+        return $returnCode === 0 && !empty($output);
     }
 
     /**

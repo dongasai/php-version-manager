@@ -1,4 +1,4 @@
-name: PHP CI
+name: BATS CI
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
       matrix:
         php: ['7.4', '8.0', '8.1', '8.2']
         
-    name: PHP ${{ matrix.php }} Test
+    name: PHP ${{ matrix.php }} BATS Test
     steps:
       - uses: actions/checkout@v4
       
@@ -21,11 +21,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          coverage: xdebug
           tools: composer
           
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
           
-      - name: Run PHPUnit tests
-        run: cd tests && ../vendor/bin/phpunit -c phpunit.xml.dist
+      - name: Install BATS
+        run: sudo apt-get install -y bats
+          
+      - name: Run BATS tests
+        run: bats tests/bats/

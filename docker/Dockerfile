@@ -11,7 +11,7 @@ RUN sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list && 
 RUN apt-get update && apt-get install -y \
     curl \
     wget \
-    sudo git screen
+    sudo git screen php-cli
 
 
 # 注意：我们不预先安装PHP,只安装基本依赖curl /wget 来下载 install.sh ，其他的而是留给PVM工具来安装和管理

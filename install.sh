@@ -596,6 +596,7 @@ clone_pvm_repo() {
 
     # 创建符号链接
     ln -sf "$PVM_DIR/repo/bin/pvm" "$BIN_DIR/pvm"
+    ln -sf "$PVM_DIR/repo/bin/pvm-mirror" "$BIN_DIR/pvm-mirror"
 
     echo -e "${GREEN}PVM仓库克隆完成${NC}"
 }

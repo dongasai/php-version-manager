@@ -20,7 +20,7 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "bin": ["bin/pvm"],
+    "bin": ["bin/pvm", "bin/pvm-mirror"],
     "repositories": {
         "packagist": {
             "type": "composer",

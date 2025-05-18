@@ -256,9 +256,13 @@ class EnvironmentChecker
                 // 提供安装Composer的建议
                 if (!$result['composer_installed']) {
                     $info .= "\n安装Composer的建议:\n";
+                    $info .= "  # 将在当前PHP版本目录下安装Composer\n";
+                    $info .= "  pvm composer install\n";
+                    $info .= "  # 或者手动安装\n";
                     $info .= "  curl -sS https://getcomposer.org/installer | php\n";
-                    $info .= "  sudo mv composer.phar /usr/local/bin/composer\n";
-                    $info .= "  chmod +x /usr/local/bin/composer\n";
+                    $info .= "  mkdir -p ~/.pvm/versions/" . PHP_VERSION . "/composer/2\n";
+                    $info .= "  mv composer.phar ~/.pvm/versions/" . PHP_VERSION . "/composer/2/composer.phar\n";
+                    $info .= "  chmod +x ~/.pvm/versions/" . PHP_VERSION . "/composer/2/composer.phar\n";
                 }
             } else {
                 $info .= "请使用您系统的包管理器安装缺失的组件。\n";

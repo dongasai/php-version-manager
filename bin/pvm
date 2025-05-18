@@ -43,8 +43,36 @@ try {
         if (!$checkResult['is_ok']) {
             echo "\033[31m错误: PVM运行环境不满足要求\033[0m" . PHP_EOL . PHP_EOL;
             echo $environmentChecker->getDetailedInfo() . PHP_EOL;
-            echo "\033[33m请运行 'pvm init --fix' 命令初始化PVM运行环境\033[0m" . PHP_EOL;
-            exit(1);
+
+            // 提示用户是否立即修复
+            echo "\033[33m是否立即修复环境问题？(y/n) \033[0m";
+            $handle = fopen("php://stdin", "r");
+            $line = trim(fgets($handle));
+            fclose($handle);
+
+            if (strtolower($line) === 'y' || strtolower($line) === 'yes') {
+                echo "正在尝试修复环境问题...\n";
+
+                // 创建InitCommand实例并执行修复
+                $initCommand = new VersionManager\Console\Commands\InitCommand();
+                $fixResult = $initCommand->execute(['--fix']);
+
+                if ($fixResult === 0) {
+                    echo "环境问题已修复，继续执行原命令...\n\n";
+                    // 重新检查环境
+                    $checkResult = $environmentChecker->check();
+                    if (!$checkResult['is_ok']) {
+                        echo "\033[31m错误: 环境问题未完全修复，请手动运行 'pvm init --fix' 命令\033[0m" . PHP_EOL;
+                        exit(1);
+                    }
+                } else {
+                    echo "\033[31m错误: 修复环境问题失败，请手动运行 'pvm init --fix' 命令\033[0m" . PHP_EOL;
+                    exit(1);
+                }
+            } else {
+                echo "\033[33m请运行 'pvm init --fix' 命令初始化PVM运行环境\033[0m" . PHP_EOL;
+                exit(1);
+            }
         }
 
         // 检查PVM是否已经初始化

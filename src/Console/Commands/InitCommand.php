@@ -245,18 +245,68 @@ class InitCommand implements CommandInterface
                 return false;
             }
 
-            // 安装Composer
-            $installComposerCommand = "curl -sS https://getcomposer.org/installer | php && sudo mv composer.phar /usr/local/bin/composer && chmod +x /usr/local/bin/composer";
+            // 创建Composer目录
+            $homeDir = getenv('HOME');
+            $pvmDir = $homeDir . '/.pvm';
+            $phpVersion = PHP_VERSION;
+            $composerDir = $pvmDir . '/versions/' . $phpVersion . '/composer/2';
+
+            if (!is_dir($composerDir)) {
+                mkdir($composerDir, 0755, true);
+            }
+
+            // 安装Composer到PHP版本目录
+            $installComposerCommand = "curl -sS https://getcomposer.org/installer | php && mv composer.phar " . escapeshellarg($composerDir . '/composer.phar') . " && chmod +x " . escapeshellarg($composerDir . '/composer.phar');
             $success = $this->executeCommand($installComposerCommand);
 
             if (!$success) {
                 echo "\n❌ 安装Composer失败\n";
                 echo "请尝试手动执行以下命令安装Composer：\n";
                 echo "curl -sS https://getcomposer.org/installer | php\n";
-                echo "sudo mv composer.phar /usr/local/bin/composer\n";
-                echo "chmod +x /usr/local/bin/composer\n";
+                echo "mkdir -p " . $composerDir . "\n";
+                echo "mv composer.phar " . $composerDir . "/composer.phar\n";
+                echo "chmod +x " . $composerDir . "/composer.phar\n";
                 return false;
             }
+
+            // 创建Composer包装脚本
+            $wrapperPath = $composerDir . '/composer';
+            $phpBin = PHP_BINARY;
+            $composerPhar = $composerDir . '/composer.phar';
+
+            $wrapperContent = "#!/bin/bash\n\n";
+            $wrapperContent .= "{$phpBin} {$composerPhar} \"\$@\"\n";
+
+            file_put_contents($wrapperPath, $wrapperContent);
+            chmod($wrapperPath, 0755);
+
+            // 创建符号链接到bin目录
+            $binDir = $pvmDir . '/bin';
+            if (!is_dir($binDir)) {
+                mkdir($binDir, 0755, true);
+            }
+
+            $defaultComposerPath = $binDir . '/composer';
+            if (file_exists($defaultComposerPath)) {
+                unlink($defaultComposerPath);
+            }
+
+            symlink($wrapperPath, $defaultComposerPath);
+
+            // 保存默认Composer配置
+            $configDir = $pvmDir . '/config';
+            if (!is_dir($configDir)) {
+                mkdir($configDir, 0755, true);
+            }
+
+            $configFile = $configDir . '/composer.php';
+            $config = [
+                'php_version' => $phpVersion,
+                'composer_version' => '2',
+            ];
+
+            $content = "<?php\n\n// 默认Composer配置\n// 由 PVM 自动生成，可以手动修改\n\nreturn " . var_export($config, true) . ";\n";
+            file_put_contents($configFile, $content);
 
             echo "\n✅ Composer安装完成\n";
         }

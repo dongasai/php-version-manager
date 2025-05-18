@@ -15,6 +15,7 @@ RUN yum -y update && yum -y install \
     libjpeg-devel \
     libzip-devel \
     sudo \
+    bats \
     && yum clean all
 
 # 创建工作目录

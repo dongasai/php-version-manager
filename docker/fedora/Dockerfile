@@ -19,6 +19,7 @@ RUN dnf -y update && dnf -y install \
     libjpeg-devel \
     libzip-devel \
     sudo \
+    bats \
     && dnf clean all
 
 # 创建工作目录

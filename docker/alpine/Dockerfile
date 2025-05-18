@@ -18,7 +18,8 @@ RUN apk update && apk add --no-cache \
     libjpeg-turbo-dev \
     libzip-dev \
     sudo \
-    bash
+    bash \
+    bats
 
 # 创建工作目录
 WORKDIR /app

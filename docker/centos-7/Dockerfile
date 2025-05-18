@@ -22,6 +22,13 @@ RUN yum -y update && yum -y install \
     sudo \
     && yum clean all
 
+# 安装 Bats (使用 Git 安装)
+RUN cd /tmp && \
+    git clone https://github.com/bats-core/bats-core.git && \
+    cd bats-core && \
+    ./install.sh /usr/local && \
+    rm -rf /tmp/bats-core
+
 # 创建工作目录
 WORKDIR /app
 

@@ -1,14 +1,18 @@
 FROM centos:7
 
-# 安装BATS测试框架
-RUN yum install -y epel-release && \
-    yum install -y bats && \
-    yum clean all
-
 # 替换为阿里云镜像源
 RUN cd /etc/yum.repos.d/ && \
     sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
     sed -i 's|#baseurl=http://mirror.centos.org|baseurl=https://mirrors.aliyun.com|g' /etc/yum.repos.d/CentOS-*
+
+# 安装EPEL仓库和BATS测试框架
+RUN yum install -y epel-release && \
+    yum install -y bats || \
+    (cd /tmp && \
+    git clone https://github.com/bats-core/bats-core.git && \
+    cd bats-core && \
+    ./install.sh /usr/local && \
+    rm -rf /tmp/bats-core)
 
 # 安装基本工具和依赖
 RUN yum -y update && yum -y install \

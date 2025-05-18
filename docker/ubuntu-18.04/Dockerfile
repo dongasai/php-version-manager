@@ -24,6 +24,14 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# 尝试安装 bats 包，如果失败则使用 Git 安装
+RUN apt-get update && apt-get install -y bats || \
+    (cd /tmp && \
+    git clone https://github.com/bats-core/bats-core.git && \
+    cd bats-core && \
+    ./install.sh /usr/local && \
+    rm -rf /tmp/bats-core)
+
 # 创建工作目录
 WORKDIR /app
 

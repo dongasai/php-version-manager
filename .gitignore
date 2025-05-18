@@ -9,3 +9,10 @@ composer.phar
 noai.md
 logs/*.log
 TEST.md
+
+# BATS测试相关
+TestReport-*.xml
+test-report.xml
+/tmp/
+*.tap
+*.bats.log

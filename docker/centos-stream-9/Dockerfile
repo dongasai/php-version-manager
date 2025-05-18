@@ -23,7 +23,8 @@ RUN dnf -y update && dnf -y install \
     && dnf clean all
 
 # 尝试安装 bats 包，如果失败则使用 Git 安装
-RUN dnf -y install bats || \
+RUN dnf -y install epel-release && \
+    dnf -y install bats || \
     (cd /tmp && \
     git clone https://github.com/bats-core/bats-core.git && \
     cd bats-core && \

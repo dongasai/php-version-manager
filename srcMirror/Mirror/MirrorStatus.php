@@ -41,6 +41,7 @@ class MirrorStatus
         $peclFiles = is_dir($peclDir) ? glob($peclDir . '/*.tgz') : [];
 
         $extensionFiles = [];
+        $extensionDirs = [];
         if (is_dir($extensionsDir)) {
             $extensionDirs = glob($extensionsDir . '/*', GLOB_ONLYDIR);
             foreach ($extensionDirs as $dir) {
@@ -66,6 +67,7 @@ class MirrorStatus
         return [
             'php_files' => count($phpFiles),
             'pecl_files' => count($peclFiles),
+            'extension_dirs' => $extensionDirs,
             'extension_files' => count($extensionFiles),
             'composer_files' => count($composerFiles),
             'total_files' => count($allFiles),

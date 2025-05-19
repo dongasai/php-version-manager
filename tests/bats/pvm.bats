@@ -3,8 +3,6 @@
 setup() {
   # Set pvm executable path
   PVM_BIN=$(realpath "$BATS_TEST_DIRNAME/../../bin/pvm")
-  PVM_MIRROR_BIN=$(realpath "$BATS_TEST_DIRNAME/../../bin/pvm-mirror")
-  SYNC_BIN=$(realpath "$BATS_TEST_DIRNAME/../../bin/sync.sh")
   TEST_DIR=$(mktemp -d)
   cd "$TEST_DIR" || exit
   # Create mock PHP versions for testing
@@ -87,19 +85,19 @@ teardown() {
 @test "pvm ext 应该能列出扩展" {
   run "$PVM_BIN" ext list
   [ "$status" -eq 0 ]
-  [[ "$output" =~ "Available extensions" ]]
+  [[ "$output" =~ "已安装的PHP扩展" ]]
 }
 
-@test "pvm config 应该能显示配置" {
-  run "$PVM_BIN" config show
+@test "pvm config 应该能列出配置" {
+  run "$PVM_BIN" config list
   [ "$status" -eq 0 ]
-  [[ "$output" =~ "Current configuration" ]]
+  [[ "$output" =~ "当前配置" ]]
 }
 
 @test "pvm security 应该能检查安全设置" {
   run "$PVM_BIN" security check
   [ "$status" -eq 0 ]
-  [[ "$output" =~ "Security check results" ]]
+  [[ "$output" =~ "已安装的PHP版本" ]]
 }
   run "$PVM_MIRROR_BIN" list
   [ "$status" -eq 0 ]

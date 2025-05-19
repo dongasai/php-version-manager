@@ -154,17 +154,6 @@ services:
     command: /bin/bash
 
   # Fedora 容器
-  fedora-36:
-    image: pvm-fedora-36
-    container_name: pvm-fedora-36
-    build:
-      context: ./docker/fedora-36
-      dockerfile: Dockerfile
-    volumes:
-      - .:/app
-    tty: true
-    command: /bin/bash
-
   fedora-38:
     image: pvm-fedora-38
     container_name: pvm-fedora-38
@@ -187,12 +176,12 @@ services:
     tty: true
     command: /bin/bash
 
-  # 保留原有的 fedora 服务，指向 36
+  # 保留原有的 fedora 服务，指向 38
   fedora:
     image: pvm-fedora
     container_name: pvm-fedora
     build:
-      context: ./docker/fedora
+      context: ./docker/fedora-38
       dockerfile: Dockerfile
     volumes:
       - .:/app

@@ -22,10 +22,10 @@ return [
         'host' => '0.0.0.0',
 
         // 监听端口
-        'port' => 8080,
+        'port' => 34403,
 
         // 公开URL，用于生成下载链接
-        'public_url' => 'http://localhost:8080',
+        'public_url' => 'http://localhost:34403',
 
         // 最大并发连接数
         'max_connections' => 100,

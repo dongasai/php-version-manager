@@ -43,6 +43,7 @@ class Application
             'supported' => Commands\SupportedCommand::class,
             'ext' => Commands\ExtensionCommand::class,
             'config' => Commands\ConfigCommand::class,
+            'config-menu' => Commands\ConfigMenuCommand::class, // 新增交互式配置菜单命令
             'cache' => Commands\CacheCommand::class,
             'security' => Commands\SecurityCommand::class,
             'env' => Commands\EnvCommand::class,

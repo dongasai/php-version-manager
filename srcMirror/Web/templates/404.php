@@ -1,19 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>404 Not Found</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }
-        h1 { color: #333; font-size: 36px; margin-top: 50px; }
-        p { color: #666; font-size: 18px; margin-bottom: 30px; }
-        a { color: #0066cc; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
-    <h1>404 Not Found</h1>
-    <p>The requested file was not found on this server.</p>
-    <p><a href="/">返回首页</a></p>
-</body>
-</html>
+<div class="text-center py-5">
+    <div class="mb-4">
+        <i class="fas fa-exclamation-triangle text-warning" style="font-size: 5rem;"></i>
+    </div>
+    <h1 class="display-4">404 Not Found</h1>
+    <p class="lead">抱歉，您请求的页面不存在。</p>
+    <p>请检查URL是否正确，或者返回首页。</p>
+    <a href="/" class="btn btn-primary mt-3">
+        <i class="fas fa-home"></i> 返回首页
+    </a>
+</div>

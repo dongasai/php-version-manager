@@ -1,98 +1,170 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>PVM 镜像站</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
-        h1 { color: #333; }
-        .section { margin-bottom: 30px; }
-        .section h2 { color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .info { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        .info p { margin: 5px 0; }
-        ul { list-style-type: none; padding: 0; }
-        li { margin-bottom: 8px; }
-        a { color: #0066cc; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .version-list { display: flex; flex-wrap: wrap; }
-        .version-item { margin-right: 15px; margin-bottom: 10px; }
-        pre { background-color: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
-        footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee; color: #777; }
-    </style>
-</head>
-<body>
-    <h1>PVM 镜像站</h1>
-    
-    <div class="info">
-        <p><strong>总文件数:</strong> <?= $status['total_files'] ?></p>
-        <p><strong>总大小:</strong> <?= $formatSize($status['total_size']) ?></p>
-        <p><strong>最后更新:</strong> <?= date('Y-m-d H:i:s', $status['last_update']) ?></p>
+<!-- 统计卡片 -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <i class="fas fa-file"></i>
+            <div class="stats-value"><?= number_format($status['total_files']) ?></div>
+            <div class="stats-label">总文件数</div>
+        </div>
     </div>
-    
-    <div class="section">
-        <h2>PHP 源码包</h2>
-        <div class="version-list">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <i class="fas fa-hdd"></i>
+            <div class="stats-value"><?= $formatSize($status['total_size']) ?></div>
+            <div class="stats-label">总大小</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <i class="fas fa-sync"></i>
+            <div class="stats-value"><?= date('Y-m-d', $status['last_update']) ?></div>
+            <div class="stats-label">最后更新</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <i class="fas fa-clock"></i>
+            <div class="stats-value"><?= date('H:i:s', $status['last_update']) ?></div>
+            <div class="stats-label">更新时间</div>
+        </div>
+    </div>
+</div>
+
+<!-- PHP 源码包 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fab fa-php"></i> PHP 源码包</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
             <?php foreach ($config['php']['versions'] as $majorVersion => $versionRange): ?>
-                <div class="version-item">
-                    <a href="/php/?version=<?= $majorVersion ?>">PHP <?= $majorVersion ?></a>
+                <div class="col-md-2 col-sm-4 col-6 mb-3">
+                    <a href="/php/?version=<?= $majorVersion ?>" class="btn btn-outline-primary btn-block">
+                        PHP <?= $majorVersion ?>
+                    </a>
                 </div>
             <?php endforeach; ?>
         </div>
-        <p><a href="/php/">浏览所有 PHP 源码包</a></p>
+        <a href="/php/" class="btn btn-sm btn-info mt-2">
+            <i class="fas fa-list"></i> 浏览所有 PHP 源码包
+        </a>
     </div>
-    
-    <div class="section">
-        <h2>PECL 扩展包</h2>
-        <div class="version-list">
-            <?php foreach ($config['pecl']['extensions'] as $extension => $versionRange): ?>
-                <div class="version-item">
-                    <a href="/pecl/?extension=<?= $extension ?>"><?= $extension ?></a>
+</div>
+
+<!-- PECL 扩展包 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-puzzle-piece"></i> PECL 扩展包</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <?php
+            $count = 0;
+            foreach ($config['pecl']['extensions'] as $extension => $versionRange):
+                if ($count++ < 12): // 只显示前12个扩展
+            ?>
+                <div class="col-md-2 col-sm-4 col-6 mb-3">
+                    <a href="/pecl/?extension=<?= $extension ?>" class="btn btn-outline-success btn-block">
+                        <?= $extension ?>
+                    </a>
                 </div>
-            <?php endforeach; ?>
+            <?php
+                endif;
+            endforeach;
+            ?>
         </div>
-        <p><a href="/pecl/">浏览所有 PECL 扩展包</a></p>
+        <?php if (count($config['pecl']['extensions']) > 12): ?>
+            <button class="btn btn-sm btn-secondary mt-2" id="showMorePecl">
+                <i class="fas fa-plus"></i> 显示更多
+            </button>
+        <?php endif; ?>
+        <a href="/pecl/" class="btn btn-sm btn-info mt-2 ml-2">
+            <i class="fas fa-list"></i> 浏览所有 PECL 扩展包
+        </a>
     </div>
-    
-    <div class="section">
-        <h2>特定扩展源码</h2>
-        <div class="version-list">
+</div>
+
+<!-- 特定扩展源码 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-plug"></i> 特定扩展源码</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
             <?php foreach ($config['extensions'] as $extension => $extConfig): ?>
-                <div class="version-item">
-                    <a href="/extensions/<?= $extension ?>/"><?= $extension ?></a>
+                <div class="col-md-2 col-sm-4 col-6 mb-3">
+                    <a href="/extensions/<?= $extension ?>/" class="btn btn-outline-danger btn-block">
+                        <?= $extension ?>
+                    </a>
                 </div>
             <?php endforeach; ?>
         </div>
-        <p><a href="/extensions/">浏览所有特定扩展源码</a></p>
+        <a href="/extensions/" class="btn btn-sm btn-info mt-2">
+            <i class="fas fa-list"></i> 浏览所有特定扩展源码
+        </a>
     </div>
-    
-    <div class="section">
-        <h2>Composer 包</h2>
-        <div class="version-list">
+</div>
+
+<!-- Composer 包 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-box"></i> Composer 包</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
             <?php foreach ($config['composer']['versions'] as $version): ?>
-                <div class="version-item">
-                    <a href="/composer/composer-<?= $version ?>.phar">Composer <?= $version ?></a>
+                <div class="col-md-2 col-sm-4 col-6 mb-3">
+                    <a href="/composer/composer-<?= $version ?>.phar" class="btn btn-outline-dark btn-block">
+                        <?= $version ?>
+                    </a>
                 </div>
             <?php endforeach; ?>
         </div>
-        <p><a href="/composer/">浏览所有 Composer 包</a></p>
+        <a href="/composer/" class="btn btn-sm btn-info mt-2">
+            <i class="fas fa-list"></i> 浏览所有 Composer 包
+        </a>
     </div>
-    
-    <div class="section">
-        <h2>API 接口</h2>
-        <ul>
-            <li><a href="/api/status.json">镜像状态</a></li>
-            <li><a href="/api/php.json">PHP 源码包列表</a></li>
-            <li><a href="/api/pecl.json">PECL 扩展包列表</a></li>
-            <li><a href="/api/extensions.json">特定扩展源码列表</a></li>
-            <li><a href="/api/composer.json">Composer 包列表</a></li>
-        </ul>
+</div>
+
+<!-- API 接口 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-code"></i> API 接口</h5>
     </div>
-    
-    <div class="section">
-        <h2>使用说明</h2>
+    <div class="card-body">
+        <div class="list-group">
+            <a href="/api/status.json" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                镜像状态
+                <span class="badge badge-primary badge-pill"><i class="fas fa-arrow-right"></i></span>
+            </a>
+            <a href="/api/php.json" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                PHP 源码包列表
+                <span class="badge badge-primary badge-pill"><i class="fas fa-arrow-right"></i></span>
+            </a>
+            <a href="/api/pecl.json" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                PECL 扩展包列表
+                <span class="badge badge-primary badge-pill"><i class="fas fa-arrow-right"></i></span>
+            </a>
+            <a href="/api/extensions.json" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                特定扩展源码列表
+                <span class="badge badge-primary badge-pill"><i class="fas fa-arrow-right"></i></span>
+            </a>
+            <a href="/api/composer.json" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                Composer 包列表
+                <span class="badge badge-primary badge-pill"><i class="fas fa-arrow-right"></i></span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 使用说明 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-info-circle"></i> 使用说明</h5>
+    </div>
+    <div class="card-body">
         <p>在 PVM 配置文件中添加以下镜像配置：</p>
-        <pre>
-// 编辑 ~/.pvm/config/mirrors.php
+        <pre class="bg-light p-3 rounded"><code>// 编辑 ~/.pvm/config/mirrors.php
 return [
     'php' => [
         'official' => 'https://www.php.net/distributions',
@@ -102,12 +174,19 @@ return [
         'default' => 'local',
     ],
     // 其他配置...
-];
-        </pre>
+];</code></pre>
     </div>
-    
-    <footer>
-        <p>PVM 镜像应用 &copy; <?= date('Y') ?></p>
-    </footer>
-</body>
-</html>
+</div>
+
+<?php
+// 添加内联脚本
+$inline_scripts = <<<JS
+$(document).ready(function() {
+    // 显示更多PECL扩展
+    $('#showMorePecl').click(function() {
+        $('.pecl-hidden').removeClass('d-none');
+        $(this).hide();
+    });
+});
+JS;
+?>

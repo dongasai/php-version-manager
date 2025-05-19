@@ -3,6 +3,7 @@
 namespace VersionManager\Console\Commands;
 
 use VersionManager\Console\CommandInterface;
+use VersionManager\Console\UI\ConsoleUI;
 
 /**
  * 扩展命令类
@@ -27,6 +28,13 @@ class ExtensionCommand implements CommandInterface
     private $switcher;
 
     /**
+     * 控制台UI工具
+     *
+     * @var ConsoleUI
+     */
+    private $ui;
+
+    /**
      * 构造函数
      */
     public function __construct()
@@ -34,6 +42,7 @@ class ExtensionCommand implements CommandInterface
         $this->switcher = new \VersionManager\Core\VersionSwitcher();
         $phpVersion     = $this->switcher->getCurrentVersion();
         $this->manager  = new \VersionManager\Core\ExtensionManager($phpVersion);
+        $this->ui       = new ConsoleUI();
     }
 
     /**
@@ -80,25 +89,33 @@ class ExtensionCommand implements CommandInterface
     {
         $installedExtensions = $this->manager->getInstalledExtensions();
 
-        echo "已安装的PHP扩展:" . PHP_EOL;
+        $this->ui->info("已安装的PHP扩展:", true);
 
         if (empty($installedExtensions)) {
-            echo "  没有已安装的扩展" . PHP_EOL;
+            $this->ui->warning("  没有已安装的扩展", true);
         } else {
             foreach ($installedExtensions as $name => $info) {
                 $status  = isset($info['enabled']) && $info['enabled'] ? '已启用' : '已禁用';
                 $type    = isset($info['type']) ? $info['type'] : '';
                 $version = isset($info['version']) ? $info['version'] : '';
 
-                echo "  * {$name}";
+                $output = "  * " . $this->ui->colorize($name, ConsoleUI::COLOR_CYAN);
+
                 if (!empty($version)) {
-                    echo " ({$version})";
+                    $output .= " (" . $this->ui->colorize($version, ConsoleUI::COLOR_YELLOW) . ")";
                 }
-                echo " [{$status}]";
+
+                if (isset($info['enabled']) && $info['enabled']) {
+                    $output .= " [" . $this->ui->colorize($status, ConsoleUI::COLOR_GREEN) . "]";
+                } else {
+                    $output .= " [" . $this->ui->colorize($status, ConsoleUI::COLOR_RED) . "]";
+                }
+
                 if (!empty($type)) {
-                    echo " [{$type}]";
+                    $output .= " [" . $this->ui->colorize($type, ConsoleUI::COLOR_BLUE) . "]";
                 }
-                echo PHP_EOL;
+
+                echo $output . PHP_EOL;
             }
         }
 
@@ -116,7 +133,7 @@ class ExtensionCommand implements CommandInterface
     private function installExtension(array $args)
     {
         if (empty($args)) {
-            echo "错误: 请指定要安装的扩展" . PHP_EOL;
+            $this->ui->error("错误: 请指定要安装的扩展", true);
 
             return 1;
         }
@@ -125,13 +142,22 @@ class ExtensionCommand implements CommandInterface
         $options   = $this->parseOptions($args);
 
         try {
-            echo "正在安装扩展 {$extension}..." . PHP_EOL;
+            $this->ui->info("正在安装扩展 " . $this->ui->colorize($extension, ConsoleUI::COLOR_CYAN) . "...", true);
+
+            // 模拟安装进度
+            if (!isset($options['no-progress'])) {
+                for ($i = 0; $i <= 100; $i += 5) {
+                    $this->ui->progressBar($i, 100, "安装进度: ", "");
+                    usleep(100000); // 延迟0.1秒
+                }
+            }
+
             $this->manager->installExtension($extension, $options);
-            echo "扩展 {$extension} 安装成功" . PHP_EOL;
+            $this->ui->success("扩展 " . $this->ui->colorize($extension, ConsoleUI::COLOR_CYAN) . " 安装成功", true);
 
             return 0;
         } catch (\Exception $e) {
-            echo "错误: " . $e->getMessage() . PHP_EOL;
+            $this->ui->error("错误: " . $e->getMessage(), true);
 
             return 1;
         }

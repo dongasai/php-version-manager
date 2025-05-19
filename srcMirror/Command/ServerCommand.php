@@ -34,7 +34,14 @@ class ServerCommand extends AbstractCommand
         $action = $args[0];
 
         // 获取端口
-        $port = isset($args[1]) ? (int)$args[1] : 8080;
+        $port = isset($args[1]) ? (int)$args[1] : 0;
+
+        // 如果端口为0，则从配置文件中获取
+        if ($port === 0) {
+            $configManager = new \Mirror\Config\ConfigManager();
+            $serverConfig = $configManager->getServerConfig();
+            $port = $serverConfig['port'] ?? 8080;
+        }
 
         // 创建服务器管理器
         $serverManager = new ServerManager();
@@ -44,22 +51,22 @@ class ServerCommand extends AbstractCommand
             case 'start':
                 $serverManager->start($port);
                 break;
-                
+
             case 'stop':
                 $serverManager->stop();
                 break;
-                
+
             case 'status':
                 $serverManager->status();
                 break;
-                
+
             case 'restart':
                 $serverManager->restart($port);
                 break;
-                
+
             case 'help':
                 return $this->showHelp();
-                
+
             default:
                 echo "未知操作: $action\n";
                 return $this->showHelp();

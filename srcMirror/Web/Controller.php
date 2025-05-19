@@ -329,10 +329,11 @@ class Controller
         if (PHP_OS_FAMILY === 'Linux') {
             $uptime = @file_get_contents('/proc/uptime');
             if ($uptime !== false) {
-                $uptime = explode(' ', $uptime)[0];
-                $days = floor($uptime / 86400);
-                $hours = floor(($uptime % 86400) / 3600);
-                $minutes = floor(($uptime % 3600) / 60);
+                $uptime = (float)explode(' ', $uptime)[0];
+                // 显式转换避免隐式转换警告
+                $days = (int)floor((float)$uptime / 86400);
+                $hours = (int)floor((float)($uptime % 86400) / 3600);
+                $minutes = (int)floor((float)($uptime % 3600) / 60);
 
                 return "{$days}天 {$hours}小时 {$minutes}分钟";
             }

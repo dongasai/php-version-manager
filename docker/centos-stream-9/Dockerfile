@@ -6,7 +6,7 @@ RUN cd /etc/yum.repos.d/ && \
     sed -i 's|#baseurl=http://mirror.centos.org|baseurl=https://mirrors.aliyun.com|g' /etc/yum.repos.d/centos*.repo
 
 # 安装基本工具和依赖
-RUN dnf -y update && dnf -y install \
+RUN dnf -y update && dnf -y install --allowerasing \
     curl \
     wget \
     git \
@@ -23,13 +23,15 @@ RUN dnf -y update && dnf -y install \
 
 # 安装EPEL仓库和额外依赖
 RUN dnf -y install epel-release && \
-    dnf -y install libzip-devel && \
-    dnf -y install bats || \
-    (cd /tmp && \
-    git clone https://github.com/bats-core/bats-core.git && \
-    cd bats-core && \
-    ./install.sh /usr/local && \
-    rm -rf /tmp/bats-core)
+    /usr/bin/crb enable && \
+    dnf -y install libzip libzip-devel || dnf -y install libzip5 libzip5-devel && \
+    (dnf -y install bats || \
+     (cd /tmp && \
+      wget https://github.com/bats-core/bats-core/archive/refs/heads/master.tar.gz && \
+      tar -xzf master.tar.gz && \
+      cd bats-core-master && \
+      ./install.sh /usr/local && \
+      rm -rf /tmp/bats-core-master /tmp/master.tar.gz))
 
 # 创建工作目录
 WORKDIR /app

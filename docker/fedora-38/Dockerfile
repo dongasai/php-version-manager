@@ -1,8 +1,7 @@
 FROM fedora:38
 
-# 替换为国内镜像源
-RUN sed -i 's|metalink=|#metalink=|g' /etc/yum.repos.d/fedora*.repo && \
-    sed -i 's|#baseurl=http://download.example/pub/fedora/linux|baseurl=https://mirrors.aliyun.com/fedora|g' /etc/yum.repos.d/fedora*.repo
+# 删除openh264仓库并使用官方源
+RUN rm -f /etc/yum.repos.d/fedora-cisco-openh264.repo
 
 # 安装基本工具和依赖
 RUN dnf -y update && dnf -y install \

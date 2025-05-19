@@ -26,11 +26,11 @@ RUN dnf -y install epel-release && \
     /usr/bin/crb enable && \
     dnf -y install libzip libzip-devel || dnf -y install libzip5 libzip5-devel && \
     (dnf -y install bats || \
-     (cd /tmp && \
-      wget https://github.com/bats-core/bats-core/archive/refs/heads/master.tar.gz && \
-      tar -xzf master.tar.gz && \
-      cd bats-core-master && \
-      ./install.sh /usr/local && \
+    (cd /tmp && \
+     wget https://github.com/bats-core/bats-core/archive/refs/heads/master.tar.gz && \
+     tar -xzf master.tar.gz && \
+     cd bats-core-master && \
+     ./install.sh /usr/local && \
       rm -rf /tmp/bats-core-master /tmp/master.tar.gz))
 
 # 创建工作目录

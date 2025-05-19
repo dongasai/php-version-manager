@@ -1,8 +1,8 @@
 FROM fedora:36
 
-# 替换为国内镜像源
+# 使用官方镜像源
 RUN sed -i 's|metalink=|#metalink=|g' /etc/yum.repos.d/fedora*.repo && \
-    sed -i 's|#baseurl=http://download.example/pub/fedora/linux|baseurl=https://mirrors.aliyun.com/fedora|g' /etc/yum.repos.d/fedora*.repo
+    sed -i 's|#baseurl=http://download.example/pub/fedora/linux|baseurl=https://download.fedoraproject.org/pub/fedora/linux|g' /etc/yum.repos.d/fedora*.repo
 
 # 安装基本工具和依赖
 RUN dnf -y update && dnf -y install \

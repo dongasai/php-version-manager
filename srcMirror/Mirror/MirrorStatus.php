@@ -32,10 +32,14 @@ class MirrorStatus
      */
     public function getStatus()
     {
-        $phpDir = ROOT_DIR . '/data/php';
-        $peclDir = ROOT_DIR . '/data/pecl';
-        $extensionsDir = ROOT_DIR . '/data/extensions';
-        $composerDir = ROOT_DIR . '/data/composer';
+        // 获取数据目录
+        $configManager = new \Mirror\Config\ConfigManager();
+        $dataDir = $configManager->getDataDir();
+
+        $phpDir = $dataDir . '/php';
+        $peclDir = $dataDir . '/pecl';
+        $extensionsDir = $dataDir . '/extensions';
+        $composerDir = $dataDir . '/composer';
 
         $phpFiles = is_dir($phpDir) ? glob($phpDir . '/*.tar.gz') : [];
         $peclFiles = is_dir($peclDir) ? glob($peclDir . '/*.tgz') : [];
@@ -83,7 +87,11 @@ class MirrorStatus
      */
     public function getPhpList()
     {
-        $phpDir = ROOT_DIR . '/data/php';
+        // 获取数据目录
+        $configManager = new \Mirror\Config\ConfigManager();
+        $dataDir = $configManager->getDataDir();
+
+        $phpDir = $dataDir . '/php';
         $files = is_dir($phpDir) ? glob($phpDir . '/*.tar.gz') : [];
 
         $result = [];
@@ -116,7 +124,11 @@ class MirrorStatus
      */
     public function getPeclList()
     {
-        $peclDir = ROOT_DIR . '/data/pecl';
+        // 获取数据目录
+        $configManager = new \Mirror\Config\ConfigManager();
+        $dataDir = $configManager->getDataDir();
+
+        $peclDir = $dataDir . '/pecl';
         $files = is_dir($peclDir) ? glob($peclDir . '/*.tgz') : [];
 
         $result = [];
@@ -149,7 +161,11 @@ class MirrorStatus
      */
     public function getExtensionsList()
     {
-        $extensionsDir = ROOT_DIR . '/data/extensions';
+        // 获取数据目录
+        $configManager = new \Mirror\Config\ConfigManager();
+        $dataDir = $configManager->getDataDir();
+
+        $extensionsDir = $dataDir . '/extensions';
         $result = [];
 
         if (is_dir($extensionsDir)) {
@@ -183,7 +199,11 @@ class MirrorStatus
      */
     public function getComposerList()
     {
-        $composerDir = ROOT_DIR . '/data/composer';
+        // 获取数据目录
+        $configManager = new \Mirror\Config\ConfigManager();
+        $dataDir = $configManager->getDataDir();
+
+        $composerDir = $dataDir . '/composer';
         $files = is_dir($composerDir) ? glob($composerDir . '/*.phar') : [];
 
         $result = [];

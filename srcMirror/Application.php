@@ -4,6 +4,7 @@ namespace Mirror;
 
 use Mirror\Command\CleanCommand;
 use Mirror\Command\CommandInterface;
+use Mirror\Command\ConfigCommand;
 use Mirror\Command\HelpCommand;
 use Mirror\Command\ServerCommand;
 use Mirror\Command\StatusCommand;
@@ -39,6 +40,7 @@ class Application
         $this->addCommand(new StatusCommand());
         $this->addCommand(new CleanCommand());
         $this->addCommand(new ServerCommand());
+        $this->addCommand(new ConfigCommand());
         $this->addCommand(new HelpCommand($this));
     }
 

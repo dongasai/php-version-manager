@@ -26,10 +26,18 @@ class Controller
     private $status;
 
     /**
+     * 配置管理器
+     *
+     * @var \Mirror\Config\ConfigManager
+     */
+    private $configManager;
+
+    /**
      * 构造函数
      */
     public function __construct()
     {
+        $this->configManager = new \Mirror\Config\ConfigManager();
         $this->config = new MirrorConfig();
         $this->status = new MirrorStatus();
     }

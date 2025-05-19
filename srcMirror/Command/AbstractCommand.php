@@ -60,13 +60,44 @@ abstract class AbstractCommand implements CommandInterface
      */
     protected function loadConfig()
     {
-        $configFile = ROOT_DIR . '/config/mirror.php';
-        
-        if (!file_exists($configFile)) {
-            echo "错误: 配置文件不存在: $configFile\n";
+        try {
+            $configManager = new \Mirror\Config\ConfigManager();
+            return $configManager->getAllConfig();
+        } catch (\Exception $e) {
+            echo "错误: 加载配置失败: " . $e->getMessage() . "\n";
             exit(1);
         }
-        
-        return require $configFile;
+    }
+
+    /**
+     * 获取镜像配置
+     *
+     * @return array
+     */
+    protected function getMirrorConfig()
+    {
+        try {
+            $configManager = new \Mirror\Config\ConfigManager();
+            return $configManager->getMirrorConfig();
+        } catch (\Exception $e) {
+            echo "错误: 加载镜像配置失败: " . $e->getMessage() . "\n";
+            exit(1);
+        }
+    }
+
+    /**
+     * 获取运行时配置
+     *
+     * @return array
+     */
+    protected function getRuntimeConfig()
+    {
+        try {
+            $configManager = new \Mirror\Config\ConfigManager();
+            return $configManager->getRuntimeConfig();
+        } catch (\Exception $e) {
+            echo "错误: 加载运行时配置失败: " . $e->getMessage() . "\n";
+            exit(1);
+        }
     }
 }

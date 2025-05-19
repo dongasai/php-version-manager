@@ -27,6 +27,10 @@ class StatusCommand extends AbstractCommand
     {
         echo "镜像状态:\n";
 
+        // 获取配置
+        $configManager = new \Mirror\Config\ConfigManager();
+        $dataDir = $configManager->getDataDir();
+
         // 获取镜像状态
         $status = new MirrorStatus();
         $stats = $status->getStatus();
@@ -44,8 +48,19 @@ class StatusCommand extends AbstractCommand
 
         // 显示内容存储位置和配置文件位置
         echo "\n存储位置信息:\n";
-        echo "内容存储位置: " . ROOT_DIR . "/data\n";
-        echo "配置文件位置: " . ROOT_DIR . "/config/mirror.php\n";
+        echo "内容存储位置: " . $dataDir . "\n";
+        echo "镜像配置文件: " . ROOT_DIR . "/config/mirror.php\n";
+        echo "运行时配置文件: " . ROOT_DIR . "/config/runtime.php\n";
+
+        // 显示运行时配置摘要
+        $runtimeConfig = $configManager->getRuntimeConfig();
+        echo "\n运行时配置摘要:\n";
+        echo "服务器主机: " . ($runtimeConfig['server']['host'] ?? '0.0.0.0') . "\n";
+        echo "服务器端口: " . ($runtimeConfig['server']['port'] ?? '8080') . "\n";
+        echo "公开URL: " . ($runtimeConfig['server']['public_url'] ?? 'http://localhost:8080') . "\n";
+        echo "日志级别: " . ($runtimeConfig['log_level'] ?? 'info') . "\n";
+        echo "同步间隔: " . ($runtimeConfig['sync']['interval'] ?? '24') . " 小时\n";
+        echo "清理配置: 保留 " . ($runtimeConfig['cleanup']['keep_versions'] ?? '5') . " 个版本, 最小保留 " . ($runtimeConfig['cleanup']['min_age'] ?? '30') . " 天\n";
 
         return 0;
     }

@@ -4,36 +4,25 @@ namespace Mirror\Config;
 
 /**
  * 镜像配置管理类
+ *
+ * 注意：此类已被废弃，请使用 ConfigManager 类代替
+ * @deprecated 使用 ConfigManager 类代替
  */
 class MirrorConfig
 {
     /**
-     * 配置数据
+     * 配置管理器
      *
-     * @var array
+     * @var ConfigManager
      */
-    private $config;
+    private $configManager;
 
     /**
      * 构造函数
      */
     public function __construct()
     {
-        $this->loadConfig();
-    }
-
-    /**
-     * 加载配置
-     */
-    private function loadConfig()
-    {
-        $configFile = ROOT_DIR . '/config/mirror.php';
-        
-        if (!file_exists($configFile)) {
-            throw new \Exception("配置文件不存在: $configFile");
-        }
-        
-        $this->config = require $configFile;
+        $this->configManager = new ConfigManager();
     }
 
     /**
@@ -43,7 +32,7 @@ class MirrorConfig
      */
     public function getPhpConfig()
     {
-        return $this->config['php'] ?? [];
+        return $this->configManager->getPhpConfig();
     }
 
     /**
@@ -53,7 +42,7 @@ class MirrorConfig
      */
     public function getPeclConfig()
     {
-        return $this->config['pecl'] ?? [];
+        return $this->configManager->getPeclConfig();
     }
 
     /**
@@ -63,7 +52,7 @@ class MirrorConfig
      */
     public function getExtensionsConfig()
     {
-        return $this->config['extensions'] ?? [];
+        return $this->configManager->getExtensionsConfig();
     }
 
     /**
@@ -73,7 +62,7 @@ class MirrorConfig
      */
     public function getComposerConfig()
     {
-        return $this->config['composer'] ?? [];
+        return $this->configManager->getComposerConfig();
     }
 
     /**
@@ -83,11 +72,7 @@ class MirrorConfig
      */
     public function getServerConfig()
     {
-        return $this->config['server'] ?? [
-            'host' => '0.0.0.0',
-            'port' => 8080,
-            'public_url' => 'http://localhost:8080',
-        ];
+        return $this->configManager->getServerConfig();
     }
 
     /**
@@ -97,10 +82,7 @@ class MirrorConfig
      */
     public function getCleanupConfig()
     {
-        return $this->config['cleanup'] ?? [
-            'keep_versions' => 5,
-            'min_age' => 30,
-        ];
+        return $this->configManager->getCleanupConfig();
     }
 
     /**
@@ -110,6 +92,6 @@ class MirrorConfig
      */
     public function getConfig()
     {
-        return $this->config;
+        return $this->configManager->getMirrorConfig();
     }
 }

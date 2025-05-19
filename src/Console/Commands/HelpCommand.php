@@ -34,7 +34,7 @@ class HelpCommand implements CommandInterface
         echo "  update    更新PVM自身" . PHP_EOL;
         echo "  help      显示帮助信息" . PHP_EOL . PHP_EOL;
 
-        echo "更多信息请访问: https://github.com/yourusername/php-version-manager" . PHP_EOL;
+        echo "更多信息请访问: https://github.com/dongasai/php-version-manager" . PHP_EOL;
 
         return 0;
     }

@@ -74,7 +74,7 @@ php-version-manager/
 
 1. 克隆仓库：
    ```
-   git clone https://github.com/yourusername/php-version-manager.git
+   git clone https://github.com/dongasai/php-version-manager.git
    cd php-version-manager
    ```
 

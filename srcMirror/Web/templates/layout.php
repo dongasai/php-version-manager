@@ -172,7 +172,7 @@
                 </div>
                 <div class="col-md-6 text-md-right">
                     <p>
-                        <a href="https://github.com/yourusername/php-version-manager" target="_blank"><i class="fab fa-github"></i> GitHub</a> |
+                        <a href="https://github.com/dongasai/php-version-manager" target="_blank"><i class="fab fa-github"></i> GitHub</a> |
                         <a href="/docs/"><i class="fas fa-book"></i> 文档</a> |
                         <a href="/status/"><i class="fas fa-chart-line"></i> 状态</a>
                     </p>

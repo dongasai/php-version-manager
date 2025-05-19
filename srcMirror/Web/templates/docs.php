@@ -246,7 +246,7 @@ return [
                         </div>
                         <div id="faqCollapse3" class="collapse" aria-labelledby="faqHeading3" data-parent="#faqAccordion">
                             <div class="card-body">
-                                您可以在 <a href="https://github.com/yourusername/php-version-manager" target="_blank">GitHub</a> 上提交 Issue 或 Pull Request。
+                                您可以在 <a href="https://github.com/dongasai/php-version-manager" target="_blank">GitHub</a> 上提交 Issue 或 Pull Request。
                             </div>
                         </div>
                     </div>

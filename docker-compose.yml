@@ -1,6 +1,8 @@
 services:
   # Ubuntu 容器
   ubuntu-18.04:
+    image: pvm-ubuntu-18.04
+    container_name: pvm-ubuntu-18.04
     build:
       context: ./docker/ubuntu-18.04
       dockerfile: Dockerfile
@@ -12,6 +14,8 @@ services:
       - DEBIAN_FRONTEND=noninteractive
 
   ubuntu-20.04:
+    image: pvm-ubuntu-20.04
+    container_name: pvm-ubuntu-20.04
     build:
       context: ./docker/ubuntu-20.04
       dockerfile: Dockerfile
@@ -23,6 +27,8 @@ services:
       - DEBIAN_FRONTEND=noninteractive
 
   ubuntu-22.04:
+    image: pvm-ubuntu-22.04
+    container_name: pvm-ubuntu-22.04
     build:
       context: ./docker/ubuntu-22.04
       dockerfile: Dockerfile
@@ -34,6 +40,8 @@ services:
       - DEBIAN_FRONTEND=noninteractive
 
   ubuntu-24.04:
+    image: pvm-ubuntu-24.04
+    container_name: pvm-ubuntu-24.04
     build:
       context: ./docker/ubuntu-24.04
       dockerfile: Dockerfile
@@ -46,6 +54,8 @@ services:
 
   # 保留原有的 ubuntu 服务，指向 22.04
   ubuntu:
+    image: pvm-ubuntu
+    container_name: pvm-ubuntu
     build:
       context: ./docker/ubuntu
       dockerfile: Dockerfile
@@ -58,6 +68,8 @@ services:
 
   # Debian 容器
   debian-11:
+    image: pvm-debian-11
+    container_name: pvm-debian-11
     build:
       context: ./docker/debian-11
       dockerfile: Dockerfile
@@ -69,6 +81,8 @@ services:
       - DEBIAN_FRONTEND=noninteractive
 
   debian-12:
+    image: pvm-debian-12
+    container_name: pvm-debian-12
     build:
       context: ./docker/debian-12
       dockerfile: Dockerfile
@@ -81,6 +95,8 @@ services:
 
   # 保留原有的 debian 服务，指向 11
   debian:
+    image: pvm-debian
+    container_name: pvm-debian
     build:
       context: ./docker/debian
       dockerfile: Dockerfile
@@ -93,6 +109,8 @@ services:
 
   # CentOS 容器
   centos-7:
+    image: pvm-centos-7
+    container_name: pvm-centos-7
     build:
       context: ./docker/centos-7
       dockerfile: Dockerfile
@@ -102,6 +120,8 @@ services:
     command: /bin/bash
 
   centos-stream-8:
+    image: pvm-centos-stream-8
+    container_name: pvm-centos-stream-8
     build:
       context: ./docker/centos-stream-8
       dockerfile: Dockerfile
@@ -111,6 +131,8 @@ services:
     command: /bin/bash
 
   centos-stream-9:
+    image: pvm-centos-stream-9
+    container_name: pvm-centos-stream-9
     build:
       context: ./docker/centos-stream-9
       dockerfile: Dockerfile
@@ -121,6 +143,8 @@ services:
 
   # 保留原有的 centos 服务，指向 7
   centos:
+    image: pvm-centos
+    container_name: pvm-centos
     build:
       context: ./docker/centos
       dockerfile: Dockerfile
@@ -131,6 +155,8 @@ services:
 
   # Fedora 容器
   fedora-36:
+    image: pvm-fedora-36
+    container_name: pvm-fedora-36
     build:
       context: ./docker/fedora-36
       dockerfile: Dockerfile
@@ -140,6 +166,8 @@ services:
     command: /bin/bash
 
   fedora-38:
+    image: pvm-fedora-38
+    container_name: pvm-fedora-38
     build:
       context: ./docker/fedora-38
       dockerfile: Dockerfile
@@ -149,6 +177,8 @@ services:
     command: /bin/bash
 
   fedora-40:
+    image: pvm-fedora-40
+    container_name: pvm-fedora-40
     build:
       context: ./docker/fedora-40
       dockerfile: Dockerfile
@@ -159,6 +189,8 @@ services:
 
   # 保留原有的 fedora 服务，指向 36
   fedora:
+    image: pvm-fedora
+    container_name: pvm-fedora
     build:
       context: ./docker/fedora
       dockerfile: Dockerfile
@@ -169,6 +201,8 @@ services:
 
   # Alpine 容器
   alpine-3.16:
+    image: pvm-alpine-3.16
+    container_name: pvm-alpine-3.16
     build:
       context: ./docker/alpine-3.16
       dockerfile: Dockerfile
@@ -178,6 +212,8 @@ services:
     command: /bin/bash
 
   alpine-3.18:
+    image: pvm-alpine-3.18
+    container_name: pvm-alpine-3.18
     build:
       context: ./docker/alpine-3.18
       dockerfile: Dockerfile
@@ -187,6 +223,8 @@ services:
     command: /bin/bash
 
   alpine-3.19:
+    image: pvm-alpine-3.19
+    container_name: pvm-alpine-3.19
     build:
       context: ./docker/alpine-3.19
       dockerfile: Dockerfile
@@ -197,6 +235,8 @@ services:
 
   # 保留原有的 alpine 服务，指向 3.16
   alpine:
+    image: pvm-alpine
+    container_name: pvm-alpine
     build:
       context: ./docker/alpine
       dockerfile: Dockerfile
@@ -207,6 +247,8 @@ services:
 
   # ARM 架构模拟 (使用 QEMU)
   arm64:
+    image: pvm-arm64
+    container_name: pvm-arm64
     build:
       context: ./docker/arm64
       dockerfile: Dockerfile
@@ -217,6 +259,8 @@ services:
 
   # Alibaba Linux 3 容器
   alinux3:
+    image: pvm-alinux3
+    container_name: pvm-alinux3
     build:
       context: ./docker/alinux3
       dockerfile: Dockerfile

@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  php71:
+    build:
+      context: .
+      dockerfile: Dockerfile-php7.1-ubuntu
+    container_name: pvm-php7.1
+    volumes:
+      - ./www:/var/www/html
+    ports:
+      - "9071:9000"
+    restart: unless-stopped
+
+  php72:
+    build:
+      context: .
+      dockerfile: Dockerfile-php7.2-ubuntu
+    container_name: pvm-php7.2
+    volumes:
+      - ./www:/var/www/html
+    ports:
+      - "9072:9000"
+    restart: unless-stopped
+
+  php73:
+    build:
+      context: .
+      dockerfile: Dockerfile-php7.3-ubuntu
+    container_name: pvm-php7.3
+    volumes:
+      - ./www:/var/www/html
+    ports:
+      - "9073:9000"
+    restart: unless-stopped
+
+  php74:
+    build:
+      context: .
+      dockerfile: Dockerfile-php7.4-ubuntu
+    container_name: pvm-php7.4
+    volumes:
+      - ./www:/var/www/html
+    ports:
+      - "9074:9000"
+    restart: unless-stopped
+
+  php80:
+    build:
+      context: .
+      dockerfile: Dockerfile-php8.0-ubuntu
+    container_name: pvm-php8.0
+    volumes:
+      - ./www:/var/www/html
+    ports:
+      - "9080:9000"
+    restart: unless-stopped
+
+  php81:
+    build:
+      context: .
+      dockerfile: Dockerfile-php8.1-ubuntu
+    container_name: pvm-php8.1
+    volumes:
+      - ./www:/var/www/html
+    ports:
+      - "9081:9000"
+    restart: unless-stopped
+
+  php82:
+    build:
+      context: .
+      dockerfile: Dockerfile-php8.2-ubuntu
+    container_name: pvm-php8.2
+    volumes:
+      - ./www:/var/www/html
+    ports:
+      - "9082:9000"
+    restart: unless-stopped
+
+  php83:
+    build:
+      context: .
+      dockerfile: Dockerfile-php8.3-ubuntu
+    container_name: pvm-php8.3
+    volumes:
+      - ./www:/var/www/html
+    ports:
+      - "9083:9000"
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:latest
+    container_name: pvm-nginx
+    volumes:
+      - ./www:/var/www/html
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    ports:
+      - "8080:80"
+    depends_on:
+      - php71
+      - php72
+      - php73
+      - php74
+      - php80
+      - php81
+      - php82
+      - php83
+    restart: unless-stopped

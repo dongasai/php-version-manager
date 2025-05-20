@@ -1,0 +1,73 @@
+FROM ubuntu:22.04
+
+LABEL maintainer="PVM Team <your-email@example.com>"
+LABEL description="PHP 8.1 on Ubuntu 22.04 using PVM"
+
+# 避免交互式前端
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# 安装基本工具和依赖
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    unzip \
+    build-essential \
+    libssl-dev \
+    libcurl4-openssl-dev \
+    libxml2-dev \
+    libsqlite3-dev \
+    libonig-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    libicu-dev \
+    sudo \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建非root用户
+RUN useradd -m -s /bin/bash pvm && \
+    echo "pvm ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/pvm
+
+# 切换到非root用户
+USER pvm
+WORKDIR /home/pvm
+
+# 安装PVM
+RUN curl -fsSL https://raw.githubusercontent.com/dongasai/php-version-manager/master/install.sh | bash
+
+# 添加PVM到PATH
+ENV PATH="/home/pvm/.pvm/bin:${PATH}"
+
+# 安装PHP 8.1
+RUN pvm install 8.1
+
+# 设置PHP 8.1为默认版本
+RUN pvm use 8.1
+
+# 安装常用扩展
+RUN pvm ext install mysqli pdo_mysql gd curl mbstring xml zip
+
+# 安装Composer
+RUN pvm composer install --default
+
+# 验证安装
+RUN php -v && php -m && composer -V
+
+# 设置工作目录
+WORKDIR /var/www/html
+
+# 创建一个简单的PHP信息页面
+RUN echo "<?php phpinfo(); ?>" > /home/pvm/info.php
+
+# 暴露端口
+EXPOSE 9000
+
+# 启动PHP-FPM
+CMD ["php-fpm"]

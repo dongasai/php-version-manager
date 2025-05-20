@@ -1,0 +1,17 @@
+services:
+  dev:
+    build:
+      context: .
+    volumes:
+      - pvm_dev_data2:/home/developer
+      - ../:/app
+    ports:
+      - "8081:8080"
+    container_name: pvm-dev
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+volumes:
+  pvm_dev_data2:
+    external: true

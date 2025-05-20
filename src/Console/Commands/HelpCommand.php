@@ -26,6 +26,7 @@ class HelpCommand implements CommandInterface
         echo "  list      列出所有已安装的PHP版本" . PHP_EOL;
         echo "  ext       管理PHP扩展" . PHP_EOL;
         echo "  config    管理PHP配置" . PHP_EOL;
+        echo "  composer  管理Composer" . PHP_EOL;
         echo "  cache     管理缓存" . PHP_EOL;
         echo "  security  管理安全相关功能" . PHP_EOL;
         echo "  env       管理环境变量" . PHP_EOL;

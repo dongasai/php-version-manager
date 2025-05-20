@@ -50,6 +50,13 @@ class Application
             'service' => Commands\ServiceCommand::class,
             'monitor' => Commands\MonitorCommand::class,
             'update' => Commands\UpdateCommand::class,
+            'composer' => Commands\ComposerCommand::class, // 新增Composer管理命令
+
+            // 保留旧的Composer命令，以保持向后兼容性
+            'composer-install' => Commands\ComposerInstallCommand::class,
+            'composer-remove' => Commands\ComposerRemoveCommand::class,
+            'composer-default' => Commands\ComposerDefaultCommand::class,
+            'composer-config' => Commands\ComposerConfigCommand::class,
         ];
     }
 

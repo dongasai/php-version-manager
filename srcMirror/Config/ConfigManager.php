@@ -208,6 +208,29 @@ class ConfigManager
     }
 
     /**
+     * 获取日志配置
+     *
+     * @return array
+     */
+    public function getLogConfig()
+    {
+        return $this->runtimeConfig['log'] ?? [
+            'enable_logging' => true,
+            'log_level' => 'info', // debug, info, warning, error, critical
+            'log_rotation' => true,
+            'max_log_size' => 10 * 1024 * 1024, // 10MB
+            'max_log_files' => 10,
+            'log_types' => [
+                'system' => true,
+                'access' => true,
+                'error' => true,
+                'sync' => true,
+                'download' => true,
+            ],
+        ];
+    }
+
+    /**
      * 获取安全配置
      *
      * @return array

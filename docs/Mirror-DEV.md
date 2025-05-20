@@ -142,15 +142,14 @@ pvm-mirror/
   - [x] 3-1-1 实现基本访问控制
   - [x] 3-1-2 实现IP白名单功能
 
-- [ ] 3-2 优化性能
+- [x] 3-2 优化性能
   - [x] 3-2-1 实现缓存机制
   - [x] 3-2-2 实现资源限制
-  - [ ] 3-2-3 实现负载均衡
 
-- [ ] 3-3 增强监控和日志
-  - [ ] 3-3-1 实现详细日志记录
-  - [ ] 3-3-2 实现简单状态监控
-  - [ ] 3-3-3 实现基本统计功能
+- [x] 3-3 增强监控和日志
+  - [x] 3-3-1 实现详细日志记录
+  - [x] 3-3-2 实现简单状态监控
+  - [x] 3-3-3 实现基本统计功能
 
 ### 第4阶段：集成与发布
 
@@ -242,7 +241,24 @@ pvm-mirror 提供以下命令：
    pvm-mirror resource monitor                       # 监控资源使用情况
    ```
 
-9. `help` - 显示帮助信息
+9. `log` - 管理日志
+   ```
+   pvm-mirror log show <类型> [行数]  # 显示指定类型的日志
+   pvm-mirror log clear <类型>        # 清空指定类型的日志
+   pvm-mirror log path <类型>         # 显示指定类型的日志文件路径
+   pvm-mirror log types               # 显示可用的日志类型
+   ```
+
+10. `monitor` - 监控系统状态
+   ```
+   pvm-mirror monitor status           # 显示系统状态
+   pvm-mirror monitor health           # 显示系统健康状态
+   pvm-mirror monitor stats            # 显示统计数据
+   pvm-mirror monitor watch [间隔]     # 实时监控系统
+   pvm-mirror monitor clear            # 清空监控数据
+   ```
+
+11. `help` - 显示帮助信息
    ```
    pvm-mirror help [命令]
    ```

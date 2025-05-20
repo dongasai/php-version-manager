@@ -165,4 +165,40 @@ return [
         // 是否验证文件完整性
         'verify_integrity' => true,
     ],
+
+    // 日志配置
+    'log' => [
+        // 是否启用日志
+        'enable_logging' => true,
+
+        // 日志级别：debug, info, warning, error, critical
+        'log_level' => 'info',
+
+        // 是否启用日志轮转
+        'log_rotation' => true,
+
+        // 单个日志文件最大大小（字节）
+        'max_log_size' => 10485760, // 10MB
+
+        // 最大日志文件数
+        'max_log_files' => 10,
+
+        // 日志类型配置
+        'log_types' => [
+            // 是否记录系统日志
+            'system' => true,
+
+            // 是否记录访问日志
+            'access' => true,
+
+            // 是否记录错误日志
+            'error' => true,
+
+            // 是否记录同步日志
+            'sync' => true,
+
+            // 是否记录下载日志
+            'download' => true,
+        ],
+    ],
 ];

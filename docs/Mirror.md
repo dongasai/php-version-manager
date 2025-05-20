@@ -34,7 +34,7 @@ pvm-mirror/
 │   └── composer/           # Composer 镜像
 ├── logs/                   # 日志文件
 ├── public/                 # Web 服务根目录
-│   ├── index.php           # 镜像站点首页
+│   ├── index.php           # 下载站点首页
 │   ├── php/                # PHP 源码镜像（符号链接到 data/php）
 │   ├── pecl/               # PECL 扩展镜像（符号链接到 data/pecl）
 │   ├── extensions/         # 特定扩展镜像（符号链接到 data/extensions）
@@ -231,7 +231,7 @@ function showHomePage() {
 <html>
 <head>
     <meta charset="utf-8">
-    <title>PVM 镜像站</title>
+    <title>PVM 下载站</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
         h1 { color: #333; }
@@ -244,7 +244,7 @@ function showHomePage() {
     </style>
 </head>
 <body>
-    <h1>PVM 镜像站</h1>
+    <h1>PVM 下载站</h1>
     
     <div class="section">
         <h2>PHP 源码包</h2>

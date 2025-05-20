@@ -36,17 +36,17 @@
                 <h5 class="mb-0">概述</h5>
             </div>
             <div class="card-body">
-                <p>PVM 镜像站是 PHP Version Manager (PVM) 的官方镜像站点，提供以下内容：</p>
+                <p>PVM 下载站是 PHP Version Manager (PVM) 的官方下载站点，提供以下内容：</p>
                 <ul>
                     <li>PHP 源码包</li>
                     <li>PECL 扩展包</li>
                     <li>特定扩展源码</li>
                     <li>Composer 包</li>
                 </ul>
-                <p>使用 PVM 镜像站可以加速 PHP 版本和扩展的下载和安装，特别适合网络环境不佳的地区。</p>
+                <p>使用 PVM 下载站可以加速 PHP 版本和扩展的下载和安装，特别适合网络环境不佳的地区。</p>
                 
                 <h6 class="mt-4">镜像内容</h6>
-                <p>本镜像站包含以下内容：</p>
+                <p>本下载站包含以下内容：</p>
                 <ul>
                     <li>PHP 5.6.x - 8.3.x 的所有版本源码包</li>
                     <li>常用 PECL 扩展的所有版本</li>
@@ -67,7 +67,7 @@
                 <pre class="bg-light p-3 rounded"><code>curl -o- https://raw.githubusercontent.com/yourusername/php-version-manager/master/install.sh | bash</code></pre>
                 
                 <h6 class="mt-4">配置镜像</h6>
-                <p>安装完成后，您需要配置 PVM 使用本镜像站：</p>
+                <p>安装完成后，您需要配置 PVM 使用本下载站：</p>
                 <pre class="bg-light p-3 rounded"><code>pvm mirror config --php=https://your-mirror-url.com/php --pecl=https://your-mirror-url.com/pecl</code></pre>
                 
                 <p>或者手动编辑配置文件：</p>
@@ -159,7 +159,7 @@ return [
                 <h5 class="mb-0">API 接口</h5>
             </div>
             <div class="card-body">
-                <p>PVM 镜像站提供以下 API 接口：</p>
+                <p>PVM 下载站提供以下 API 接口：</p>
                 <div class="table-responsive">
                     <table class="table table-bordered">
                         <thead class="thead-light">
@@ -226,13 +226,13 @@ return [
                         <div class="card-header" id="faqHeading2">
                             <h2 class="mb-0">
                                 <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#faqCollapse2" aria-expanded="false" aria-controls="faqCollapse2">
-                                    镜像站支持哪些 PHP 版本？
+                                    下载站支持哪些 PHP 版本？
                                 </button>
                             </h2>
                         </div>
                         <div id="faqCollapse2" class="collapse" aria-labelledby="faqHeading2" data-parent="#faqAccordion">
                             <div class="card-body">
-                                本镜像站支持 PHP 5.6.x 到 8.3.x 的所有版本。
+                                本下载站支持 PHP 5.6.x 到 8.3.x 的所有版本。
                             </div>
                         </div>
                     </div>

@@ -91,8 +91,8 @@ class Controller
              ->setActivePage('home');
 
         $view->render('home', [
-            'title' => 'PVM 镜像站 - 首页',
-            'page_title' => 'PHP 版本管理器镜像站',
+            'title' => 'PVM 下载站 - 首页',
+            'page_title' => 'PHP 版本管理器下载站',
             'use_container' => true,
             'status' => $status,
             'config' => $config,
@@ -287,7 +287,7 @@ class Controller
              ->setActivePage('status');
 
         $view->render('status', [
-            'title' => 'PVM 镜像站 - 状态监控',
+            'title' => 'PVM 下载站 - 状态监控',
             'page_title' => '镜像状态监控',
             'use_container' => true,
             'status' => $status,
@@ -309,7 +309,7 @@ class Controller
              ->setActivePage('docs');
 
         $view->render('docs', [
-            'title' => 'PVM 镜像站 - 文档',
+            'title' => 'PVM 下载站 - 文档',
             'page_title' => '使用文档',
             'use_container' => true,
             'show_breadcrumb' => true,

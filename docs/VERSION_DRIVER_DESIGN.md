@@ -259,7 +259,7 @@ class VersionDriverFactory
 - **use_multi_thread**：是否使用多线程下载
 - **thread_count**：线程数
 - **keep_source**：是否保留源码
-- **mirror**：使用的镜像站点
+- **mirror**：使用的下载站点
 
 ## 5. 版本切换设计
 

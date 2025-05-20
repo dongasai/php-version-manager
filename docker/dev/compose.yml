@@ -1,17 +1,334 @@
+version: '3.8'
+
 services:
-  dev:
+  # Ubuntu 开发环境
+  ubuntu:
     build:
-      context: .
+      context: ./ubuntu
     volumes:
-      - pvm_dev_data2:/home/developer
-      - ../:/app
+      - pvm_dev_data:/home/developer
+      - ../../:/app
     ports:
       - "8081:8080"
-    container_name: pvm-dev
+    container_name: pvm-dev-ubuntu
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Ubuntu 18.04 开发环境
+  ubuntu-18.04:
+    build:
+      context: ./ubuntu-18.04
+    volumes:
+      - pvm_dev_ubuntu_18_04_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8082:8080"
+    container_name: pvm-dev-ubuntu-18.04
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Ubuntu 20.04 开发环境
+  ubuntu-20.04:
+    build:
+      context: ./ubuntu-20.04
+    volumes:
+      - pvm_dev_ubuntu_20_04_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8083:8080"
+    container_name: pvm-dev-ubuntu-20.04
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Ubuntu 22.04 开发环境
+  ubuntu-22.04:
+    build:
+      context: ./ubuntu-22.04
+    volumes:
+      - pvm_dev_ubuntu_22_04_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8084:8080"
+    container_name: pvm-dev-ubuntu-22.04
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Ubuntu 24.04 开发环境
+  ubuntu-24.04:
+    build:
+      context: ./ubuntu-24.04
+    volumes:
+      - pvm_dev_ubuntu_24_04_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8085:8080"
+    container_name: pvm-dev-ubuntu-24.04
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Debian 开发环境
+  debian:
+    build:
+      context: ./debian
+    volumes:
+      - pvm_dev_debian_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8086:8080"
+    container_name: pvm-dev-debian
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Debian 11 开发环境
+  debian-11:
+    build:
+      context: ./debian-11
+    volumes:
+      - pvm_dev_debian_11_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8087:8080"
+    container_name: pvm-dev-debian-11
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Debian 12 开发环境
+  debian-12:
+    build:
+      context: ./debian-12
+    volumes:
+      - pvm_dev_debian_12_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8088:8080"
+    container_name: pvm-dev-debian-12
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # CentOS 开发环境
+  centos:
+    build:
+      context: ./centos
+    volumes:
+      - pvm_dev_centos_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8089:8080"
+    container_name: pvm-dev-centos
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # CentOS 7 开发环境
+  centos-7:
+    build:
+      context: ./centos-7
+    volumes:
+      - pvm_dev_centos_7_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8090:8080"
+    container_name: pvm-dev-centos-7
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # CentOS Stream 8 开发环境
+  centos-stream-8:
+    build:
+      context: ./centos-stream-8
+    volumes:
+      - pvm_dev_centos_stream_8_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8091:8080"
+    container_name: pvm-dev-centos-stream-8
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # CentOS Stream 9 开发环境
+  centos-stream-9:
+    build:
+      context: ./centos-stream-9
+    volumes:
+      - pvm_dev_centos_stream_9_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8092:8080"
+    container_name: pvm-dev-centos-stream-9
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Fedora 开发环境
+  fedora:
+    build:
+      context: ./fedora
+    volumes:
+      - pvm_dev_fedora_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8093:8080"
+    container_name: pvm-dev-fedora
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Fedora 36 开发环境
+  fedora-36:
+    build:
+      context: ./fedora-36
+    volumes:
+      - pvm_dev_fedora_36_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8094:8080"
+    container_name: pvm-dev-fedora-36
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Fedora 38 开发环境
+  fedora-38:
+    build:
+      context: ./fedora-38
+    volumes:
+      - pvm_dev_fedora_38_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8095:8080"
+    container_name: pvm-dev-fedora-38
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Fedora 40 开发环境
+  fedora-40:
+    build:
+      context: ./fedora-40
+    volumes:
+      - pvm_dev_fedora_40_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8096:8080"
+    container_name: pvm-dev-fedora-40
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Alpine 开发环境
+  alpine:
+    build:
+      context: ./alpine
+    volumes:
+      - pvm_dev_alpine_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8097:8080"
+    container_name: pvm-dev-alpine
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Alpine 3.16 开发环境
+  alpine-3.16:
+    build:
+      context: ./alpine-3.16
+    volumes:
+      - pvm_dev_alpine_3_16_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8098:8080"
+    container_name: pvm-dev-alpine-3.16
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Alpine 3.18 开发环境
+  alpine-3.18:
+    build:
+      context: ./alpine-3.18
+    volumes:
+      - pvm_dev_alpine_3_18_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8099:8080"
+    container_name: pvm-dev-alpine-3.18
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Alpine 3.19 开发环境
+  alpine-3.19:
+    build:
+      context: ./alpine-3.19
+    volumes:
+      - pvm_dev_alpine_3_19_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8100:8080"
+    container_name: pvm-dev-alpine-3.19
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Alibaba Linux 3 开发环境
+  alinux3:
+    build:
+      context: ./alinux3
+    volumes:
+      - pvm_dev_alinux3_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8101:8080"
+    container_name: pvm-dev-alinux3
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # ARM64 开发环境
+  arm64:
+    build:
+      context: ./arm64
+    volumes:
+      - pvm_dev_arm64_data:/home/developer
+      - ../../:/app
+    ports:
+      - "8102:8080"
+    container_name: pvm-dev-arm64
     environment:
       - DEBIAN_FRONTEND=noninteractive
     restart: unless-stopped
 
 volumes:
-  pvm_dev_data2:
-    external: true
+  pvm_dev_data:
+  pvm_dev_ubuntu_18_04_data:
+  pvm_dev_ubuntu_20_04_data:
+  pvm_dev_ubuntu_22_04_data:
+  pvm_dev_ubuntu_24_04_data:
+  pvm_dev_debian_data:
+  pvm_dev_debian_11_data:
+  pvm_dev_debian_12_data:
+  pvm_dev_centos_data:
+  pvm_dev_centos_7_data:
+  pvm_dev_centos_stream_8_data:
+  pvm_dev_centos_stream_9_data:
+  pvm_dev_fedora_data:
+  pvm_dev_fedora_36_data:
+  pvm_dev_fedora_38_data:
+  pvm_dev_fedora_40_data:
+  pvm_dev_alpine_data:
+  pvm_dev_alpine_3_16_data:
+  pvm_dev_alpine_3_18_data:
+  pvm_dev_alpine_3_19_data:
+  pvm_dev_alinux3_data:
+  pvm_dev_arm64_data:

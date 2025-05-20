@@ -96,7 +96,7 @@ return [
         ],
         'pattern' => 'php-{version}.tar.gz',
     ],
-    
+
     // PECL 扩展镜像配置
     'pecl' => [
         'source' => 'https://pecl.php.net/get',
@@ -109,7 +109,7 @@ return [
         ],
         'pattern' => '{extension}-{version}.tgz',
     ],
-    
+
     // 特定扩展的 GitHub 源码镜像配置
     'extensions' => [
         'redis' => [
@@ -128,7 +128,7 @@ return [
             'pattern' => '{version}.tar.gz',
         ],
     ],
-    
+
     // Composer 镜像配置
     'composer' => [
         'source' => 'https://getcomposer.org/download',
@@ -170,24 +170,24 @@ function syncPhpSources($config) {
     $source = $config['source'];
     $pattern = $config['pattern'];
     $dataDir = __DIR__ . '/../data/php';
-    
+
     // 确保目录存在
     if (!is_dir($dataDir)) {
         mkdir($dataDir, 0755, true);
     }
-    
+
     // 遍历版本
     foreach ($config['versions'] as $majorVersion => $versionRange) {
         list($minVersion, $maxVersion) = $versionRange;
-        
+
         // 获取版本列表
         $versions = getVersionRange($minVersion, $maxVersion);
-        
+
         foreach ($versions as $version) {
             $filename = str_replace('{version}', $version, $pattern);
             $sourceUrl = $source . '/' . $filename;
             $targetFile = $dataDir . '/' . $filename;
-            
+
             // 如果文件不存在，则下载
             if (!file_exists($targetFile)) {
                 echo "下载 PHP $version: $sourceUrl\n";
@@ -245,28 +245,28 @@ function showHomePage() {
 </head>
 <body>
     <h1>PVM 下载站</h1>
-    
+
     <div class="section">
         <h2>PHP 源码包</h2>
         <ul>
             <li><a href="/php/">浏览所有 PHP 源码包</a></li>
         </ul>
     </div>
-    
+
     <div class="section">
         <h2>PECL 扩展包</h2>
         <ul>
             <li><a href="/pecl/">浏览所有 PECL 扩展包</a></li>
         </ul>
     </div>
-    
+
     <div class="section">
         <h2>特定扩展源码</h2>
         <ul>
             <li><a href="/extensions/">浏览所有特定扩展源码</a></li>
         </ul>
     </div>
-    
+
     <div class="section">
         <h2>Composer 包</h2>
         <ul>
@@ -322,9 +322,17 @@ chmod +x bin/sync.sh
 ### 4. 启动 Web 服务
 
 ```bash
-# 使用 PHP 内置 Web 服务器
+# 使用 PHP 内置 Web 服务器（前台运行）
 cd public
 php -S 0.0.0.0:8080
+
+# 使用 pvm-mirror 命令（后台运行）
+./bin/pvm-mirror server start
+
+# 使用 pvm-mirror 命令（前台运行）
+./bin/pvm-mirror server start -f
+# 或者
+./bin/pvm-mirror server start --foreground
 
 # 或者配置 Nginx/Apache
 ```

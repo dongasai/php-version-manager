@@ -43,9 +43,10 @@ class ServerManager
      * 启动服务器
      *
      * @param int $port 端口号
+     * @param bool $foreground 是否在前台运行
      * @return bool 是否成功
      */
-    public function start($port)
+    public function start($port, $foreground = false)
     {
         // 检查服务器是否已经在运行
         if (file_exists($this->pidFile) && $this->isRunning()) {
@@ -55,8 +56,30 @@ class ServerManager
         }
 
         // 启动服务器
-        echo "启动镜像服务器 (端口: $port)...\n";
+        echo "启动镜像服务器 (端口: $port)" . ($foreground ? " (前台模式)" : "") . "...\n";
 
+        // 如果是前台运行
+        if ($foreground) {
+            echo "服务器将在前台运行，按 Ctrl+C 停止服务器\n";
+            echo "访问地址: http://localhost:$port/\n";
+
+            // 检查是否需要自动同步
+            $this->checkAutoSync();
+
+            // 直接在前台运行PHP内置服务器
+            $command = sprintf(
+                'php -S 0.0.0.0:%d -t %s/public/',
+                $port,
+                ROOT_DIR
+            );
+
+            // 执行命令（不会返回）
+            passthru($command);
+
+            return true;
+        }
+
+        // 后台运行
         // 构建命令
         $command = sprintf(
             'nohup php -S 0.0.0.0:%d -t %s/public/ > %s 2>&1 & echo $!',
@@ -152,9 +175,10 @@ class ServerManager
      * 重启服务器
      *
      * @param int $port 端口号
+     * @param bool $foreground 是否在前台运行
      * @return bool 是否成功
      */
-    public function restart($port)
+    public function restart($port, $foreground = false)
     {
         // 先停止服务器
         $this->stop();
@@ -163,7 +187,7 @@ class ServerManager
         sleep(2);
 
         // 再启动服务器
-        return $this->start($port);
+        return $this->start($port, $foreground);
     }
 
     /**

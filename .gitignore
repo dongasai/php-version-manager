@@ -16,3 +16,5 @@ test-report.xml
 /tmp/
 *.tap
 *.bats.log
+cache/
+data/

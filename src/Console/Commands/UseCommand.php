@@ -9,7 +9,7 @@ use Exception;
 
 /**
  * 使用命令类
- * 
+ *
  * 用于处理PHP版本切换命令
  */
 class UseCommand implements CommandInterface
@@ -20,14 +20,14 @@ class UseCommand implements CommandInterface
      * @var VersionSwitcher
      */
     private $switcher;
-    
+
     /**
      * 版本检测器
      *
      * @var VersionDetector
      */
     private $detector;
-    
+
     /**
      * 构造函数
      */
@@ -36,7 +36,7 @@ class UseCommand implements CommandInterface
         $this->switcher = new VersionSwitcher();
         $this->detector = new VersionDetector();
     }
-    
+
     /**
      * 执行命令
      *
@@ -56,17 +56,17 @@ class UseCommand implements CommandInterface
                 return 1;
             }
         }
-        
+
         $version = $args[0];
         $options = $this->parseOptions(array_slice($args, 1));
-        
+
         // 检查版本是否已安装
         if (!$this->switcher->isVersionInstalled($version)) {
             echo "错误: PHP版本 {$version} 未安装" . PHP_EOL;
             echo "使用 'pvm install {$version}' 安装此版本" . PHP_EOL;
             return 1;
         }
-        
+
         try {
             if ($options['project']) {
                 // 设置项目级别的PHP版本
@@ -77,19 +77,19 @@ class UseCommand implements CommandInterface
                 // 切换PHP版本
                 $this->switcher->switchVersion($version, $options['global']);
                 echo "已切换到PHP版本 {$version}" . PHP_EOL;
-                
+
                 if ($options['global']) {
                     echo "已将全局PHP版本设置为 {$version}" . PHP_EOL;
                 }
             }
-            
+
             return 0;
         } catch (Exception $e) {
             echo "错误: " . $e->getMessage() . PHP_EOL;
             return 1;
         }
     }
-    
+
     /**
      * 解析命令选项
      *
@@ -103,23 +103,23 @@ class UseCommand implements CommandInterface
             'project' => false,
             'project_dir' => null
         ];
-        
+
         foreach ($args as $i => $arg) {
             if ($arg === '--global' || $arg === '-g') {
                 $options['global'] = true;
             } elseif ($arg === '--project' || $arg === '-p') {
                 $options['project'] = true;
-                
+
                 // 检查下一个参数是否是项目目录
                 if (isset($args[$i + 1]) && $args[$i + 1][0] !== '-') {
                     $options['project_dir'] = $args[$i + 1];
                 }
             }
         }
-        
+
         return $options;
     }
-    
+
     /**
      * 获取命令描述
      *
@@ -127,9 +127,9 @@ class UseCommand implements CommandInterface
      */
     public function getDescription()
     {
-        return '切换PHP版本';
+        return '永久切换PHP版本';
     }
-    
+
     /**
      * 获取命令用法
      *
@@ -140,7 +140,8 @@ class UseCommand implements CommandInterface
         return <<<USAGE
 用法: pvm use [版本] [选项]
 
-切换PHP版本。如果不指定版本，则显示当前版本。
+永久切换PHP版本。如果不指定版本，则显示当前版本。
+此命令会修改系统环境变量和符号链接，切换后的PHP版本将在所有终端会话中生效。
 
 参数:
   [版本]  要切换到的PHP版本，例如 7.4.33, 8.1.27

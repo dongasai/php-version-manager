@@ -36,6 +36,7 @@ class Application
             'init' => Commands\InitCommand::class,
             'install' => Commands\InstallCommand::class,
             'use' => Commands\UseCommand::class,
+            'switch' => Commands\SwitchCommand::class, // 新增临时切换PHP版本命令
             'remove' => Commands\RemoveCommand::class,
             'list' => Commands\ListCommand::class,
             'help' => Commands\HelpCommand::class,

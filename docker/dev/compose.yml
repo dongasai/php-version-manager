@@ -4,7 +4,7 @@ services:
   # Ubuntu 开发环境
   ubuntu:
     build:
-      context: ./ubuntu
+      context: .
     volumes:
       - pvm_dev_data:/home/developer
       - ../../:/app
@@ -18,7 +18,7 @@ services:
   # Ubuntu 18.04 开发环境
   ubuntu-18.04:
     build:
-      context: ./ubuntu-18.04
+      context: ../ubuntu-18.04
     volumes:
       - pvm_dev_ubuntu_18_04_data:/home/developer
       - ../../:/app

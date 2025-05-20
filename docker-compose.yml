@@ -1,10 +1,12 @@
+version: '3.8'
+
 services:
   # Ubuntu 容器
   ubuntu-18.04:
     image: pvm-ubuntu-18.04
     container_name: pvm-ubuntu-18.04
     build:
-      context: ./docker/ubuntu-18.04
+      context: ./docker/dev/ubuntu-18.04
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -17,7 +19,7 @@ services:
     image: pvm-ubuntu-20.04
     container_name: pvm-ubuntu-20.04
     build:
-      context: ./docker/ubuntu-20.04
+      context: ./docker/dev/ubuntu-20.04
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -30,7 +32,7 @@ services:
     image: pvm-ubuntu-22.04
     container_name: pvm-ubuntu-22.04
     build:
-      context: ./docker/ubuntu-22.04
+      context: ./docker/dev/ubuntu-22.04
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -43,7 +45,7 @@ services:
     image: pvm-ubuntu-24.04
     container_name: pvm-ubuntu-24.04
     build:
-      context: ./docker/ubuntu-24.04
+      context: ./docker/dev/ubuntu-24.04
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -57,7 +59,7 @@ services:
     image: pvm-ubuntu
     container_name: pvm-ubuntu
     build:
-      context: ./docker/ubuntu
+      context: ./docker/dev/ubuntu
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -71,7 +73,7 @@ services:
     image: pvm-debian-11
     container_name: pvm-debian-11
     build:
-      context: ./docker/debian-11
+      context: ./docker/dev/debian-11
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -84,7 +86,7 @@ services:
     image: pvm-debian-12
     container_name: pvm-debian-12
     build:
-      context: ./docker/debian-12
+      context: ./docker/dev/debian-12
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -98,7 +100,7 @@ services:
     image: pvm-debian
     container_name: pvm-debian
     build:
-      context: ./docker/debian
+      context: ./docker/dev/debian
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -112,7 +114,7 @@ services:
     image: pvm-centos-7
     container_name: pvm-centos-7
     build:
-      context: ./docker/centos-7
+      context: ./docker/dev/centos-7
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -123,7 +125,7 @@ services:
     image: pvm-centos-stream-8
     container_name: pvm-centos-stream-8
     build:
-      context: ./docker/centos-stream-8
+      context: ./docker/dev/centos-stream-8
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -134,7 +136,7 @@ services:
     image: pvm-centos-stream-9
     container_name: pvm-centos-stream-9
     build:
-      context: ./docker/centos-stream-9
+      context: ./docker/dev/centos-stream-9
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -146,7 +148,7 @@ services:
     image: pvm-centos
     container_name: pvm-centos
     build:
-      context: ./docker/centos
+      context: ./docker/dev/centos
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -158,7 +160,7 @@ services:
     image: pvm-fedora-38
     container_name: pvm-fedora-38
     build:
-      context: ./docker/fedora-38
+      context: ./docker/dev/fedora-38
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -169,7 +171,7 @@ services:
     image: pvm-fedora-40
     container_name: pvm-fedora-40
     build:
-      context: ./docker/fedora-40
+      context: ./docker/dev/fedora-40
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -181,7 +183,7 @@ services:
     image: pvm-fedora
     container_name: pvm-fedora
     build:
-      context: ./docker/fedora-38
+      context: ./docker/dev/fedora-38
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -193,7 +195,7 @@ services:
     image: pvm-alpine-3.16
     container_name: pvm-alpine-3.16
     build:
-      context: ./docker/alpine-3.16
+      context: ./docker/dev/alpine-3.16
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -204,7 +206,7 @@ services:
     image: pvm-alpine-3.18
     container_name: pvm-alpine-3.18
     build:
-      context: ./docker/alpine-3.18
+      context: ./docker/dev/alpine-3.18
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -215,7 +217,7 @@ services:
     image: pvm-alpine-3.19
     container_name: pvm-alpine-3.19
     build:
-      context: ./docker/alpine-3.19
+      context: ./docker/dev/alpine-3.19
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -227,7 +229,7 @@ services:
     image: pvm-alpine
     container_name: pvm-alpine
     build:
-      context: ./docker/alpine
+      context: ./docker/dev/alpine
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -239,7 +241,7 @@ services:
     image: pvm-arm64
     container_name: pvm-arm64
     build:
-      context: ./docker/arm64
+      context: ./docker/dev/arm64
       dockerfile: Dockerfile
     volumes:
       - .:/app
@@ -251,7 +253,7 @@ services:
     image: pvm-alinux3
     container_name: pvm-alinux3
     build:
-      context: ./docker/alinux3
+      context: ./docker/dev/alinux3
       dockerfile: Dockerfile
     volumes:
       - .:/app

@@ -5,6 +5,7 @@ namespace Mirror\Web;
 use Mirror\Config\MirrorConfig;
 use Mirror\Mirror\MirrorStatus;
 use Mirror\Utils\MirrorUtils;
+use Mirror\Security\AccessControl;
 
 /**
  * Web控制器类
@@ -33,6 +34,13 @@ class Controller
     private $configManager;
 
     /**
+     * 访问控制
+     *
+     * @var AccessControl
+     */
+    private $accessControl;
+
+    /**
      * 构造函数
      */
     public function __construct()
@@ -40,6 +48,7 @@ class Controller
         $this->configManager = new \Mirror\Config\ConfigManager();
         $this->config = new MirrorConfig();
         $this->status = new MirrorStatus();
+        $this->accessControl = new AccessControl();
     }
 
     /**
@@ -49,6 +58,15 @@ class Controller
      */
     public function handleRequest($requestPath)
     {
+        // 获取请求方法
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+        // 检查访问权限
+        if (!$this->accessControl->checkAccess($method, $requestPath)) {
+            $this->accessControl->handleAccessDenied($method, $requestPath);
+            return;
+        }
+
         // 设置内容类型
         header('Content-Type: text/html; charset=utf-8');
 

@@ -116,17 +116,17 @@ return [
         // 是否启用访问控制
         'enable_access_control' => false,
 
+        // 是否启用IP白名单
+        'enable_ip_whitelist' => false,
+
         // 允许的IP地址列表
         'allowed_ips' => [],
 
-        // 是否启用基本认证
+        // 是否启用基本认证（用户名/密码）
         'enable_basic_auth' => false,
 
-        // 基本认证用户名
-        'basic_auth_username' => '',
-
-        // 基本认证密码
-        'basic_auth_password' => '',
+        // 基本认证用户列表 (格式: ['username' => 'password', ...])
+        'auth_users' => [],
 
         // 是否验证文件完整性
         'verify_integrity' => true,

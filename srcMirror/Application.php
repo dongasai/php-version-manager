@@ -6,6 +6,7 @@ use Mirror\Command\CleanCommand;
 use Mirror\Command\CommandInterface;
 use Mirror\Command\ConfigCommand;
 use Mirror\Command\HelpCommand;
+use Mirror\Command\SecurityCommand;
 use Mirror\Command\ServerCommand;
 use Mirror\Command\StatusCommand;
 use Mirror\Command\SyncCommand;
@@ -41,6 +42,7 @@ class Application
         $this->addCommand(new CleanCommand());
         $this->addCommand(new ServerCommand());
         $this->addCommand(new ConfigCommand());
+        $this->addCommand(new SecurityCommand());
         $this->addCommand(new HelpCommand($this));
     }
 

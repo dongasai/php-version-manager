@@ -88,26 +88,36 @@ return [
     // 缓存配置
     'cache' => [
         // 是否启用缓存
-        'enabled' => true,
+        'enable_cache' => true,
 
-        // 缓存驱动：file, redis, memcached
-        'driver' => 'file',
+        // 缓存目录，留空则使用默认目录 ROOT_DIR/cache
+        'cache_dir' => '',
 
-        // 缓存过期时间（秒）
-        'ttl' => 3600,
+        // 默认缓存过期时间（秒）
+        'default_ttl' => 3600,
 
-        // Redis配置（如果使用Redis缓存）
-        'redis' => [
-            'host' => '127.0.0.1',
-            'port' => 6379,
-            'password' => '',
-            'database' => 0,
-        ],
+        // 最大缓存大小（字节）
+        'max_size' => 104857600, // 100MB
 
-        // Memcached配置（如果使用Memcached缓存）
-        'memcached' => [
-            'host' => '127.0.0.1',
-            'port' => 11211,
+        // 缓存清理间隔（秒）
+        'clean_interval' => 86400, // 24小时
+
+        // 缓存标签配置
+        'cache_tags' => [
+            // 是否缓存PHP源码列表
+            'php' => true,
+
+            // 是否缓存PECL扩展列表
+            'pecl' => true,
+
+            // 是否缓存特定扩展列表
+            'extensions' => true,
+
+            // 是否缓存Composer包列表
+            'composer' => true,
+
+            // 是否缓存状态信息
+            'status' => true,
         ],
     ],
 

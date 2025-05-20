@@ -2,6 +2,7 @@
 
 namespace Mirror\Web;
 
+use Mirror\Cache\CacheManager;
 use Mirror\Config\MirrorConfig;
 use Mirror\Mirror\MirrorStatus;
 use Mirror\Utils\MirrorUtils;
@@ -41,6 +42,13 @@ class Controller
     private $accessControl;
 
     /**
+     * 缓存管理器
+     *
+     * @var CacheManager
+     */
+    private $cacheManager;
+
+    /**
      * 构造函数
      */
     public function __construct()
@@ -49,6 +57,7 @@ class Controller
         $this->config = new MirrorConfig();
         $this->status = new MirrorStatus();
         $this->accessControl = new AccessControl();
+        $this->cacheManager = new CacheManager();
     }
 
     /**
@@ -241,23 +250,88 @@ class Controller
         $apiPath = substr($path, 4); // 移除 'api/'
         $apiPath = rtrim($apiPath, '.json');
 
+        // 获取缓存配置
+        $cacheConfig = $this->configManager->getCacheConfig();
+        $cacheTags = $cacheConfig['cache_tags'] ?? [];
+        $defaultTtl = $cacheConfig['default_ttl'] ?? 3600;
+
         // 根据 API 路径返回不同的数据
         switch ($apiPath) {
             case 'status':
-                echo json_encode($this->status->getStatus());
+                // 检查是否启用状态缓存
+                if ($this->cacheManager->isEnabled() && ($cacheTags['status'] ?? false)) {
+                    $cacheKey = 'api_status';
+                    $data = $this->cacheManager->get($cacheKey);
+                    if ($data === null) {
+                        $data = $this->status->getStatus();
+                        $this->cacheManager->set($cacheKey, $data, $defaultTtl);
+                    }
+                } else {
+                    $data = $this->status->getStatus();
+                }
+                echo json_encode($data);
                 break;
+
             case 'php':
-                echo json_encode($this->status->getPhpList());
+                // 检查是否启用PHP缓存
+                if ($this->cacheManager->isEnabled() && ($cacheTags['php'] ?? false)) {
+                    $cacheKey = 'api_php';
+                    $data = $this->cacheManager->get($cacheKey);
+                    if ($data === null) {
+                        $data = $this->status->getPhpList();
+                        $this->cacheManager->set($cacheKey, $data, $defaultTtl);
+                    }
+                } else {
+                    $data = $this->status->getPhpList();
+                }
+                echo json_encode($data);
                 break;
+
             case 'pecl':
-                echo json_encode($this->status->getPeclList());
+                // 检查是否启用PECL缓存
+                if ($this->cacheManager->isEnabled() && ($cacheTags['pecl'] ?? false)) {
+                    $cacheKey = 'api_pecl';
+                    $data = $this->cacheManager->get($cacheKey);
+                    if ($data === null) {
+                        $data = $this->status->getPeclList();
+                        $this->cacheManager->set($cacheKey, $data, $defaultTtl);
+                    }
+                } else {
+                    $data = $this->status->getPeclList();
+                }
+                echo json_encode($data);
                 break;
+
             case 'extensions':
-                echo json_encode($this->status->getExtensionsList());
+                // 检查是否启用扩展缓存
+                if ($this->cacheManager->isEnabled() && ($cacheTags['extensions'] ?? false)) {
+                    $cacheKey = 'api_extensions';
+                    $data = $this->cacheManager->get($cacheKey);
+                    if ($data === null) {
+                        $data = $this->status->getExtensionsList();
+                        $this->cacheManager->set($cacheKey, $data, $defaultTtl);
+                    }
+                } else {
+                    $data = $this->status->getExtensionsList();
+                }
+                echo json_encode($data);
                 break;
+
             case 'composer':
-                echo json_encode($this->status->getComposerList());
+                // 检查是否启用Composer缓存
+                if ($this->cacheManager->isEnabled() && ($cacheTags['composer'] ?? false)) {
+                    $cacheKey = 'api_composer';
+                    $data = $this->cacheManager->get($cacheKey);
+                    if ($data === null) {
+                        $data = $this->status->getComposerList();
+                        $this->cacheManager->set($cacheKey, $data, $defaultTtl);
+                    }
+                } else {
+                    $data = $this->status->getComposerList();
+                }
+                echo json_encode($data);
                 break;
+
             default:
                 header('HTTP/1.0 404 Not Found');
                 echo json_encode(['error' => 'API not found']);
@@ -270,34 +344,69 @@ class Controller
      */
     public function showStatusPage()
     {
-        // 获取镜像状态
-        $status = $this->status->getStatus();
+        // 获取缓存配置
+        $cacheConfig = $this->configManager->getCacheConfig();
+        $cacheTags = $cacheConfig['cache_tags'] ?? [];
+        $defaultTtl = $cacheConfig['default_ttl'] ?? 3600;
 
-        // 添加各类型的最后更新时间
-        $status['php_last_update'] = $status['last_update'];
-        $status['pecl_last_update'] = $status['last_update'];
-        $status['extension_last_update'] = $status['last_update'];
-        $status['composer_last_update'] = $status['last_update'];
+        // 检查是否启用状态缓存
+        $cacheKey = 'status_page';
+        $statusData = null;
+        $systemData = null;
 
-        // 添加各类型的大小
-        $status['php_size'] = $status['total_size'] * 0.6; // 假设PHP源码占60%
-        $status['pecl_size'] = $status['total_size'] * 0.2; // 假设PECL扩展占20%
-        $status['extension_size'] = $status['total_size'] * 0.15; // 假设特定扩展占15%
-        $status['composer_size'] = $status['total_size'] * 0.05; // 假设Composer包占5%
+        if ($this->cacheManager->isEnabled() && ($cacheTags['status'] ?? false)) {
+            $statusData = $this->cacheManager->get($cacheKey . '_status');
+            $systemData = $this->cacheManager->get($cacheKey . '_system');
+        }
 
-        // 获取系统状态
-        $system = [
-            'hostname' => php_uname('n'),
-            'os' => php_uname('s') . ' ' . php_uname('r'),
-            'kernel' => php_uname('v'),
-            'php_version' => PHP_VERSION,
-            'web_server' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
-            'uptime' => $this->getSystemUptime(),
-            'load' => $this->getSystemLoad(),
-            'cpu_usage' => rand(10, 90), // 模拟数据
-            'memory_usage' => rand(30, 80), // 模拟数据
-            'disk_usage' => rand(40, 95), // 模拟数据
-        ];
+        // 如果缓存不存在，则获取数据
+        if ($statusData === null) {
+            // 获取镜像状态
+            $status = $this->status->getStatus();
+
+            // 添加各类型的最后更新时间
+            $status['php_last_update'] = $status['last_update'];
+            $status['pecl_last_update'] = $status['last_update'];
+            $status['extension_last_update'] = $status['last_update'];
+            $status['composer_last_update'] = $status['last_update'];
+
+            // 添加各类型的大小
+            $status['php_size'] = $status['total_size'] * 0.6; // 假设PHP源码占60%
+            $status['pecl_size'] = $status['total_size'] * 0.2; // 假设PECL扩展占20%
+            $status['extension_size'] = $status['total_size'] * 0.15; // 假设特定扩展占15%
+            $status['composer_size'] = $status['total_size'] * 0.05; // 假设Composer包占5%
+
+            $statusData = $status;
+
+            // 缓存状态数据
+            if ($this->cacheManager->isEnabled() && ($cacheTags['status'] ?? false)) {
+                $this->cacheManager->set($cacheKey . '_status', $statusData, $defaultTtl);
+            }
+        }
+
+        // 系统状态数据不缓存太久，因为它会变化
+        if ($systemData === null) {
+            // 获取系统状态
+            $system = [
+                'hostname' => php_uname('n'),
+                'os' => php_uname('s') . ' ' . php_uname('r'),
+                'kernel' => php_uname('v'),
+                'php_version' => PHP_VERSION,
+                'web_server' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+                'uptime' => $this->getSystemUptime(),
+                'load' => $this->getSystemLoad(),
+                'cpu_usage' => rand(10, 90), // 模拟数据
+                'memory_usage' => rand(30, 80), // 模拟数据
+                'disk_usage' => rand(40, 95), // 模拟数据
+            ];
+
+            $systemData = $system;
+
+            // 缓存系统数据（较短时间）
+            if ($this->cacheManager->isEnabled() && ($cacheTags['status'] ?? false)) {
+                $this->cacheManager->set($cacheKey . '_system', $systemData, 60); // 只缓存1分钟
+            }
+        }
 
         // 渲染状态页面
         $view = new View();
@@ -308,8 +417,8 @@ class Controller
             'title' => 'PVM 下载站 - 状态监控',
             'page_title' => '镜像状态监控',
             'use_container' => true,
-            'status' => $status,
-            'system' => $system,
+            'status' => $statusData,
+            'system' => $systemData,
             'formatSize' => function($size) {
                 return MirrorUtils::formatSize($size);
             }

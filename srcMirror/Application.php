@@ -2,6 +2,7 @@
 
 namespace Mirror;
 
+use Mirror\Command\CacheCommand;
 use Mirror\Command\CleanCommand;
 use Mirror\Command\CommandInterface;
 use Mirror\Command\ConfigCommand;
@@ -43,6 +44,7 @@ class Application
         $this->addCommand(new ServerCommand());
         $this->addCommand(new ConfigCommand());
         $this->addCommand(new SecurityCommand());
+        $this->addCommand(new CacheCommand());
         $this->addCommand(new HelpCommand($this));
     }
 

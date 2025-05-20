@@ -138,12 +138,12 @@ pvm-mirror/
 
 ### 第3阶段：安全与性能
 
-- [ ] 3-1 增强安全性
-  - [ ] 3-1-1 实现基本访问控制
-  - [ ] 3-1-2 实现IP白名单功能
+- [x] 3-1 增强安全性
+  - [x] 3-1-1 实现基本访问控制
+  - [x] 3-1-2 实现IP白名单功能
 
 - [ ] 3-2 优化性能
-  - [ ] 3-2-1 实现缓存机制
+  - [x] 3-2-1 实现缓存机制
   - [ ] 3-2-2 实现资源限制
   - [ ] 3-2-3 实现负载均衡
 
@@ -204,7 +204,36 @@ pvm-mirror 提供以下命令：
    pvm-mirror config edit [runtime|mirror] # 编辑配置文件
    ```
 
-6. `help` - 显示帮助信息
+6. `security` - 管理安全设置
+   ```
+   pvm-mirror security status                # 显示安全设置状态
+   pvm-mirror security enable                # 启用访问控制
+   pvm-mirror security disable               # 禁用访问控制
+   pvm-mirror security whitelist enable      # 启用IP白名单
+   pvm-mirror security whitelist disable     # 禁用IP白名单
+   pvm-mirror security whitelist add <IP>    # 添加IP到白名单
+   pvm-mirror security whitelist remove <IP> # 从白名单中移除IP
+   pvm-mirror security whitelist list        # 列出白名单
+   pvm-mirror security auth enable           # 启用基本认证
+   pvm-mirror security auth disable          # 禁用基本认证
+   pvm-mirror security auth add <用户名> <密码> # 添加用户
+   pvm-mirror security auth remove <用户名>   # 移除用户
+   pvm-mirror security auth list             # 列出用户
+   pvm-mirror security log show [行数]       # 显示访问日志
+   pvm-mirror security log clear             # 清空访问日志
+   pvm-mirror security log path              # 显示日志文件路径
+   ```
+
+7. `cache` - 管理缓存
+   ```
+   pvm-mirror cache status    # 显示缓存状态
+   pvm-mirror cache enable    # 启用缓存
+   pvm-mirror cache disable   # 禁用缓存
+   pvm-mirror cache clear     # 清空所有缓存
+   pvm-mirror cache clean     # 清理过期缓存
+   ```
+
+8. `help` - 显示帮助信息
    ```
    pvm-mirror help [命令]
    ```

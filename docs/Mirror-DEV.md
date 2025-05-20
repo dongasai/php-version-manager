@@ -153,10 +153,10 @@ pvm-mirror/
 
 ### 第4阶段：集成与发布
 
-- [ ] 4-1 与 PVM 集成
-  - [ ] 4-1-1 实现自动镜像配置
-  - [ ] 4-1-2 实现镜像健康检查
-  - [ ] 4-1-3 实现镜像自动切换
+- [x] 4-1 与 PVM 集成
+  - [x] 4-1-1 实现自动镜像配置
+  - [x] 4-1-2 实现镜像健康检查
+  - [x] 4-1-3 实现镜像自动切换
 
 - [ ] 4-2 完善文档
   - [ ] 4-2-1 编写用户手册
@@ -258,7 +258,15 @@ pvm-mirror 提供以下命令：
    pvm-mirror monitor clear            # 清空监控数据
    ```
 
-11. `help` - 显示帮助信息
+11. `integrate` - 与PVM集成
+   ```
+   pvm-mirror integrate configure              # 配置PVM使用本地镜像
+   pvm-mirror integrate status                 # 显示集成状态
+   pvm-mirror integrate health                 # 检查镜像健康状态
+   pvm-mirror integrate switch <类型> [镜像]    # 切换镜像
+   ```
+
+12. `help` - 显示帮助信息
    ```
    pvm-mirror help [命令]
    ```

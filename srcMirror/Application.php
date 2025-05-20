@@ -7,6 +7,7 @@ use Mirror\Command\CleanCommand;
 use Mirror\Command\CommandInterface;
 use Mirror\Command\ConfigCommand;
 use Mirror\Command\HelpCommand;
+use Mirror\Command\IntegrateCommand;
 use Mirror\Command\LogCommand;
 use Mirror\Command\MonitorCommand;
 use Mirror\Command\ResourceCommand;
@@ -51,6 +52,7 @@ class Application
         $this->addCommand(new ResourceCommand());
         $this->addCommand(new LogCommand());
         $this->addCommand(new MonitorCommand());
+        $this->addCommand(new IntegrateCommand());
         $this->addCommand(new HelpCommand($this));
     }
 

@@ -190,6 +190,24 @@ class ConfigManager
     }
 
     /**
+     * 获取资源配置
+     *
+     * @return array
+     */
+    public function getResourceConfig()
+    {
+        return $this->runtimeConfig['resource'] ?? [
+            'enable_resource_limits' => true,
+            'max_concurrent_downloads' => 10,
+            'max_requests_per_minute' => 60,
+            'download_speed_limit' => 1024 * 1024, // 1MB/s
+            'high_load_threshold' => 80, // CPU使用率超过80%时触发高负载模式
+            'high_memory_threshold' => 80, // 内存使用率超过80%时触发高负载模式
+            'high_disk_threshold' => 90, // 磁盘使用率超过90%时触发高负载模式
+        ];
+    }
+
+    /**
      * 获取安全配置
      *
      * @return array

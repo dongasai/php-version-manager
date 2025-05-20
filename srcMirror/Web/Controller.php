@@ -5,6 +5,7 @@ namespace Mirror\Web;
 use Mirror\Cache\CacheManager;
 use Mirror\Config\MirrorConfig;
 use Mirror\Mirror\MirrorStatus;
+use Mirror\Resource\ResourceManager;
 use Mirror\Utils\MirrorUtils;
 use Mirror\Security\AccessControl;
 
@@ -49,6 +50,13 @@ class Controller
     private $cacheManager;
 
     /**
+     * 资源管理器
+     *
+     * @var ResourceManager
+     */
+    private $resourceManager;
+
+    /**
      * 构造函数
      */
     public function __construct()
@@ -58,6 +66,7 @@ class Controller
         $this->status = new MirrorStatus();
         $this->accessControl = new AccessControl();
         $this->cacheManager = new CacheManager();
+        $this->resourceManager = new ResourceManager();
     }
 
     /**
@@ -70,9 +79,18 @@ class Controller
         // 获取请求方法
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+        // 获取客户端IP
+        $clientIp = $this->getClientIp();
+
         // 检查访问权限
         if (!$this->accessControl->checkAccess($method, $requestPath)) {
             $this->accessControl->handleAccessDenied($method, $requestPath);
+            return;
+        }
+
+        // 检查IP请求频率
+        if (!$this->resourceManager->checkIpRequestRate($clientIp)) {
+            $this->handleRateLimitExceeded($clientIp, $method, $requestPath);
             return;
         }
 
@@ -163,14 +181,36 @@ class Controller
             return;
         }
 
+        // 检查是否可以开始新的下载
+        if (!$this->resourceManager->canStartDownload()) {
+            $this->handleDownloadLimitExceeded();
+            return;
+        }
+
+        // 开始下载
+        $this->resourceManager->startDownload();
+
+        // 获取下载速度限制
+        $speedLimit = $this->resourceManager->getDownloadSpeedLimit();
+
         // 发送文件
         $contentType = MirrorUtils::getMimeType($filePath);
+        $fileSize = filesize($filePath);
 
         header('Content-Type: ' . $contentType);
         header('Content-Disposition: attachment; filename="' . basename($filePath) . '"');
-        header('Content-Length: ' . filesize($filePath));
+        header('Content-Length: ' . $fileSize);
 
-        readfile($filePath);
+        // 如果没有速度限制，直接发送文件
+        if ($speedLimit <= 0) {
+            readfile($filePath);
+        } else {
+            // 使用分块传输和速度限制
+            $this->sendFileWithSpeedLimit($filePath, $speedLimit);
+        }
+
+        // 结束下载
+        $this->resourceManager->endDownload();
     }
 
     /**
@@ -499,5 +539,177 @@ class Controller
             'title' => '404 Not Found',
             'use_container' => true
         ]);
+    }
+
+    /**
+     * 获取客户端IP
+     *
+     * @return string
+     */
+    private function getClientIp()
+    {
+        // 尝试从各种可能的服务器变量中获取客户端IP
+        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+            return $_SERVER['HTTP_CLIENT_IP'];
+        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            // HTTP_X_FORWARDED_FOR可能包含多个IP，取第一个
+            $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+            return trim($ips[0]);
+        } elseif (!empty($_SERVER['HTTP_X_FORWARDED'])) {
+            return $_SERVER['HTTP_X_FORWARDED'];
+        } elseif (!empty($_SERVER['HTTP_FORWARDED_FOR'])) {
+            return $_SERVER['HTTP_FORWARDED_FOR'];
+        } elseif (!empty($_SERVER['HTTP_FORWARDED'])) {
+            return $_SERVER['HTTP_FORWARDED'];
+        } elseif (!empty($_SERVER['REMOTE_ADDR'])) {
+            return $_SERVER['REMOTE_ADDR'];
+        }
+
+        return '0.0.0.0';
+    }
+
+    /**
+     * 处理请求频率超限
+     *
+     * @param string $ip 客户端IP
+     * @param string $method 请求方法
+     * @param string $uri 请求URI
+     */
+    private function handleRateLimitExceeded($ip, $method, $uri)
+    {
+        // 记录访问被拒绝
+        if (method_exists($this->accessControl, 'logDenied')) {
+            $this->accessControl->logDenied($ip, $method, $uri, 'Rate limit exceeded');
+        }
+
+        header('HTTP/1.0 429 Too Many Requests');
+        header('Content-Type: text/html; charset=utf-8');
+        header('Retry-After: 60');
+
+        echo '<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>429 Too Many Requests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #d9534f;
+        }
+    </style>
+</head>
+<body>
+    <h1>429 Too Many Requests</h1>
+    <p>您的请求频率过高，请稍后再试。</p>
+    <p>您的IP地址: ' . $ip . '</p>
+    <p>请等待至少1分钟后再次尝试访问。</p>
+</body>
+</html>';
+
+        exit;
+    }
+
+    /**
+     * 处理下载限制超限
+     */
+    private function handleDownloadLimitExceeded()
+    {
+        header('HTTP/1.0 503 Service Unavailable');
+        header('Content-Type: text/html; charset=utf-8');
+        header('Retry-After: 300');
+
+        echo '<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>503 Service Unavailable</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #d9534f;
+        }
+    </style>
+</head>
+<body>
+    <h1>503 Service Unavailable</h1>
+    <p>服务器当前下载任务已满，请稍后再试。</p>
+    <p>请等待至少5分钟后再次尝试下载。</p>
+</body>
+</html>';
+
+        exit;
+    }
+
+    /**
+     * 使用速度限制发送文件
+     *
+     * @param string $filePath 文件路径
+     * @param int $speedLimit 速度限制（字节/秒）
+     */
+    private function sendFileWithSpeedLimit($filePath, $speedLimit)
+    {
+        // 打开文件
+        $handle = fopen($filePath, 'rb');
+        if ($handle === false) {
+            return;
+        }
+
+        // 设置缓冲区大小
+        $chunkSize = 8192; // 8KB
+
+        // 计算每个块的发送间隔（微秒）
+        $sleepTime = (int)(($chunkSize / $speedLimit) * 1000000);
+
+        // 禁用输出缓冲
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        // 设置无限执行时间
+        set_time_limit(0);
+
+        // 分块发送文件
+        while (!feof($handle)) {
+            // 读取一个块
+            $buffer = fread($handle, $chunkSize);
+            if ($buffer === false) {
+                break;
+            }
+
+            // 发送块
+            echo $buffer;
+
+            // 刷新输出缓冲
+            flush();
+
+            // 如果连接已断开，则停止发送
+            if (connection_status() != CONNECTION_NORMAL) {
+                break;
+            }
+
+            // 等待一段时间，以限制速度
+            if ($sleepTime > 0) {
+                usleep($sleepTime);
+            }
+        }
+
+        // 关闭文件
+        fclose($handle);
     }
 }

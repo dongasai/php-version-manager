@@ -121,6 +121,30 @@ return [
         ],
     ],
 
+    // 资源限制配置
+    'resource' => [
+        // 是否启用资源限制
+        'enable_resource_limits' => true,
+
+        // 最大并发下载数
+        'max_concurrent_downloads' => 10,
+
+        // 每分钟最大请求数（按IP限制）
+        'max_requests_per_minute' => 60,
+
+        // 下载速度限制（字节/秒，0表示不限制）
+        'download_speed_limit' => 1048576, // 1MB/s
+
+        // CPU使用率阈值（百分比）
+        'high_load_threshold' => 80,
+
+        // 内存使用率阈值（百分比）
+        'high_memory_threshold' => 80,
+
+        // 磁盘使用率阈值（百分比）
+        'high_disk_threshold' => 90,
+    ],
+
     // 安全配置
     'security' => [
         // 是否启用访问控制

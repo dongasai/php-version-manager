@@ -144,7 +144,7 @@ pvm-mirror/
 
 - [ ] 3-2 优化性能
   - [x] 3-2-1 实现缓存机制
-  - [ ] 3-2-2 实现资源限制
+  - [x] 3-2-2 实现资源限制
   - [ ] 3-2-3 实现负载均衡
 
 - [ ] 3-3 增强监控和日志
@@ -233,7 +233,16 @@ pvm-mirror 提供以下命令：
    pvm-mirror cache clean     # 清理过期缓存
    ```
 
-8. `help` - 显示帮助信息
+8. `resource` - 管理系统资源
+   ```
+   pvm-mirror resource status                        # 显示资源状态
+   pvm-mirror resource enable                        # 启用资源限制
+   pvm-mirror resource disable                       # 禁用资源限制
+   pvm-mirror resource set <key> <value>             # 设置资源限制
+   pvm-mirror resource monitor                       # 监控资源使用情况
+   ```
+
+9. `help` - 显示帮助信息
    ```
    pvm-mirror help [命令]
    ```

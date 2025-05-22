@@ -229,6 +229,67 @@ class Controller
             return $file !== '.' && $file !== '..';
         });
 
+        // 获取URL参数
+        $queryParams = [];
+        if (isset($_SERVER['QUERY_STRING']) && !empty($_SERVER['QUERY_STRING'])) {
+            parse_str($_SERVER['QUERY_STRING'], $queryParams);
+        }
+
+        // 处理版本筛选
+        $filteredFiles = $files;
+        $filterApplied = false;
+        $filterDescription = '';
+
+        if (isset($queryParams['version']) && !empty($queryParams['version'])) {
+            $versionFilter = $queryParams['version'];
+            $filterApplied = true;
+
+            // 根据不同目录类型应用不同的筛选逻辑
+            if (strpos($path, 'php') === 0) {
+                // 筛选PHP版本
+                $filteredFiles = array_filter($files, function($file) use ($versionFilter) {
+                    return preg_match('/php-' . preg_quote($versionFilter, '/') . '(\.|-)/', $file);
+                });
+                $filterDescription = "PHP {$versionFilter}.x 版本";
+            } elseif (strpos($path, 'pecl') === 0) {
+                // 筛选PECL扩展版本
+                $filteredFiles = array_filter($files, function($file) use ($versionFilter) {
+                    return strpos($file, "-{$versionFilter}.") !== false;
+                });
+                $filterDescription = "PHP {$versionFilter} 兼容的PECL扩展";
+            } elseif (strpos($path, 'extensions') === 0) {
+                // 筛选扩展版本
+                $filteredFiles = array_filter($files, function($file) use ($versionFilter) {
+                    return strpos($file, "-{$versionFilter}.") !== false;
+                });
+                $filterDescription = "PHP {$versionFilter} 兼容的扩展";
+            }
+        }
+
+        // 处理扩展名筛选
+        if (isset($queryParams['ext']) && !empty($queryParams['ext'])) {
+            $extFilter = $queryParams['ext'];
+            $filterApplied = true;
+
+            $filteredFiles = array_filter($filteredFiles, function($file) use ($extFilter) {
+                return pathinfo($file, PATHINFO_EXTENSION) === $extFilter;
+            });
+
+            $filterDescription .= ($filterDescription ? '，' : '') . "扩展名: {$extFilter}";
+        }
+
+        // 处理名称搜索
+        if (isset($queryParams['search']) && !empty($queryParams['search'])) {
+            $searchFilter = $queryParams['search'];
+            $filterApplied = true;
+
+            $filteredFiles = array_filter($filteredFiles, function($file) use ($searchFilter) {
+                return stripos($file, $searchFilter) !== false;
+            });
+
+            $filterDescription .= ($filterDescription ? '，' : '') . "搜索: {$searchFilter}";
+        }
+
         // 构建面包屑导航
         $breadcrumbs = [];
         $parts = explode('/', $path);
@@ -256,20 +317,29 @@ class Controller
             $activePage = 'composer';
         }
 
+        // 构建页面标题
+        $pageTitle = '目录列表: /' . $path;
+        if ($filterApplied) {
+            $pageTitle .= ' (' . $filterDescription . ')';
+        }
+
         // 渲染目录列表模板
         $view = new View();
         $view->setLayout('layout')
              ->setActivePage($activePage);
 
         $view->render('directory', [
-            'title' => '目录列表: /' . $path,
-            'page_title' => '目录列表: /' . $path,
+            'title' => $pageTitle,
+            'page_title' => $pageTitle,
             'use_container' => true,
             'show_breadcrumb' => true,
             'path' => $path,
             'breadcrumbs' => $breadcrumbs,
-            'files' => $files,
+            'files' => $filterApplied ? $filteredFiles : $files,
             'filePath' => $filePath,
+            'filterApplied' => $filterApplied,
+            'filterDescription' => $filterDescription,
+            'queryParams' => $queryParams,
             'formatSize' => function($size) {
                 return MirrorUtils::formatSize($size);
             }

@@ -3,11 +3,85 @@
         <div class="d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-folder-open"></i> 目录内容</h5>
             <div>
+                <button class="btn btn-sm btn-outline-primary mr-2" id="showFilter">
+                    <i class="fas fa-filter"></i> 筛选
+                </button>
                 <a href="#" class="btn btn-sm btn-outline-secondary" id="toggleView">
                     <i class="fas fa-th-large"></i> 切换视图
                 </a>
             </div>
         </div>
+    </div>
+
+    <!-- 筛选面板 -->
+    <div id="filterPanel" class="card-body border-bottom" style="display: <?= isset($filterApplied) && $filterApplied ? 'block' : 'none' ?>;">
+        <form method="get" class="row">
+            <?php if (strpos($path, 'php') === 0): ?>
+            <div class="col-md-3 mb-3">
+                <label for="version">PHP版本</label>
+                <select class="form-control" id="version" name="version">
+                    <option value="">全部版本</option>
+                    <option value="5.6" <?= isset($queryParams['version']) && $queryParams['version'] === '5.6' ? 'selected' : '' ?>>5.6.x</option>
+                    <option value="7.0" <?= isset($queryParams['version']) && $queryParams['version'] === '7.0' ? 'selected' : '' ?>>7.0.x</option>
+                    <option value="7.1" <?= isset($queryParams['version']) && $queryParams['version'] === '7.1' ? 'selected' : '' ?>>7.1.x</option>
+                    <option value="7.2" <?= isset($queryParams['version']) && $queryParams['version'] === '7.2' ? 'selected' : '' ?>>7.2.x</option>
+                    <option value="7.3" <?= isset($queryParams['version']) && $queryParams['version'] === '7.3' ? 'selected' : '' ?>>7.3.x</option>
+                    <option value="7.4" <?= isset($queryParams['version']) && $queryParams['version'] === '7.4' ? 'selected' : '' ?>>7.4.x</option>
+                    <option value="8.0" <?= isset($queryParams['version']) && $queryParams['version'] === '8.0' ? 'selected' : '' ?>>8.0.x</option>
+                    <option value="8.1" <?= isset($queryParams['version']) && $queryParams['version'] === '8.1' ? 'selected' : '' ?>>8.1.x</option>
+                    <option value="8.2" <?= isset($queryParams['version']) && $queryParams['version'] === '8.2' ? 'selected' : '' ?>>8.2.x</option>
+                    <option value="8.3" <?= isset($queryParams['version']) && $queryParams['version'] === '8.3' ? 'selected' : '' ?>>8.3.x</option>
+                </select>
+            </div>
+            <?php elseif (strpos($path, 'pecl') === 0 || strpos($path, 'extensions') === 0): ?>
+            <div class="col-md-3 mb-3">
+                <label for="version">PHP版本兼容性</label>
+                <select class="form-control" id="version" name="version">
+                    <option value="">全部版本</option>
+                    <option value="5.6" <?= isset($queryParams['version']) && $queryParams['version'] === '5.6' ? 'selected' : '' ?>>PHP 5.6</option>
+                    <option value="7.0" <?= isset($queryParams['version']) && $queryParams['version'] === '7.0' ? 'selected' : '' ?>>PHP 7.0</option>
+                    <option value="7.1" <?= isset($queryParams['version']) && $queryParams['version'] === '7.1' ? 'selected' : '' ?>>PHP 7.1</option>
+                    <option value="7.2" <?= isset($queryParams['version']) && $queryParams['version'] === '7.2' ? 'selected' : '' ?>>PHP 7.2</option>
+                    <option value="7.3" <?= isset($queryParams['version']) && $queryParams['version'] === '7.3' ? 'selected' : '' ?>>PHP 7.3</option>
+                    <option value="7.4" <?= isset($queryParams['version']) && $queryParams['version'] === '7.4' ? 'selected' : '' ?>>PHP 7.4</option>
+                    <option value="8.0" <?= isset($queryParams['version']) && $queryParams['version'] === '8.0' ? 'selected' : '' ?>>PHP 8.0</option>
+                    <option value="8.1" <?= isset($queryParams['version']) && $queryParams['version'] === '8.1' ? 'selected' : '' ?>>PHP 8.1</option>
+                    <option value="8.2" <?= isset($queryParams['version']) && $queryParams['version'] === '8.2' ? 'selected' : '' ?>>PHP 8.2</option>
+                    <option value="8.3" <?= isset($queryParams['version']) && $queryParams['version'] === '8.3' ? 'selected' : '' ?>>PHP 8.3</option>
+                </select>
+            </div>
+            <?php endif; ?>
+
+            <div class="col-md-3 mb-3">
+                <label for="ext">文件类型</label>
+                <select class="form-control" id="ext" name="ext">
+                    <option value="">全部类型</option>
+                    <option value="tar.gz" <?= isset($queryParams['ext']) && $queryParams['ext'] === 'tar.gz' ? 'selected' : '' ?>>tar.gz</option>
+                    <option value="tar.bz2" <?= isset($queryParams['ext']) && $queryParams['ext'] === 'tar.bz2' ? 'selected' : '' ?>>tar.bz2</option>
+                    <option value="tar.xz" <?= isset($queryParams['ext']) && $queryParams['ext'] === 'tar.xz' ? 'selected' : '' ?>>tar.xz</option>
+                    <option value="zip" <?= isset($queryParams['ext']) && $queryParams['ext'] === 'zip' ? 'selected' : '' ?>>zip</option>
+                    <option value="tgz" <?= isset($queryParams['ext']) && $queryParams['ext'] === 'tgz' ? 'selected' : '' ?>>tgz</option>
+                    <option value="phar" <?= isset($queryParams['ext']) && $queryParams['ext'] === 'phar' ? 'selected' : '' ?>>phar</option>
+                </select>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label for="search">搜索</label>
+                <input type="text" class="form-control" id="search" name="search" placeholder="输入关键词" value="<?= isset($queryParams['search']) ? htmlspecialchars($queryParams['search']) : '' ?>">
+            </div>
+
+            <div class="col-md-2 mb-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary mr-2">应用筛选</button>
+                <a href="/<?= $path ?>" class="btn btn-outline-secondary">重置</a>
+            </div>
+        </form>
+
+        <?php if (isset($filterApplied) && $filterApplied): ?>
+        <div class="alert alert-info mb-0 mt-2">
+            <i class="fas fa-info-circle"></i> 当前筛选: <?= $filterDescription ?>
+            <a href="/<?= $path ?>" class="btn btn-sm btn-outline-info ml-2">清除筛选</a>
+        </div>
+        <?php endif; ?>
     </div>
     <div class="card-body p-0">
         <!-- 表格视图 -->
@@ -153,6 +227,21 @@ $(document).ready(function() {
         } else {
             icon.removeClass('fa-list').addClass('fa-th-large');
         }
+    });
+
+    // 显示/隐藏筛选面板
+    $('#showFilter').click(function(e) {
+        e.preventDefault();
+        $('#filterPanel').toggle();
+    });
+
+    // 自动提交表单当选择变化时
+    $('#version, #ext').change(function() {
+        // 如果两个字段都为空且没有搜索词，则不提交
+        if ($('#version').val() === '' && $('#ext').val() === '' && $('#search').val() === '') {
+            return;
+        }
+        $(this).closest('form').submit();
     });
 });
 JS;

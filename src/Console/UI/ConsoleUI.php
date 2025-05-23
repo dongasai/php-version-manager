@@ -4,8 +4,8 @@ namespace VersionManager\Console\UI;
 
 /**
  * 命令行界面工具类
- * 
- * 提供彩色输出、进度条和交互式菜单等功能
+ *
+ * 提供彩色输出、进度条、交互式菜单、表格显示等功能
  */
 class ConsoleUI
 {
@@ -18,26 +18,48 @@ class ConsoleUI
     const COLOR_MAGENTA = 5;
     const COLOR_CYAN = 6;
     const COLOR_WHITE = 7;
-    
+
     // 样式常量
     const STYLE_NORMAL = 0;
     const STYLE_BOLD = 1;
     const STYLE_UNDERLINE = 4;
-    
+    const STYLE_BLINK = 5;
+    const STYLE_REVERSE = 7;
+
+    // 边框样式常量
+    const BORDER_STYLE_NONE = 0;
+    const BORDER_STYLE_SINGLE = 1;
+    const BORDER_STYLE_DOUBLE = 2;
+    const BORDER_STYLE_ROUNDED = 3;
+
     /**
      * 是否启用彩色输出
      *
      * @var bool
      */
     private $colorEnabled = true;
-    
+
     /**
      * 进度条宽度
      *
      * @var int
      */
     private $progressBarWidth = 50;
-    
+
+    /**
+     * 终端宽度
+     *
+     * @var int
+     */
+    private $terminalWidth = 80;
+
+    /**
+     * 终端高度
+     *
+     * @var int
+     */
+    private $terminalHeight = 24;
+
     /**
      * 构造函数
      */
@@ -45,8 +67,11 @@ class ConsoleUI
     {
         // 检测是否支持彩色输出
         $this->colorEnabled = $this->supportsColor();
+
+        // 获取终端尺寸
+        $this->detectTerminalSize();
     }
-    
+
     /**
      * 检测终端是否支持彩色输出
      *
@@ -56,14 +81,14 @@ class ConsoleUI
     {
         // Windows 10 以上版本支持ANSI颜色
         if (DIRECTORY_SEPARATOR === '\\') {
-            return getenv('ANSICON') !== false || getenv('ConEmuANSI') === 'ON' || 
+            return getenv('ANSICON') !== false || getenv('ConEmuANSI') === 'ON' ||
                    getenv('TERM') === 'xterm' || getenv('TERM') === 'xterm-256color';
         }
-        
+
         // 检查是否是TTY终端
         return function_exists('posix_isatty') && @posix_isatty(STDOUT);
     }
-    
+
     /**
      * 启用彩色输出
      */
@@ -71,7 +96,7 @@ class ConsoleUI
     {
         $this->colorEnabled = true;
     }
-    
+
     /**
      * 禁用彩色输出
      */
@@ -79,7 +104,7 @@ class ConsoleUI
     {
         $this->colorEnabled = false;
     }
-    
+
     /**
      * 设置进度条宽度
      *
@@ -89,7 +114,7 @@ class ConsoleUI
     {
         $this->progressBarWidth = max(10, (int) $width);
     }
-    
+
     /**
      * 输出彩色文本
      *
@@ -104,30 +129,30 @@ class ConsoleUI
         if (!$this->colorEnabled) {
             return $text;
         }
-        
+
         $colored = '';
-        
+
         // 添加样式
         if ($style !== null) {
             $colored .= "\033[{$style}m";
         }
-        
+
         // 添加前景色
         if ($foreground !== null) {
             $colored .= "\033[" . (30 + $foreground) . "m";
         }
-        
+
         // 添加背景色
         if ($background !== null) {
             $colored .= "\033[" . (40 + $background) . "m";
         }
-        
+
         // 添加文本和重置
         $colored .= $text . "\033[0m";
-        
+
         return $colored;
     }
-    
+
     /**
      * 输出信息
      *
@@ -141,7 +166,7 @@ class ConsoleUI
             echo PHP_EOL;
         }
     }
-    
+
     /**
      * 输出成功信息
      *
@@ -155,7 +180,7 @@ class ConsoleUI
             echo PHP_EOL;
         }
     }
-    
+
     /**
      * 输出警告信息
      *
@@ -169,7 +194,7 @@ class ConsoleUI
             echo PHP_EOL;
         }
     }
-    
+
     /**
      * 输出错误信息
      *
@@ -183,7 +208,7 @@ class ConsoleUI
             echo PHP_EOL;
         }
     }
-    
+
     /**
      * 显示进度条
      *
@@ -197,25 +222,37 @@ class ConsoleUI
         $percent = $total > 0 ? round(($current / $total) * 100) : 0;
         $progressDone = round($this->progressBarWidth * ($percent / 100));
         $progressRemain = $this->progressBarWidth - $progressDone;
-        
+
         $bar = $prefix;
         $bar .= $this->colorize('[', self::COLOR_WHITE);
         $bar .= $this->colorize(str_repeat('=', $progressDone), self::COLOR_GREEN);
         $bar .= $this->colorize(str_repeat(' ', $progressRemain), self::COLOR_WHITE);
         $bar .= $this->colorize(']', self::COLOR_WHITE);
         $bar .= " {$percent}%";
-        
+
         if (!empty($suffix)) {
             $bar .= " {$suffix}";
         }
-        
+
         echo "\r{$bar}";
-        
+
         if ($current >= $total) {
             echo PHP_EOL;
         }
     }
-    
+
+    /**
+     * 创建进度条管理器
+     *
+     * @param int $total 总进度
+     * @param array $options 选项
+     * @return ProgressBarManager 进度条管理器
+     */
+    public function createProgressBar($total, array $options = [])
+    {
+        return new ProgressBarManager($this, $total, $options);
+    }
+
     /**
      * 显示旋转指示器
      *
@@ -226,10 +263,10 @@ class ConsoleUI
     {
         $spinners = ['|', '/', '-', '\\'];
         $spinner = $spinners[$iteration % count($spinners)];
-        
+
         echo "\r{$spinner} {$message}";
     }
-    
+
     /**
      * 显示交互式菜单
      *
@@ -241,22 +278,22 @@ class ConsoleUI
     public function menu(array $options, $prompt = '请选择一个选项:', $default = null)
     {
         echo $prompt . PHP_EOL;
-        
+
         $i = 1;
         $indexedOptions = [];
-        
+
         foreach ($options as $key => $option) {
             $indexedOptions[$i] = [
                 'key' => $key,
                 'value' => $option
             ];
-            
+
             $defaultMark = ($default !== null && $key === $default) ? ' (默认)' : '';
             echo $this->colorize(" {$i})", self::COLOR_YELLOW) . " {$option}{$defaultMark}" . PHP_EOL;
-            
+
             $i++;
         }
-        
+
         $selectedIndex = $this->prompt('> ', function($input) use ($indexedOptions, $default) {
             if (empty($input) && $default !== null) {
                 foreach ($indexedOptions as $idx => $option) {
@@ -265,17 +302,93 @@ class ConsoleUI
                     }
                 }
             }
-            
+
             if (!is_numeric($input) || !isset($indexedOptions[(int) $input])) {
                 return false;
             }
-            
+
             return (int) $input;
         });
-        
+
         return $indexedOptions[$selectedIndex]['key'];
     }
-    
+
+    /**
+     * 显示多选菜单
+     *
+     * @param array $options 选项数组
+     * @param string $prompt 提示信息
+     * @param array $defaults 默认选中的选项
+     * @return array 选择的选项
+     */
+    public function multiMenu(array $options, $prompt = '请选择选项 (用逗号分隔多个选项):', array $defaults = [])
+    {
+        echo $prompt . PHP_EOL;
+
+        $i = 1;
+        $indexedOptions = [];
+
+        foreach ($options as $key => $option) {
+            $indexedOptions[$i] = [
+                'key' => $key,
+                'value' => $option
+            ];
+
+            $defaultMark = in_array($key, $defaults) ? ' [✓]' : ' [ ]';
+            echo $this->colorize(" {$i})", self::COLOR_YELLOW) . "{$defaultMark} {$option}" . PHP_EOL;
+
+            $i++;
+        }
+
+        echo $this->colorize(" a)", self::COLOR_YELLOW) . " [全选]" . PHP_EOL;
+        echo $this->colorize(" n)", self::COLOR_YELLOW) . " [全不选]" . PHP_EOL;
+        echo $this->colorize(" i)", self::COLOR_YELLOW) . " [反选]" . PHP_EOL;
+
+        $selectedIndices = $this->prompt('> ', function($input) use ($indexedOptions) {
+            if (strtolower($input) === 'a') {
+                return array_keys($indexedOptions);
+            }
+
+            if (strtolower($input) === 'n') {
+                return [];
+            }
+
+            if (strtolower($input) === 'i') {
+                return 'invert';
+            }
+
+            $indices = array_map('trim', explode(',', $input));
+            $validIndices = [];
+
+            foreach ($indices as $index) {
+                if (is_numeric($index) && isset($indexedOptions[(int) $index])) {
+                    $validIndices[] = (int) $index;
+                }
+            }
+
+            return empty($validIndices) ? false : $validIndices;
+        });
+
+        // 处理反选
+        if ($selectedIndices === 'invert') {
+            $defaultIndices = [];
+            foreach ($indexedOptions as $idx => $option) {
+                if (in_array($option['key'], $defaults)) {
+                    $defaultIndices[] = $idx;
+                }
+            }
+
+            $selectedIndices = array_diff(array_keys($indexedOptions), $defaultIndices);
+        }
+
+        $selectedKeys = [];
+        foreach ($selectedIndices as $index) {
+            $selectedKeys[] = $indexedOptions[$index]['key'];
+        }
+
+        return $selectedKeys;
+    }
+
     /**
      * 提示用户输入
      *
@@ -289,19 +402,19 @@ class ConsoleUI
         while (true) {
             echo $prompt;
             $input = trim(fgets(STDIN));
-            
+
             if (empty($input) && $default !== null) {
                 return $default;
             }
-            
+
             if ($validator === null || $validator($input) !== false) {
                 return $input;
             }
-            
+
             $this->error('无效的输入，请重试。');
         }
     }
-    
+
     /**
      * 提示用户确认
      *
@@ -313,10 +426,10 @@ class ConsoleUI
     {
         $defaultText = $default ? 'Y/n' : 'y/N';
         $input = $this->prompt("{$question} [{$defaultText}] ", null, $default ? 'y' : 'n');
-        
+
         return strtolower($input) === 'y';
     }
-    
+
     /**
      * 清除当前行
      */
@@ -324,12 +437,326 @@ class ConsoleUI
     {
         echo "\r" . str_repeat(' ', 80) . "\r";
     }
-    
+
     /**
      * 清除屏幕
      */
     public function clearScreen()
     {
         echo "\033[2J\033[H";
+    }
+
+    /**
+     * 检测终端尺寸
+     */
+    private function detectTerminalSize()
+    {
+        // 尝试使用stty命令获取终端尺寸
+        if (PHP_OS_FAMILY !== 'Windows' && function_exists('exec')) {
+            $output = [];
+            $returnCode = 0;
+
+            exec('stty size 2>/dev/null', $output, $returnCode);
+
+            if ($returnCode === 0 && isset($output[0])) {
+                $parts = explode(' ', trim($output[0]));
+                if (count($parts) === 2) {
+                    $this->terminalHeight = (int) $parts[0];
+                    $this->terminalWidth = (int) $parts[1];
+                    return;
+                }
+            }
+        }
+
+        // 尝试使用tput命令获取终端尺寸
+        if (PHP_OS_FAMILY !== 'Windows' && function_exists('exec')) {
+            $output = [];
+            $returnCode = 0;
+
+            exec('tput cols 2>/dev/null', $output, $returnCode);
+            if ($returnCode === 0 && isset($output[0])) {
+                $this->terminalWidth = (int) $output[0];
+            }
+
+            $output = [];
+            $returnCode = 0;
+
+            exec('tput lines 2>/dev/null', $output, $returnCode);
+            if ($returnCode === 0 && isset($output[0])) {
+                $this->terminalHeight = (int) $output[0];
+            }
+        }
+    }
+
+    /**
+     * 获取终端宽度
+     *
+     * @return int 终端宽度
+     */
+    public function getTerminalWidth()
+    {
+        return $this->terminalWidth;
+    }
+
+    /**
+     * 获取终端高度
+     *
+     * @return int 终端高度
+     */
+    public function getTerminalHeight()
+    {
+        return $this->terminalHeight;
+    }
+
+    /**
+     * 显示表格
+     *
+     * @param array $headers 表头
+     * @param array $rows 数据行
+     * @param int $borderStyle 边框样式
+     * @param array $options 选项
+     */
+    public function table(array $headers, array $rows, $borderStyle = self::BORDER_STYLE_SINGLE, array $options = [])
+    {
+        // 默认选项
+        $defaultOptions = [
+            'padding' => 1,
+            'header_color' => self::COLOR_CYAN,
+            'header_style' => self::STYLE_BOLD,
+            'max_width' => $this->terminalWidth,
+            'truncate_marker' => '...',
+            'align' => [], // 列对齐方式，可以是 'left', 'right', 'center'
+        ];
+
+        $options = array_merge($defaultOptions, $options);
+
+        // 计算列宽
+        $columnWidths = [];
+
+        // 处理表头
+        foreach ($headers as $i => $header) {
+            $columnWidths[$i] = mb_strlen($header);
+        }
+
+        // 处理数据行
+        foreach ($rows as $row) {
+            foreach ($row as $i => $cell) {
+                $cellLength = mb_strlen($cell);
+                if (!isset($columnWidths[$i]) || $cellLength > $columnWidths[$i]) {
+                    $columnWidths[$i] = $cellLength;
+                }
+            }
+        }
+
+        // 应用填充
+        foreach ($columnWidths as $i => $width) {
+            $columnWidths[$i] += $options['padding'] * 2;
+        }
+
+        // 计算表格总宽度
+        $totalWidth = array_sum($columnWidths) + count($columnWidths) + 1;
+
+        // 如果表格太宽，调整列宽
+        if ($totalWidth > $options['max_width']) {
+            $excessWidth = $totalWidth - $options['max_width'];
+            $columnsToAdjust = count($columnWidths);
+            $widthReduction = ceil($excessWidth / $columnsToAdjust);
+
+            foreach ($columnWidths as $i => $width) {
+                $newWidth = max(3 + $options['padding'] * 2, $width - $widthReduction);
+                $columnWidths[$i] = $newWidth;
+            }
+        }
+
+        // 绘制表格
+        $this->drawTableBorder($columnWidths, $borderStyle, 'top');
+
+        // 绘制表头
+        $this->drawTableRow($headers, $columnWidths, $borderStyle, [
+            'color' => $options['header_color'],
+            'style' => $options['header_style'],
+            'align' => $options['align'],
+            'padding' => $options['padding'],
+            'truncate_marker' => $options['truncate_marker'],
+        ]);
+
+        $this->drawTableBorder($columnWidths, $borderStyle, 'middle');
+
+        // 绘制数据行
+        foreach ($rows as $row) {
+            $this->drawTableRow($row, $columnWidths, $borderStyle, [
+                'align' => $options['align'],
+                'padding' => $options['padding'],
+                'truncate_marker' => $options['truncate_marker'],
+            ]);
+        }
+
+        $this->drawTableBorder($columnWidths, $borderStyle, 'bottom');
+    }
+
+    /**
+     * 绘制表格边框
+     *
+     * @param array $columnWidths 列宽
+     * @param int $borderStyle 边框样式
+     * @param string $position 位置 (top, middle, bottom)
+     */
+    private function drawTableBorder(array $columnWidths, $borderStyle, $position)
+    {
+        if ($borderStyle === self::BORDER_STYLE_NONE) {
+            return;
+        }
+
+        $chars = $this->getBorderChars($borderStyle, $position);
+
+        $line = $chars['left'];
+
+        foreach ($columnWidths as $i => $width) {
+            $line .= str_repeat($chars['horizontal'], $width);
+
+            if ($i < count($columnWidths) - 1) {
+                $line .= $chars['middle'];
+            }
+        }
+
+        $line .= $chars['right'];
+
+        echo $line . PHP_EOL;
+    }
+
+    /**
+     * 绘制表格行
+     *
+     * @param array $cells 单元格数据
+     * @param array $columnWidths 列宽
+     * @param int $borderStyle 边框样式
+     * @param array $options 选项
+     */
+    private function drawTableRow(array $cells, array $columnWidths, $borderStyle, array $options = [])
+    {
+        // 默认选项
+        $defaultOptions = [
+            'color' => null,
+            'style' => null,
+            'align' => [],
+            'padding' => 1,
+            'truncate_marker' => '...',
+        ];
+
+        $options = array_merge($defaultOptions, $options);
+
+        // 获取边框字符
+        $chars = $this->getBorderChars($borderStyle, 'row');
+
+        $line = $chars['vertical'];
+
+        foreach ($columnWidths as $i => $width) {
+            $cell = isset($cells[$i]) ? $cells[$i] : '';
+            $cellContent = $this->formatCell($cell, $width, $options['padding'], $options['truncate_marker'], $options['align'][$i] ?? 'left');
+
+            if ($options['color'] !== null || $options['style'] !== null) {
+                $cellContent = $this->colorize($cellContent, $options['color'], null, $options['style']);
+            }
+
+            $line .= $cellContent;
+            $line .= $chars['vertical'];
+        }
+
+        echo $line . PHP_EOL;
+    }
+
+    /**
+     * 获取边框字符
+     *
+     * @param int $borderStyle 边框样式
+     * @param string $position 位置
+     * @return array 边框字符
+     */
+    private function getBorderChars($borderStyle, $position)
+    {
+        switch ($borderStyle) {
+            case self::BORDER_STYLE_DOUBLE:
+                $chars = [
+                    'top' => ['left' => '╔', 'right' => '╗', 'horizontal' => '═', 'middle' => '╦'],
+                    'middle' => ['left' => '╠', 'right' => '╣', 'horizontal' => '═', 'middle' => '╬'],
+                    'bottom' => ['left' => '╚', 'right' => '╝', 'horizontal' => '═', 'middle' => '╩'],
+                    'row' => ['vertical' => '║'],
+                ];
+                break;
+
+            case self::BORDER_STYLE_ROUNDED:
+                $chars = [
+                    'top' => ['left' => '╭', 'right' => '╮', 'horizontal' => '─', 'middle' => '┬'],
+                    'middle' => ['left' => '├', 'right' => '┤', 'horizontal' => '─', 'middle' => '┼'],
+                    'bottom' => ['left' => '╰', 'right' => '╯', 'horizontal' => '─', 'middle' => '┴'],
+                    'row' => ['vertical' => '│'],
+                ];
+                break;
+
+            case self::BORDER_STYLE_NONE:
+                $chars = [
+                    'top' => ['left' => '', 'right' => '', 'horizontal' => '', 'middle' => ''],
+                    'middle' => ['left' => '', 'right' => '', 'horizontal' => '', 'middle' => ''],
+                    'bottom' => ['left' => '', 'right' => '', 'horizontal' => '', 'middle' => ''],
+                    'row' => ['vertical' => ' '],
+                ];
+                break;
+
+            case self::BORDER_STYLE_SINGLE:
+            default:
+                $chars = [
+                    'top' => ['left' => '┌', 'right' => '┐', 'horizontal' => '─', 'middle' => '┬'],
+                    'middle' => ['left' => '├', 'right' => '┤', 'horizontal' => '─', 'middle' => '┼'],
+                    'bottom' => ['left' => '└', 'right' => '┘', 'horizontal' => '─', 'middle' => '┴'],
+                    'row' => ['vertical' => '│'],
+                ];
+                break;
+        }
+
+        return $chars[$position];
+    }
+
+    /**
+     * 格式化单元格内容
+     *
+     * @param string $cell 单元格内容
+     * @param int $width 列宽
+     * @param int $padding 填充
+     * @param string $truncateMarker 截断标记
+     * @param string $align 对齐方式 (left, right, center)
+     * @return string 格式化后的单元格内容
+     */
+    private function formatCell($cell, $width, $padding, $truncateMarker, $align)
+    {
+        $contentWidth = $width - ($padding * 2);
+        $cell = (string) $cell;
+
+        // 如果内容太长，截断
+        if (mb_strlen($cell) > $contentWidth) {
+            $cell = mb_substr($cell, 0, $contentWidth - mb_strlen($truncateMarker)) . $truncateMarker;
+        }
+
+        // 根据对齐方式填充空格
+        $paddingLeft = str_repeat(' ', $padding);
+        $paddingRight = str_repeat(' ', $padding);
+
+        switch ($align) {
+            case 'right':
+                $paddingLeft = str_repeat(' ', $width - mb_strlen($cell) - $padding);
+                break;
+
+            case 'center':
+                $totalPadding = $width - mb_strlen($cell);
+                $paddingLeft = str_repeat(' ', floor($totalPadding / 2));
+                $paddingRight = str_repeat(' ', ceil($totalPadding / 2));
+                break;
+
+            case 'left':
+            default:
+                $paddingRight = str_repeat(' ', $width - mb_strlen($cell) - $padding);
+                break;
+        }
+
+        return $paddingLeft . $cell . $paddingRight;
     }
 }

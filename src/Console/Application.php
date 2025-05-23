@@ -51,6 +51,7 @@ class Application
             'service' => Commands\ServiceCommand::class,
             'monitor' => Commands\MonitorCommand::class,
             'update' => Commands\UpdateCommand::class,
+            'web' => Commands\WebCommand::class, // 新增Web管理界面命令
             'composer' => Commands\ComposerCommand::class, // 新增Composer管理命令
 
             // 保留旧的Composer命令，以保持向后兼容性

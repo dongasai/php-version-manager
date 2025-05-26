@@ -66,7 +66,7 @@ PVM 提供交互式菜单，使用户可以方便地选择选项：
  3) 8.1.27
  4) 8.2.17
  5) 8.3.5
-> 
+>
 ```
 
 #### 多选菜单
@@ -83,7 +83,7 @@ PVM 提供交互式菜单，使用户可以方便地选择选项：
  a) [全选]
  n) [全不选]
  i) [反选]
-> 
+>
 ```
 
 #### 表格显示
@@ -102,19 +102,44 @@ PVM 使用表格格式显示结构化数据，提高可读性：
 
 ### 启动 Web 管理界面
 
-使用以下命令启动 Web 管理界面：
+PVM 提供了两个 Web 管理界面：
+
+#### 1. PVM 主要的 Web 管理界面
+
+用于 PHP 版本管理、扩展管理、配置管理等。
 
 ```bash
+# 默认启动 (127.0.0.1:8000)
 pvm web
+
+# 自定义主机和端口
+pvm web --host=0.0.0.0 --port=8080
+
+# 查看帮助
+pvm web --help
 ```
 
-默认情况下，Web 管理界面将在 http://127.0.0.1:8000 上启动。
+默认访问地址：http://127.0.0.1:8000
 
-可以使用以下选项自定义主机和端口：
+#### 2. PVM 镜像的 Web 界面
+
+用于镜像服务管理、文件下载、状态监控等。
 
 ```bash
-pvm web --host=0.0.0.0 --port=8080
+# 后台启动
+php bin/pvm-mirror server start 8080
+
+# 前台启动
+php bin/pvm-mirror server start 8080 --foreground
+
+# 停止服务器
+php bin/pvm-mirror server stop
+
+# 查看状态
+php bin/pvm-mirror server status
 ```
+
+默认访问地址：http://localhost:8080
 
 ## Web 管理界面
 

@@ -106,6 +106,16 @@ class Application
     }
 
     /**
+     * 获取所有命令
+     *
+     * @return array
+     */
+    public function getCommands()
+    {
+        return $this->commands;
+    }
+
+    /**
      * 显示版本信息
      */
     protected function showVersion()

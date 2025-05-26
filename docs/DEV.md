@@ -203,3 +203,11 @@
   - [ ] 4-3-2 发布到Packagist
   - [ ] 4-3-3 创建安装脚本
 
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "@playwright/mcp@latest",
+      "args": []
+    }
+  }
+}

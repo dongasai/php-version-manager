@@ -10,7 +10,7 @@ use VersionManager\Core\Config\PhpConfig;
 
 /**
  * Web控制器类
- * 
+ *
  * 处理Web请求并返回响应
  */
 class Controller
@@ -21,35 +21,35 @@ class Controller
      * @var VersionManager
      */
     private $versionManager;
-    
+
     /**
      * 扩展管理器
      *
      * @var ExtensionManager
      */
     private $extensionManager;
-    
+
     /**
      * Composer管理器
      *
      * @var ComposerManager
      */
     private $composerManager;
-    
+
     /**
      * 监控管理器
      *
      * @var MonitorManager
      */
     private $monitorManager;
-    
+
     /**
      * 视图
      *
      * @var View
      */
     private $view;
-    
+
     /**
      * 构造函数
      */
@@ -61,7 +61,7 @@ class Controller
         $this->monitorManager = new MonitorManager();
         $this->view = new View();
     }
-    
+
     /**
      * 处理请求
      *
@@ -73,43 +73,43 @@ class Controller
         // 解析URI
         $path = parse_url($uri, PHP_URL_PATH);
         $path = trim($path, '/');
-        
+
         // 路由请求
         switch ($path) {
             case '':
             case 'index':
             case 'home':
                 return $this->showDashboard();
-                
+
             case 'versions':
                 return $this->showVersions();
-                
+
             case 'extensions':
                 return $this->showExtensions();
-                
+
             case 'composer':
                 return $this->showComposer();
-                
+
             case 'monitor':
                 return $this->showMonitor();
-                
+
             case 'settings':
                 return $this->showSettings();
-                
+
             case 'api/versions':
                 return $this->apiVersions();
-                
+
             case 'api/extensions':
                 return $this->apiExtensions();
-                
+
             case 'api/monitor':
                 return $this->apiMonitor();
-                
+
             default:
                 return $this->show404();
         }
     }
-    
+
     /**
      * 显示仪表盘
      *
@@ -119,16 +119,16 @@ class Controller
     {
         // 获取当前PHP版本
         $currentVersion = $this->versionManager->getCurrentVersion();
-        
+
         // 获取已安装的PHP版本
         $installedVersions = $this->versionManager->getInstalledVersions();
-        
+
         // 获取已安装的扩展
-        $installedExtensions = $this->extensionManager->getInstalledExtensions($currentVersion);
-        
+        $installedExtensions = $this->extensionManager->getInstalledExtensions();
+
         // 获取系统信息
         $systemInfo = $this->monitorManager->getSystemInfo();
-        
+
         // 渲染视图
         return $this->view->render('dashboard', [
             'title' => 'PVM 管理面板 - 仪表盘',
@@ -138,7 +138,7 @@ class Controller
             'systemInfo' => $systemInfo,
         ]);
     }
-    
+
     /**
      * 显示版本管理页面
      *
@@ -148,13 +148,13 @@ class Controller
     {
         // 获取当前PHP版本
         $currentVersion = $this->versionManager->getCurrentVersion();
-        
+
         // 获取已安装的PHP版本
         $installedVersions = $this->versionManager->getInstalledVersions();
-        
+
         // 获取可用的PHP版本
         $availableVersions = $this->versionManager->getAvailableVersions();
-        
+
         // 渲染视图
         return $this->view->render('versions', [
             'title' => 'PVM 管理面板 - 版本管理',
@@ -163,7 +163,7 @@ class Controller
             'availableVersions' => $availableVersions,
         ]);
     }
-    
+
     /**
      * 显示扩展管理页面
      *
@@ -173,13 +173,13 @@ class Controller
     {
         // 获取当前PHP版本
         $currentVersion = $this->versionManager->getCurrentVersion();
-        
+
         // 获取已安装的扩展
-        $installedExtensions = $this->extensionManager->getInstalledExtensions($currentVersion);
-        
+        $installedExtensions = $this->extensionManager->getInstalledExtensions();
+
         // 获取可用的扩展
-        $availableExtensions = $this->extensionManager->getAvailableExtensions($currentVersion);
-        
+        $availableExtensions = $this->extensionManager->getAvailableExtensions();
+
         // 渲染视图
         return $this->view->render('extensions', [
             'title' => 'PVM 管理面板 - 扩展管理',
@@ -188,7 +188,7 @@ class Controller
             'availableExtensions' => $availableExtensions,
         ]);
     }
-    
+
     /**
      * 显示Composer管理页面
      *
@@ -198,13 +198,13 @@ class Controller
     {
         // 获取当前PHP版本
         $currentVersion = $this->versionManager->getCurrentVersion();
-        
+
         // 获取Composer版本
         $composerVersion = $this->composerManager->getComposerVersion($currentVersion);
-        
+
         // 获取可用的Composer版本
         $availableComposerVersions = $this->composerManager->getAvailableComposerVersions();
-        
+
         // 渲染视图
         return $this->view->render('composer', [
             'title' => 'PVM 管理面板 - Composer管理',
@@ -213,7 +213,7 @@ class Controller
             'availableComposerVersions' => $availableComposerVersions,
         ]);
     }
-    
+
     /**
      * 显示监控页面
      *
@@ -223,19 +223,19 @@ class Controller
     {
         // 获取当前PHP版本
         $currentVersion = $this->versionManager->getCurrentVersion();
-        
+
         // 获取PHP进程
         $phpProcesses = $this->monitorManager->getPhpProcesses();
-        
+
         // 获取PHP-FPM进程
         $fpmProcesses = $this->monitorManager->getFpmProcesses();
-        
+
         // 获取内存使用情况
         $memoryUsage = $this->monitorManager->getMemoryUsage();
-        
+
         // 获取CPU使用情况
         $cpuUsage = $this->monitorManager->getCpuUsage();
-        
+
         // 渲染视图
         return $this->view->render('monitor', [
             'title' => 'PVM 管理面板 - 状态监控',
@@ -246,7 +246,7 @@ class Controller
             'cpuUsage' => $cpuUsage,
         ]);
     }
-    
+
     /**
      * 显示设置页面
      *
@@ -256,12 +256,12 @@ class Controller
     {
         // 获取当前PHP版本
         $currentVersion = $this->versionManager->getCurrentVersion();
-        
+
         // 获取PHP配置
         $phpConfig = new PhpConfig($currentVersion);
         $phpIniPath = $phpConfig->getPhpIniPath();
         $phpIniValues = $phpConfig->getPhpIniValues();
-        
+
         // 渲染视图
         return $this->view->render('settings', [
             'title' => 'PVM 管理面板 - 设置',
@@ -270,7 +270,7 @@ class Controller
             'phpIniValues' => $phpIniValues,
         ]);
     }
-    
+
     /**
      * 显示404页面
      *
@@ -280,13 +280,13 @@ class Controller
     {
         // 设置HTTP状态码
         http_response_code(404);
-        
+
         // 渲染视图
         return $this->view->render('404', [
             'title' => 'PVM 管理面板 - 页面未找到',
         ]);
     }
-    
+
     /**
      * API: 获取版本信息
      *
@@ -296,18 +296,18 @@ class Controller
     {
         // 设置内容类型
         header('Content-Type: application/json');
-        
+
         // 获取数据
         $data = [
             'current' => $this->versionManager->getCurrentVersion(),
             'installed' => $this->versionManager->getInstalledVersions(),
             'available' => $this->versionManager->getAvailableVersions(),
         ];
-        
+
         // 返回JSON
         return json_encode($data);
     }
-    
+
     /**
      * API: 获取扩展信息
      *
@@ -317,20 +317,20 @@ class Controller
     {
         // 设置内容类型
         header('Content-Type: application/json');
-        
+
         // 获取当前PHP版本
         $currentVersion = $this->versionManager->getCurrentVersion();
-        
+
         // 获取数据
         $data = [
-            'installed' => $this->extensionManager->getInstalledExtensions($currentVersion),
-            'available' => $this->extensionManager->getAvailableExtensions($currentVersion),
+            'installed' => $this->extensionManager->getInstalledExtensions(),
+            'available' => $this->extensionManager->getAvailableExtensions(),
         ];
-        
+
         // 返回JSON
         return json_encode($data);
     }
-    
+
     /**
      * API: 获取监控信息
      *
@@ -340,7 +340,7 @@ class Controller
     {
         // 设置内容类型
         header('Content-Type: application/json');
-        
+
         // 获取数据
         $data = [
             'php_processes' => $this->monitorManager->getPhpProcesses(),
@@ -349,7 +349,7 @@ class Controller
             'cpu_usage' => $this->monitorManager->getCpuUsage(),
             'system_info' => $this->monitorManager->getSystemInfo(),
         ];
-        
+
         // 返回JSON
         return json_encode($data);
     }

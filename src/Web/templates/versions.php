@@ -45,34 +45,44 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($installedVersions as $version): ?>
+                                <?php foreach ($installedVersions as $versionInfo): ?>
                                     <tr>
-                                        <td><?= $this->escape($version) ?></td>
                                         <td>
-                                            <?php if ($version === $currentVersion): ?>
-                                                <span class="badge bg-success">当前</span>
+                                            <?= $this->escape($versionInfo['version']) ?>
+                                            <small class="text-muted ms-2">(<?= $this->escape($versionInfo['type']) ?>)</small>
+                                        </td>
+                                        <td>
+                                            <?php if ($versionInfo['is_current']): ?>
+                                                <span class="badge bg-primary">当前</span>
+                                            <?php endif; ?>
+                                            <?php if ($versionInfo['status'] === 'active'): ?>
+                                                <span class="badge bg-success">活跃</span>
+                                            <?php elseif ($versionInfo['status'] === 'installed'): ?>
+                                                <span class="badge bg-info">已安装</span>
                                             <?php else: ?>
-                                                <span class="badge bg-secondary">已安装</span>
+                                                <span class="badge bg-warning">不完整</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><code>~/.pvm/versions/<?= $this->escape($version) ?></code></td>
+                                        <td><code><?= $this->escape($versionInfo['path']) ?></code></td>
                                         <td>
                                             <div class="btn-group">
-                                                <?php if ($version !== $currentVersion): ?>
-                                                    <a href="/actions/use?version=<?= urlencode($version) ?>" class="btn btn-sm btn-outline-primary">
+                                                <?php if (!$versionInfo['is_current'] && $versionInfo['status'] === 'installed'): ?>
+                                                    <a href="/actions/use?version=<?= urlencode($versionInfo['version']) ?>" class="btn btn-sm btn-outline-primary">
                                                         <i class="bi bi-check-circle"></i> 使用
                                                     </a>
                                                 <?php endif; ?>
-                                                <button type="button" class="btn btn-sm btn-outline-info" 
-                                                        data-bs-toggle="modal" data-bs-target="#infoModal" 
-                                                        data-version="<?= $this->escape($version) ?>">
+                                                <button type="button" class="btn btn-sm btn-outline-info"
+                                                        data-bs-toggle="modal" data-bs-target="#infoModal"
+                                                        data-version="<?= $this->escape($versionInfo['version']) ?>">
                                                     <i class="bi bi-info-circle"></i> 详情
                                                 </button>
-                                                <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                        data-bs-toggle="modal" data-bs-target="#removeModal" 
-                                                        data-version="<?= $this->escape($version) ?>">
-                                                    <i class="bi bi-trash"></i> 删除
-                                                </button>
+                                                <?php if ($versionInfo['type'] === 'pvm'): ?>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                                            data-bs-toggle="modal" data-bs-target="#removeModal"
+                                                            data-version="<?= $this->escape($versionInfo['version']) ?>">
+                                                        <i class="bi bi-trash"></i> 删除
+                                                    </button>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -101,7 +111,7 @@
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="table-responsive">
                     <table class="table table-hover" id="availableVersionsTable">
                         <thead>
@@ -114,8 +124,9 @@
                         </thead>
                         <tbody>
                             <?php foreach ($availableVersions as $version): ?>
-                                <?php 
-                                $isInstalled = in_array($version['version'], $installedVersions);
+                                <?php
+                                $installedVersionsList = array_column($installedVersions, 'version');
+                                $isInstalled = in_array($version['version'], $installedVersionsList);
                                 $isCurrent = $version['version'] === $currentVersion;
                                 ?>
                                 <tr>
@@ -170,7 +181,10 @@
                         <select class="form-select" id="versionSelect" name="version" required>
                             <option value="" selected disabled>-- 选择版本 --</option>
                             <?php foreach ($availableVersions as $version): ?>
-                                <?php if (!in_array($version['version'], $installedVersions)): ?>
+                                <?php
+                                $installedVersionsList = array_column($installedVersions, 'version');
+                                if (!in_array($version['version'], $installedVersionsList)):
+                                ?>
                                     <option value="<?= $this->escape($version['version']) ?>"><?= $this->escape($version['version']) ?></option>
                                 <?php endif; ?>
                             <?php endforeach; ?>
@@ -246,13 +260,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('refreshBtn').addEventListener('click', function() {
         location.reload();
     });
-    
+
     // 版本搜索
     document.getElementById('versionSearchBtn').addEventListener('click', function() {
         const searchTerm = document.getElementById('versionSearch').value.toLowerCase();
         const table = document.getElementById('availableVersionsTable');
         const rows = table.querySelectorAll('tbody tr');
-        
+
         rows.forEach(row => {
             const version = row.cells[0].textContent.toLowerCase();
             if (version.includes(searchTerm)) {
@@ -262,39 +276,39 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     // 版本搜索（按键事件）
     document.getElementById('versionSearch').addEventListener('keyup', function(e) {
         if (e.key === 'Enter') {
             document.getElementById('versionSearchBtn').click();
         }
     });
-    
+
     // 删除版本模态框
     const removeModal = document.getElementById('removeModal');
     removeModal.addEventListener('show.bs.modal', function(event) {
         const button = event.relatedTarget;
         const version = button.getAttribute('data-version');
-        
+
         document.getElementById('removeVersionName').textContent = version;
         document.getElementById('removeVersionBtn').href = '/actions/remove?version=' + encodeURIComponent(version);
     });
-    
+
     // 版本详情模态框
     const infoModal = document.getElementById('infoModal');
     infoModal.addEventListener('show.bs.modal', function(event) {
         const button = event.relatedTarget;
         const version = button.getAttribute('data-version');
-        
+
         document.getElementById('versionInfo').style.display = 'none';
         document.querySelector('#infoModal .spinner-border').parentElement.style.display = '';
-        
+
         // 加载版本信息
         fetch('/api/version-info?version=' + encodeURIComponent(version))
             .then(response => response.json())
             .then(data => {
                 const infoDiv = document.getElementById('versionInfo');
-                
+
                 // 构建版本信息HTML
                 let html = `
                     <h4>PHP ${data.version}</h4>
@@ -336,11 +350,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             </table>
                         </div>
                     </div>
-                    
+
                     <h5 class="mt-3">已安装扩展</h5>
                     <div class="row">
                 `;
-                
+
                 // 添加扩展列表
                 if (data.extensions && data.extensions.length > 0) {
                     for (const ext of data.extensions) {
@@ -354,9 +368,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     html += '<div class="col-12"><p class="text-muted">没有安装扩展</p></div>';
                 }
-                
+
                 html += '</div>';
-                
+
                 // 添加编译选项
                 if (data.configure_options && data.configure_options.length > 0) {
                     html += `
@@ -366,9 +380,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     `;
                 }
-                
+
                 infoDiv.innerHTML = html;
-                
+
                 // 显示信息，隐藏加载动画
                 document.querySelector('#infoModal .spinner-border').parentElement.style.display = 'none';
                 infoDiv.style.display = 'block';

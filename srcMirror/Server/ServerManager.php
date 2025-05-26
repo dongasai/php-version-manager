@@ -61,6 +61,8 @@ class ServerManager
         // 如果是前台运行
         if ($foreground) {
             echo "服务器将在前台运行，按 Ctrl+C 停止服务器\n";
+            echo ("正在启动:".date('Y-m-d H:i:s'));
+
             echo "访问地址: http://localhost:$port/\n";
 
             // 检查是否需要自动同步
@@ -93,7 +95,7 @@ class ServerManager
 
         // 保存PID
         file_put_contents($this->pidFile, $pid);
-
+        echo ("正在启动:".date('Y-m-d H:i:s'));
         echo "服务器已启动 (PID: $pid)\n";
         echo "日志文件: {$this->logFile}\n";
         echo "访问地址: http://localhost:$port/\n";
@@ -214,7 +216,7 @@ class ServerManager
 
         // 获取服务器信息
         $port = $this->getPort();
-
+        echo ("正在启动:".date('Y-m-d H:i:s'));
         echo "服务器正在运行\n";
         echo "PID: $pid\n";
 

@@ -25,7 +25,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body stats-card">
@@ -38,7 +38,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body stats-card">
@@ -51,7 +51,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body stats-card">
@@ -90,21 +90,31 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($installedVersions as $version): ?>
+                                <?php foreach ($installedVersions as $versionInfo): ?>
                                     <tr>
-                                        <td><?= $this->escape($version) ?></td>
                                         <td>
-                                            <?php if ($version === $currentVersion): ?>
-                                                <span class="badge bg-success">当前</span>
+                                            <?= $this->escape($versionInfo['version']) ?>
+                                            <small class="text-muted ms-2">(<?= $this->escape($versionInfo['type']) ?>)</small>
+                                        </td>
+                                        <td>
+                                            <?php if ($versionInfo['is_current']): ?>
+                                                <span class="badge bg-primary">当前</span>
+                                            <?php endif; ?>
+                                            <?php if ($versionInfo['status'] === 'active'): ?>
+                                                <span class="badge bg-success">活跃</span>
+                                            <?php elseif ($versionInfo['status'] === 'installed'): ?>
+                                                <span class="badge bg-info">已安装</span>
                                             <?php else: ?>
-                                                <span class="badge bg-secondary">已安装</span>
+                                                <span class="badge bg-warning">不完整</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <?php if ($version !== $currentVersion): ?>
-                                                <a href="/actions/use?version=<?= urlencode($version) ?>" class="btn btn-sm btn-outline-primary">使用</a>
+                                            <?php if (!$versionInfo['is_current'] && $versionInfo['status'] === 'installed'): ?>
+                                                <a href="/actions/use?version=<?= urlencode($versionInfo['version']) ?>" class="btn btn-sm btn-outline-primary">使用</a>
                                             <?php endif; ?>
-                                            <a href="/actions/remove?version=<?= urlencode($version) ?>" class="btn btn-sm btn-outline-danger">删除</a>
+                                            <?php if ($versionInfo['type'] === 'pvm'): ?>
+                                                <a href="/actions/remove?version=<?= urlencode($versionInfo['version']) ?>" class="btn btn-sm btn-outline-danger">删除</a>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -118,7 +128,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-6 mb-4">
         <div class="card h-100">
             <div class="card-header">
@@ -138,9 +148,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php 
+                                <?php
                                 $count = 0;
-                                foreach ($installedExtensions as $extension): 
+                                foreach ($installedExtensions as $extension):
                                     if ($count++ >= 5) break; // 只显示前5个
                                 ?>
                                     <tr>
@@ -201,8 +211,8 @@
                                     <th>系统负载</th>
                                     <td>
                                         <?php if (isset($systemInfo['load'])): ?>
-                                            <?= $this->escape($systemInfo['load']['1min']) ?> (1分钟), 
-                                            <?= $this->escape($systemInfo['load']['5min']) ?> (5分钟), 
+                                            <?= $this->escape($systemInfo['load']['1min']) ?> (1分钟),
+                                            <?= $this->escape($systemInfo['load']['5min']) ?> (5分钟),
                                             <?= $this->escape($systemInfo['load']['15min']) ?> (15分钟)
                                         <?php else: ?>
                                             未知
@@ -217,20 +227,20 @@
                         <div class="mb-3">
                             <label>内存使用</label>
                             <div class="progress">
-                                <?php 
+                                <?php
                                 $memoryPercent = 0;
                                 if (isset($systemInfo['memory']['total']) && $systemInfo['memory']['total'] > 0) {
                                     $memoryPercent = round(($systemInfo['memory']['used'] / $systemInfo['memory']['total']) * 100);
                                 }
                                 ?>
-                                <div class="progress-bar" role="progressbar" style="width: <?= $memoryPercent ?>%" 
+                                <div class="progress-bar" role="progressbar" style="width: <?= $memoryPercent ?>%"
                                      aria-valuenow="<?= $memoryPercent ?>" aria-valuemin="0" aria-valuemax="100">
                                     <?= $memoryPercent ?>%
                                 </div>
                             </div>
                             <small class="text-muted">
                                 <?php if (isset($systemInfo['memory'])): ?>
-                                    已用: <?= $this->formatSize($systemInfo['memory']['used'] ?? 0) ?> / 
+                                    已用: <?= $this->formatSize($systemInfo['memory']['used'] ?? 0) ?> /
                                     总计: <?= $this->formatSize($systemInfo['memory']['total'] ?? 0) ?>
                                 <?php endif; ?>
                             </small>
@@ -238,17 +248,17 @@
                         <div class="mb-3">
                             <label>磁盘使用</label>
                             <div class="progress">
-                                <?php 
+                                <?php
                                 $diskPercent = isset($systemInfo['disk']['percent']) ? $systemInfo['disk']['percent'] : 0;
                                 ?>
-                                <div class="progress-bar" role="progressbar" style="width: <?= $diskPercent ?>%" 
+                                <div class="progress-bar" role="progressbar" style="width: <?= $diskPercent ?>%"
                                      aria-valuenow="<?= $diskPercent ?>" aria-valuemin="0" aria-valuemax="100">
                                     <?= $diskPercent ?>%
                                 </div>
                             </div>
                             <small class="text-muted">
                                 <?php if (isset($systemInfo['disk'])): ?>
-                                    已用: <?= $this->formatSize($systemInfo['disk']['used'] ?? 0) ?> / 
+                                    已用: <?= $this->formatSize($systemInfo['disk']['used'] ?? 0) ?> /
                                     总计: <?= $this->formatSize($systemInfo['disk']['total'] ?? 0) ?>
                                 <?php endif; ?>
                             </small>
@@ -269,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('refreshBtn').addEventListener('click', function() {
         location.reload();
     });
-    
+
     // 导出按钮
     document.getElementById('exportBtn').addEventListener('click', function() {
         alert('导出功能正在开发中...');

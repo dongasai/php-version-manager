@@ -193,6 +193,19 @@ class VersionSwitcher
     {
         $versions = [];
 
+        // 添加系统PHP版本
+        $systemVersion = $this->getSystemVersion();
+        if ($systemVersion) {
+            $versions[] = [
+                'version' => $systemVersion,
+                'type' => 'system',
+                'path' => $this->getSystemPhpPath(),
+                'status' => 'active',
+                'is_current' => true,
+            ];
+        }
+
+        // 添加PVM管理的版本
         if (is_dir($this->versionsDir)) {
             $dirs = scandir($this->versionsDir);
             foreach ($dirs as $dir) {
@@ -201,13 +214,34 @@ class VersionSwitcher
                 }
 
                 $versionDir = $this->versionsDir . '/' . $dir;
-                if (is_dir($versionDir) && file_exists($versionDir . '/bin/php')) {
-                    $versions[] = $dir;
+                if (is_dir($versionDir)) {
+                    $phpBin = $versionDir . '/bin/php';
+                    $status = file_exists($phpBin) && is_executable($phpBin) ? 'installed' : 'incomplete';
+
+                    $versions[] = [
+                        'version' => $dir,
+                        'type' => 'pvm',
+                        'path' => $phpBin,
+                        'status' => $status,
+                        'is_current' => false,
+                    ];
                 }
             }
         }
 
         return $versions;
+    }
+
+    /**
+     * 获取系统PHP路径
+     *
+     * @return string
+     */
+    private function getSystemPhpPath()
+    {
+        $output = [];
+        exec('which php', $output);
+        return !empty($output) ? $output[0] : '/usr/bin/php';
     }
 
     /**

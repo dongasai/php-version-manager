@@ -7,7 +7,7 @@ use VersionManager\Core\Version\VersionDriverInterface;
 
 /**
  * 版本管理器类
- * 
+ *
  * 负责管理所有PHP版本
  */
 class VersionManager
@@ -18,35 +18,42 @@ class VersionManager
      * @var string
      */
     private $pvmRoot;
-    
+
     /**
      * 版本目录
      *
      * @var string
      */
     private $versionsDir;
-    
+
     /**
      * 版本切换器
      *
      * @var VersionSwitcher
      */
     private $versionSwitcher;
-    
+
     /**
      * 版本安装器
      *
      * @var VersionInstaller
      */
     private $versionInstaller;
-    
+
     /**
      * 版本删除器
      *
      * @var VersionRemover
      */
     private $versionRemover;
-    
+
+    /**
+     * 支持的版本管理器
+     *
+     * @var SupportedVersions
+     */
+    private $supportedVersions;
+
     /**
      * 构造函数
      */
@@ -57,17 +64,18 @@ class VersionManager
         $this->versionSwitcher = new VersionSwitcher();
         $this->versionInstaller = new VersionInstaller();
         $this->versionRemover = new VersionRemover();
-        
+        $this->supportedVersions = new SupportedVersions();
+
         // 确保目录存在
         if (!is_dir($this->pvmRoot)) {
             mkdir($this->pvmRoot, 0755, true);
         }
-        
+
         if (!is_dir($this->versionsDir)) {
             mkdir($this->versionsDir, 0755, true);
         }
     }
-    
+
     /**
      * 安装PHP版本
      *
@@ -79,7 +87,7 @@ class VersionManager
     {
         return $this->versionInstaller->install($version, $options);
     }
-    
+
     /**
      * 使用PHP版本
      *
@@ -91,7 +99,7 @@ class VersionManager
     {
         return $this->versionSwitcher->switchVersion($version, $global);
     }
-    
+
     /**
      * 删除PHP版本
      *
@@ -103,7 +111,7 @@ class VersionManager
     {
         return $this->versionRemover->remove($version, $options);
     }
-    
+
     /**
      * 获取已安装的PHP版本列表
      *
@@ -113,7 +121,7 @@ class VersionManager
     {
         return $this->versionSwitcher->getInstalledVersions();
     }
-    
+
     /**
      * 检查版本是否已安装
      *
@@ -124,7 +132,7 @@ class VersionManager
     {
         return $this->versionSwitcher->isVersionInstalled($version);
     }
-    
+
     /**
      * 获取当前PHP版本
      *
@@ -134,7 +142,7 @@ class VersionManager
     {
         return $this->versionSwitcher->getCurrentVersion();
     }
-    
+
     /**
      * 获取全局PHP版本
      *
@@ -144,7 +152,7 @@ class VersionManager
     {
         return $this->versionSwitcher->getGlobalVersion();
     }
-    
+
     /**
      * 获取项目PHP版本
      *
@@ -155,7 +163,7 @@ class VersionManager
     {
         return $this->versionSwitcher->getProjectVersion($dir);
     }
-    
+
     /**
      * 设置项目PHP版本
      *
@@ -166,5 +174,37 @@ class VersionManager
     public function setProjectVersion($version, $dir = null)
     {
         return $this->versionSwitcher->setProjectVersion($version, $dir);
+    }
+    /**
+     * 获取可用的PHP版本列表
+     *
+     * @return array 可用的PHP版本数组，包含version和release_date
+     */
+    public function getAvailableVersions()
+    {
+        $supported = $this->supportedVersions->getSupportedVersionsForCurrentSystem();
+        $versions = [];
+
+        foreach (array_keys($supported) as $version) {
+            $versions[] = [
+                'version' => $version,
+                'release_date' => $this->getReleaseDate($version)
+            ];
+        }
+
+        return $versions;
+    }
+
+    /**
+     * 获取PHP版本的发布日期
+     *
+     * @param string $version PHP版本号
+     * @return string 发布日期字符串
+     */
+    private function getReleaseDate($version)
+    {
+        // 这里可以添加更精确的发布日期查询逻辑
+        // 目前返回一个默认格式的日期
+        return date('Y-m-d', strtotime("-$version years"));
     }
 }

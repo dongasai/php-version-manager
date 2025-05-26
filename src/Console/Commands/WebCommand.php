@@ -89,6 +89,7 @@ class WebCommand implements CommandInterface
         $command = "php -S {$host}:{$port} -t {$docRoot} {$indexFile}";
 
         // 显示启动信息
+        $this->ui->info("正在启动:".date('Y-m-d H:i:s'));
         $this->ui->info("正在启动Web管理界面...");
         $this->ui->info("访问地址: http://{$host}:{$port}");
         $this->ui->info("按 Ctrl+C 停止服务器");

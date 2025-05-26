@@ -512,6 +512,67 @@ class ComposerManager
     }
 
     /**
+     * 获取当前PHP版本的Composer版本
+     *
+     * @param string $phpVersion PHP版本
+     * @return string|null
+     */
+    public function getComposerVersion($phpVersion)
+    {
+        // 获取默认配置
+        $defaultConfig = $this->getDefaultComposerConfig();
+
+        if ($defaultConfig && $defaultConfig['php_version'] === $phpVersion) {
+            return $defaultConfig['composer_version'];
+        }
+
+        // 如果没有默认配置，查找已安装的Composer版本
+        $installedComposers = $this->getInstalledComposers();
+
+        if (isset($installedComposers[$phpVersion]) && !empty($installedComposers[$phpVersion])) {
+            // 返回第一个找到的版本
+            return $installedComposers[$phpVersion][0];
+        }
+
+        return null;
+    }
+
+    /**
+     * 获取可用的Composer版本列表
+     *
+     * @return array
+     */
+    public function getAvailableComposerVersions()
+    {
+        return [
+            [
+                'version' => '2.6.5',
+                'name' => 'Composer 2.6.5',
+                'description' => '最新稳定版本',
+                'recommended' => true,
+            ],
+            [
+                'version' => '2.5.8',
+                'name' => 'Composer 2.5.8',
+                'description' => '稳定版本',
+                'recommended' => false,
+            ],
+            [
+                'version' => '2',
+                'name' => 'Composer 2.x',
+                'description' => '最新的2.x版本',
+                'recommended' => false,
+            ],
+            [
+                'version' => '1',
+                'name' => 'Composer 1.x',
+                'description' => '旧版本（不推荐）',
+                'recommended' => false,
+            ],
+        ];
+    }
+
+    /**
      * 执行Composer命令
      *
      * @param string $command Composer命令

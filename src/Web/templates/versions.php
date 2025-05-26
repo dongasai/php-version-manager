@@ -1,3 +1,17 @@
+<?php
+// 显示消息
+if (isset($_GET['message']) && isset($_GET['type'])) {
+    $message = htmlspecialchars($_GET['message']);
+    $type = htmlspecialchars($_GET['type']);
+    $alertClass = $type === 'success' ? 'alert-success' : ($type === 'warning' ? 'alert-warning' : 'alert-danger');
+    echo '<div class="alert ' . $alertClass . ' alert-dismissible fade show" role="alert">';
+    echo '<i class="bi bi-' . ($type === 'success' ? 'check-circle' : ($type === 'warning' ? 'exclamation-triangle' : 'x-circle')) . '-fill me-2"></i>';
+    echo $message;
+    echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+    echo '</div>';
+}
+?>
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">版本管理</h1>
     <div class="btn-toolbar mb-2 mb-md-0">

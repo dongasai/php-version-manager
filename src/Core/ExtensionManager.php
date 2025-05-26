@@ -7,7 +7,7 @@ use VersionManager\Core\Extension\ExtensionDriverInterface;
 
 /**
  * 扩展管理器类
- * 
+ *
  * 负责管理PHP扩展的安装、配置和删除
  */
 class ExtensionManager
@@ -18,21 +18,21 @@ class ExtensionManager
      * @var string
      */
     private $phpVersion;
-    
+
     /**
      * 发行版名称
      *
      * @var string
      */
     private $distro;
-    
+
     /**
      * 架构名称
      *
      * @var string
      */
     private $arch;
-    
+
     /**
      * 构造函数
      *
@@ -42,11 +42,11 @@ class ExtensionManager
     {
         $switcher = new VersionSwitcher();
         $this->phpVersion = $phpVersion ?: $switcher->getCurrentVersion();
-        
+
         // 检测系统信息
         $this->detectSystemInfo();
     }
-    
+
     /**
      * 检测系统信息
      */
@@ -54,7 +54,7 @@ class ExtensionManager
     {
         // 检测架构
         $this->arch = php_uname('m');
-        
+
         // 检测发行版
         $this->distro = '';
         if (file_exists('/etc/os-release')) {
@@ -64,7 +64,7 @@ class ExtensionManager
             }
         }
     }
-    
+
     /**
      * 获取扩展驱动
      *
@@ -75,7 +75,7 @@ class ExtensionManager
     {
         return ExtensionDriverFactory::getDriver($extension, $this->distro, $this->arch);
     }
-    
+
     /**
      * 获取已安装的扩展列表
      *
@@ -84,29 +84,55 @@ class ExtensionManager
     public function getInstalledExtensions()
     {
         $result = [];
-        
-        // 获取PHP配置目录
-        $config = new ExtensionConfig($this->phpVersion);
-        $configuredExtensions = $config->getConfiguredExtensions();
-        
-        // 获取PHP内置扩展
-        $builtinExtensions = $this->getBuiltinExtensions();
-        
-        // 合并扩展列表
-        $extensions = array_merge(array_keys($configuredExtensions), array_keys($builtinExtensions));
-        $extensions = array_unique($extensions);
-        
-        // 获取每个扩展的信息
-        foreach ($extensions as $extension) {
-            $driver = $this->getDriver($extension);
-            if ($driver->isInstalled($this->phpVersion)) {
-                $result[$extension] = $driver->getInfo($this->phpVersion);
+
+        try {
+            // 获取PHP内置扩展
+            $builtinExtensions = $this->getBuiltinExtensions();
+
+            // 获取PHP配置目录的扩展（仅对PVM管理的版本）
+            $configuredExtensions = [];
+            if ($this->isVersionManaged()) {
+                $config = new ExtensionConfig($this->phpVersion);
+                $configuredExtensions = $config->getConfiguredExtensions();
             }
+
+            // 合并扩展列表
+            $extensions = array_merge(array_keys($configuredExtensions), array_keys($builtinExtensions));
+            $extensions = array_unique($extensions);
+
+            // 获取每个扩展的信息
+            foreach ($extensions as $extension) {
+                if (isset($builtinExtensions[$extension])) {
+                    $result[$extension] = $builtinExtensions[$extension];
+                } elseif (isset($configuredExtensions[$extension])) {
+                    $result[$extension] = [
+                        'name' => $extension,
+                        'type' => 'external',
+                        'status' => 'enabled',
+                        'config' => $configuredExtensions[$extension],
+                    ];
+                }
+            }
+        } catch (\Exception $e) {
+            // 如果出错，返回空数组
+            error_log("Error getting installed extensions: " . $e->getMessage());
         }
-        
+
         return $result;
     }
-    
+
+    /**
+     * 检查当前PHP版本是否由PVM管理
+     *
+     * @return bool
+     */
+    private function isVersionManaged()
+    {
+        $pvmDir = getenv('HOME') . '/.pvm';
+        $versionDir = $pvmDir . '/versions/' . $this->phpVersion;
+        return is_dir($versionDir);
+    }
+
     /**
      * 获取可用的扩展列表
      *
@@ -115,12 +141,12 @@ class ExtensionManager
     public function getAvailableExtensions()
     {
         $result = [];
-        
+
         // 加载常用扩展配置
         $configFile = __DIR__ . '/../../config/extensions/common_extensions.php';
         if (file_exists($configFile)) {
             $extensions = require $configFile;
-            
+
             // 获取每个扩展的信息
             foreach ($extensions as $extension => $info) {
                 $driver = $this->getDriver($extension);
@@ -129,10 +155,10 @@ class ExtensionManager
                 }
             }
         }
-        
+
         return $result;
     }
-    
+
     /**
      * 获取PHP内置扩展
      *
@@ -141,26 +167,26 @@ class ExtensionManager
     private function getBuiltinExtensions()
     {
         $extensions = [];
-        
+
         // 使用 PHP 命令行获取内置扩展列表
         $output = [];
         $phpBin = $this->getPhpBinary();
         exec($phpBin . ' -m', $output);
-        
+
         $inExtensions = false;
         foreach ($output as $line) {
             $line = trim($line);
-            
+
             if ($line === '[PHP Modules]') {
                 $inExtensions = true;
                 continue;
             }
-            
+
             if ($line === '[Zend Modules]') {
                 $inExtensions = false;
                 continue;
             }
-            
+
             if ($inExtensions && !empty($line)) {
                 $extensions[$line] = [
                     'name' => $line,
@@ -170,10 +196,10 @@ class ExtensionManager
                 ];
             }
         }
-        
+
         return $extensions;
     }
-    
+
     /**
      * 获取PHP二进制文件路径
      *
@@ -185,15 +211,15 @@ class ExtensionManager
         $pvmDir = getenv('HOME') . '/.pvm';
         $versionDir = $pvmDir . '/versions/' . $this->phpVersion;
         $phpBin = $versionDir . '/bin/php';
-        
+
         if (file_exists($phpBin)) {
             return $phpBin;
         }
-        
+
         // 如果不存在，则使用系统 PHP
         return 'php';
     }
-    
+
     /**
      * 安装扩展
      *
@@ -207,7 +233,7 @@ class ExtensionManager
         $driver = $this->getDriver($extension);
         return $driver->install($this->phpVersion, $options);
     }
-    
+
     /**
      * 删除扩展
      *
@@ -221,7 +247,7 @@ class ExtensionManager
         $driver = $this->getDriver($extension);
         return $driver->remove($this->phpVersion, $options);
     }
-    
+
     /**
      * 启用扩展
      *
@@ -235,7 +261,7 @@ class ExtensionManager
         $driver = $this->getDriver($extension);
         return $driver->enable($this->phpVersion, $config);
     }
-    
+
     /**
      * 禁用扩展
      *
@@ -248,7 +274,7 @@ class ExtensionManager
         $driver = $this->getDriver($extension);
         return $driver->disable($this->phpVersion);
     }
-    
+
     /**
      * 配置扩展
      *
@@ -262,7 +288,7 @@ class ExtensionManager
         $driver = $this->getDriver($extension);
         return $driver->configure($this->phpVersion, $config);
     }
-    
+
     /**
      * 获取扩展信息
      *
@@ -274,7 +300,7 @@ class ExtensionManager
         $driver = $this->getDriver($extension);
         return $driver->getInfo($this->phpVersion);
     }
-    
+
     /**
      * 检查扩展是否已安装
      *

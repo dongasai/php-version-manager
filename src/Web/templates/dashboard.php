@@ -1,3 +1,17 @@
+<?php
+// 显示消息
+if (isset($_GET['message']) && isset($_GET['type'])) {
+    $message = htmlspecialchars($_GET['message']);
+    $type = htmlspecialchars($_GET['type']);
+    $alertClass = $type === 'success' ? 'alert-success' : ($type === 'warning' ? 'alert-warning' : 'alert-danger');
+    echo '<div class="alert ' . $alertClass . ' alert-dismissible fade show" role="alert">';
+    echo '<i class="bi bi-' . ($type === 'success' ? 'check-circle' : ($type === 'warning' ? 'exclamation-triangle' : 'x-circle')) . '-fill me-2"></i>';
+    echo $message;
+    echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+    echo '</div>';
+}
+?>
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">仪表盘</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
@@ -196,6 +210,18 @@
                                 <tr>
                                     <th>PHP版本</th>
                                     <td><?= $this->escape($currentVersion) ?></td>
+                                </tr>
+                                <tr>
+                                    <th>权限状态</th>
+                                    <td>
+                                        <?php if ($privilegeStatus === 'root'): ?>
+                                            <span class="badge bg-success"><i class="bi bi-shield-check"></i> 管理员权限</span>
+                                        <?php elseif ($privilegeStatus === 'sudo'): ?>
+                                            <span class="badge bg-warning"><i class="bi bi-shield-exclamation"></i> Sudo权限</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary"><i class="bi bi-shield-x"></i> 受限权限</span>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th>PHP-FPM状态</th>

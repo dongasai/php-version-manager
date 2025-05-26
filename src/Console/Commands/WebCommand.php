@@ -76,6 +76,9 @@ class WebCommand implements CommandInterface
             return 1;
         }
 
+        // 检查权限
+        $this->checkPrivileges();
+
         // 检查端口是否被占用
         $command = "lsof -i:{$port} | grep LISTEN";
         exec($command, $output, $returnCode);
@@ -127,6 +130,61 @@ class WebCommand implements CommandInterface
     }
 
     /**
+     * 检查权限
+     */
+    private function checkPrivileges()
+    {
+        $hasRoot = $this->hasAdminPrivileges();
+        $canSudo = $this->canUseSudo();
+
+        if ($hasRoot) {
+            $this->ui->success("✓ 检测到管理员权限，Web界面将具有完整的系统管理功能");
+        } elseif ($canSudo) {
+            $this->ui->warning("⚠ 检测到sudo权限，Web界面将具有部分系统管理功能");
+        } else {
+            $this->ui->warning("⚠ 未检测到管理员权限");
+            $this->ui->info("  某些功能（如重启PHP-FPM）将不可用");
+            $this->ui->info("  如需完整功能，请使用管理员权限运行：");
+            $this->ui->info("  sudo pvm web");
+            $this->ui->info("");
+        }
+    }
+
+    /**
+     * 检查是否有管理员权限
+     *
+     * @return bool
+     */
+    private function hasAdminPrivileges()
+    {
+        // 检查是否为root用户
+        if (function_exists('posix_getuid')) {
+            return posix_getuid() === 0;
+        }
+
+        // 备用检查方法
+        $output = [];
+        $returnCode = 0;
+        exec('id -u 2>/dev/null', $output, $returnCode);
+
+        return $returnCode === 0 && isset($output[0]) && trim($output[0]) === '0';
+    }
+
+    /**
+     * 检查是否可以执行sudo命令
+     *
+     * @return bool
+     */
+    private function canUseSudo()
+    {
+        $output = [];
+        $returnCode = 0;
+        exec('sudo -n true 2>/dev/null', $output, $returnCode);
+
+        return $returnCode === 0;
+    }
+
+    /**
      * 显示帮助信息
      */
     private function showHelp()
@@ -141,6 +199,7 @@ class WebCommand implements CommandInterface
         $this->ui->info("示例:");
         $this->ui->info("  pvm web");
         $this->ui->info("  pvm web --host=0.0.0.0 --port=8080");
+        $this->ui->info("  sudo pvm web  # 以管理员权限运行，获得完整功能");
     }
 
     /**

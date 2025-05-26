@@ -105,10 +105,10 @@ return [
         'source' => 'https://getcomposer.org/download',
 
         // 需要镜像的版本
-        'versions' => ['2.2.21', '2.3.10', '2.4.4', '2.5.8', '2.6.5'],
+        'versions' => ['2.2.21', '2.3.10', '2.4.4', '2.5.8', '2.6.5', '2.7.9', '2.8.9'],
 
         // 文件名模式
-        'pattern' => 'composer-{version}.phar',
+        'pattern' => '{version}/composer.phar',
 
         // 是否启用此镜像
         'enabled' => true,

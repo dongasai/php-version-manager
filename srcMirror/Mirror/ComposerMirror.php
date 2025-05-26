@@ -94,18 +94,98 @@ class ComposerMirror
         // 如果文件不存在，则下载
         if (!file_exists($targetFile)) {
             echo "  下载 Composer $version: $sourceUrl\n";
+
+            // 设置下载选项
+            $downloadOptions = [
+                'min_size' => 1024 * 100,     // Composer 至少 100KB
+                'max_retries' => 3,
+                'timeout' => 300,
+                'verify_content' => true,
+                'expected_type' => 'phar'
+            ];
+
             try {
-                FileUtils::downloadFile($sourceUrl, $targetFile);
-                echo "  Composer $version 下载完成\n";
-                return true;
+                $success = FileUtils::downloadFile($sourceUrl, $targetFile, $downloadOptions);
+                if ($success) {
+                    // 额外验证 Composer PHAR 文件
+                    if ($this->validateComposerPhar($targetFile)) {
+                        echo "  Composer $version 下载并验证完成\n";
+                        return true;
+                    } else {
+                        echo "  错误: Composer $version PHAR 文件验证失败\n";
+                        if (file_exists($targetFile)) {
+                            unlink($targetFile);
+                        }
+                        return false;
+                    }
+                } else {
+                    echo "  错误: Composer $version 下载失败\n";
+                    return false;
+                }
             } catch (Exception $e) {
                 echo "  错误: Composer $version 下载失败: " . $e->getMessage() . "\n";
                 return false;
             }
         } else {
-            echo "  Composer $version 已存在\n";
-            return true;
+            // 验证已存在的文件
+            if ($this->validateExistingFile($targetFile, $version)) {
+                echo "  Composer $version 已存在且验证通过\n";
+                return true;
+            } else {
+                echo "  Composer $version 文件损坏，重新下载\n";
+                unlink($targetFile);
+                return $this->downloadVersion($source, $pattern, $dataDir, $version);
+            }
         }
+    }
+
+    /**
+     * 验证 Composer PHAR 文件
+     *
+     * @param string $filePath 文件路径
+     * @return bool 是否验证通过
+     */
+    private function validateComposerPhar($filePath)
+    {
+        // 检查文件是否可以作为 PHAR 执行
+        try {
+            // 尝试读取 PHAR 文件信息
+            $phar = new \Phar($filePath);
+            $metadata = $phar->getMetadata();
+
+            // 检查是否包含 Composer 的关键文件
+            if (!isset($phar['composer.json']) && !isset($phar['src/Composer/Composer.php'])) {
+                echo "  验证失败: PHAR 文件不包含 Composer 核心文件\n";
+                return false;
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            echo "  验证失败: PHAR 文件格式错误: " . $e->getMessage() . "\n";
+            return false;
+        } catch (\Throwable $e) {
+            echo "  验证失败: PHAR 文件严重错误: " . $e->getMessage() . "\n";
+            return false;
+        }
+    }
+
+    /**
+     * 验证已存在的文件
+     *
+     * @param string $filePath 文件路径
+     * @param string $version 版本号
+     * @return bool 是否验证通过
+     */
+    private function validateExistingFile($filePath, $version)
+    {
+        // 检查文件大小
+        $fileSize = filesize($filePath);
+        if ($fileSize < 1024 * 100) { // 小于 100KB
+            return false;
+        }
+
+        // 检查文件是否为 PHAR 格式
+        return $this->validateComposerPhar($filePath);
     }
 
     /**

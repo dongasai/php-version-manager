@@ -125,18 +125,149 @@ class PeclMirror
         // 如果文件不存在，则下载
         if (!file_exists($targetFile)) {
             echo "  下载 $extension $version: $sourceUrl\n";
+
+            // 设置下载选项
+            $downloadOptions = [
+                'min_size' => 1024 * 10,       // PECL 扩展至少 10KB
+                'max_retries' => 3,
+                'timeout' => 300,
+                'verify_content' => true,
+                'expected_type' => 'tgz'
+            ];
+
             try {
-                FileUtils::downloadFile($sourceUrl, $targetFile);
-                echo "  $extension $version 下载完成\n";
-                return true;
+                $success = FileUtils::downloadFile($sourceUrl, $targetFile, $downloadOptions);
+                if ($success) {
+                    // 额外验证 PECL 扩展包
+                    if ($this->validatePeclPackage($targetFile, $extension, $version)) {
+                        echo "  $extension $version 下载并验证完成\n";
+                        return true;
+                    } else {
+                        echo "  错误: $extension $version 扩展包验证失败\n";
+                        if (file_exists($targetFile)) {
+                            unlink($targetFile);
+                        }
+                        return false;
+                    }
+                } else {
+                    echo "  错误: $extension $version 下载失败\n";
+                    return false;
+                }
             } catch (Exception $e) {
                 echo "  错误: $extension $version 下载失败: " . $e->getMessage() . "\n";
                 return false;
             }
         } else {
-            echo "  $extension $version 已存在\n";
-            return true;
+            // 验证已存在的文件
+            if ($this->validateExistingFile($targetFile, $extension, $version)) {
+                echo "  $extension $version 已存在且验证通过\n";
+                return true;
+            } else {
+                echo "  $extension $version 文件损坏，重新下载\n";
+                unlink($targetFile);
+                return $this->downloadExtensionVersion($source, $pattern, $dataDir, $extension, $version);
+            }
         }
+    }
+
+    /**
+     * 验证 PECL 扩展包
+     *
+     * @param string $filePath 文件路径
+     * @param string $extension 扩展名
+     * @param string $version 版本号
+     * @return bool 是否验证通过
+     */
+    private function validatePeclPackage($filePath, $extension, $version)
+    {
+        // 检查是否为有效的 tgz 文件
+        if (!$this->isValidTgz($filePath)) {
+            return false;
+        }
+
+        // 尝试列出压缩包内容
+        try {
+            $output = [];
+            $returnCode = 0;
+            exec("tar -tzf " . escapeshellarg($filePath) . " 2>/dev/null | head -20", $output, $returnCode);
+
+            if ($returnCode !== 0) {
+                echo "  验证失败: 无法读取 tgz 文件内容\n";
+                return false;
+            }
+
+            // 检查是否包含扩展的关键文件
+            $hasConfigFile = false;
+            $hasSourceFiles = false;
+            $expectedDir = "$extension-$version/";
+
+            foreach ($output as $line) {
+                if (strpos($line, $expectedDir) === 0) {
+                    if (strpos($line, 'config.m4') !== false || strpos($line, 'config.w32') !== false) {
+                        $hasConfigFile = true;
+                    }
+                    if (strpos($line, '.c') !== false || strpos($line, '.h') !== false) {
+                        $hasSourceFiles = true;
+                    }
+                }
+            }
+
+            if (!$hasConfigFile) {
+                echo "  验证失败: 扩展包不包含配置文件 (config.m4 或 config.w32)\n";
+                return false;
+            }
+
+            if (!$hasSourceFiles) {
+                echo "  验证失败: 扩展包不包含源代码文件\n";
+                return false;
+            }
+
+            return true;
+        } catch (Exception $e) {
+            echo "  验证失败: " . $e->getMessage() . "\n";
+            return false;
+        }
+    }
+
+    /**
+     * 检查是否为有效的 tgz 文件
+     *
+     * @param string $filePath 文件路径
+     * @return bool 是否有效
+     */
+    private function isValidTgz($filePath)
+    {
+        // 检查文件头
+        $handle = fopen($filePath, 'rb');
+        if (!$handle) {
+            return false;
+        }
+
+        $header = fread($handle, 3);
+        fclose($handle);
+
+        // Gzip 文件的魔数是 1f 8b
+        return substr($header, 0, 2) === "\x1f\x8b";
+    }
+
+    /**
+     * 验证已存在的文件
+     *
+     * @param string $filePath 文件路径
+     * @param string $extension 扩展名
+     * @param string $version 版本号
+     * @return bool 是否验证通过
+     */
+    private function validateExistingFile($filePath, $extension, $version)
+    {
+        // 检查文件大小
+        $fileSize = filesize($filePath);
+        if ($fileSize < 1024 * 10) { // 小于 10KB
+            return false;
+        }
+
+        // 检查文件格式
+        return $this->validatePeclPackage($filePath, $extension, $version);
     }
 
     /**

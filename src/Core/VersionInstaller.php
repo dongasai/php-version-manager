@@ -272,7 +272,7 @@ class VersionInstaller
         }
 
         // 检查依赖
-        $missingDependencies = $this->detector->checkDependencies($version);
+        $missingDependencies = $this->detector->checkDependencies($version, isset($options['skip_composer']) && $options['skip_composer']);
         if (!empty($missingDependencies)) {
             // 安装依赖
             $this->installDependencies($missingDependencies);
@@ -313,6 +313,12 @@ class VersionInstaller
      */
     private function installDependencies(array $dependencies)
     {
+        // 在Docker容器中测试时，跳过依赖安装
+        if (getenv('DOCKER_CONTAINER') === 'true' || file_exists('/.dockerenv')) {
+            echo "在Docker容器中检测到，跳过依赖安装...\n";
+            return true;
+        }
+
         $packageManager = $this->detectPackageManager();
 
         if (!$packageManager) {

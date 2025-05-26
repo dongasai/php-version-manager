@@ -95,6 +95,46 @@ class InstallCommand implements CommandInterface
             return 0;
         }
 
+        // 检查环境
+        $environmentChecker = new \VersionManager\Core\System\EnvironmentChecker();
+        $checkResult = $environmentChecker->check(false, isset($options['skip_composer']) && $options['skip_composer']);
+
+        if (!$checkResult['is_ok']) {
+            echo "错误: PVM运行环境不满足要求" . PHP_EOL . PHP_EOL;
+            echo $environmentChecker->getDetailedInfo(isset($options['skip_composer']) && $options['skip_composer']) . PHP_EOL;
+
+            // 如果指定了--skip-composer选项，则忽略Composer检查
+            if (isset($options['skip_composer']) && $options['skip_composer']) {
+                echo "已跳过Composer检查，继续安装..." . PHP_EOL;
+            } else {
+                // 询问是否修复环境问题
+                echo "是否立即修复环境问题？(y/n) ";
+                $answer = trim(fgets(STDIN));
+                if (strtolower($answer) === 'y') {
+                    echo "正在尝试修复环境问题..." . PHP_EOL;
+
+                    // 尝试修复环境问题
+                    $initCommand = new InitCommand();
+                    $initArgs = ['--fix'];
+
+                    // 如果指定了--skip-composer选项，则传递给InitCommand
+                    if (isset($options['skip_composer']) && $options['skip_composer']) {
+                        $initArgs[] = '--skip-composer';
+                    }
+
+                    $result = $initCommand->execute($initArgs);
+
+                    if ($result !== 0) {
+                        echo "错误: 修复环境问题失败，请手动运行 'pvm init --fix" . (isset($options['skip_composer']) && $options['skip_composer'] ? " --skip-composer" : "") . "' 命令" . PHP_EOL;
+                        return 1;
+                    }
+                } else {
+                    echo "安装已取消" . PHP_EOL;
+                    return 1;
+                }
+            }
+        }
+
         try {
             // 安装PHP版本
             $this->installer->install($version, $options);
@@ -123,7 +163,8 @@ class InstallCommand implements CommandInterface
             'thread_count' => 4,
             'verify_signature' => true,
             'yes' => false,  // 自动确认选项
-            'configure_options' => []
+            'configure_options' => [],
+            'skip_composer' => false  // 跳过Composer检查
         ];
 
         foreach ($args as $arg) {
@@ -143,6 +184,8 @@ class InstallCommand implements CommandInterface
                     $options['verify_signature'] = false;
                 } elseif ($arg === '--yes') {
                     $options['yes'] = true;
+                } elseif ($arg === '--skip-composer') {
+                    $options['skip_composer'] = true;
                 } elseif (strpos($arg, '--threads=') === 0) {
                     $threadCount = (int) substr($arg, 10);
                     if ($threadCount > 0) {
@@ -286,6 +329,7 @@ class InstallCommand implements CommandInterface
   --no-cache, -n      不使用缓存
   --no-multi-thread, -m 不使用多线程下载
   --no-verify, -v     不验证签名
+  --skip-composer     跳过Composer检查
   --threads=<数量>    设置下载线程数量，默认为4
   --with-*            传递给configure的选项
   --enable-*          传递给configure的选项
@@ -299,6 +343,7 @@ class InstallCommand implements CommandInterface
   pvm install 8.1.27 --threads=8
   pvm install -y 7.1
   pvm install 7.1 -y
+  pvm install 7.1 --skip-composer
 USAGE;
     }
 }

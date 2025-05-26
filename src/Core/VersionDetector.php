@@ -259,9 +259,10 @@ class VersionDetector
      * 检查系统是否满足指定PHP版本的依赖要求
      *
      * @param string $version PHP版本号
+     * @param bool $skipComposer 是否跳过Composer检查
      * @return array 返回缺失的依赖列表
      */
-    public function checkDependencies($version)
+    public function checkDependencies($version, $skipComposer = false)
     {
         $dependencies = $this->getVersionDependencies($version);
         $missingDependencies = [];

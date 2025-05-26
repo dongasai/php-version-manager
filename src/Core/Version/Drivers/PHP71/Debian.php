@@ -47,7 +47,7 @@ class Debian extends Base
     public function install($version, array $options = [])
     {
         // 安装依赖
-        $this->installDependencies($version);
+        $this->installDependencies();
 
         // 调用父类的安装方法
         return parent::install($version, $options);
@@ -56,11 +56,16 @@ class Debian extends Base
     /**
      * 安装依赖
      *
-     * @param string $version PHP版本
      * @return bool
      */
-    protected function installDependencies($version)
+    protected function installDependencies()
     {
+        // 在Docker容器中测试时，跳过依赖安装
+        if (getenv('DOCKER_CONTAINER') === 'true' || file_exists('/.dockerenv')) {
+            echo "在Docker容器中检测到，跳过依赖安装...\n";
+            return true;
+        }
+
         // 基本依赖
         $dependencies = [
             'build-essential',

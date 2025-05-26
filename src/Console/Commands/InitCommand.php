@@ -41,13 +41,13 @@ class InitCommand implements CommandInterface
         echo "正在初始化PHP版本管理器(PVM)环境...\n\n";
 
         // 检查基础环境
-        $checkResult = $this->environmentChecker->check();
+        $checkResult = $this->environmentChecker->check(false, $options['skip_composer']);
 
         if ($checkResult['is_ok']) {
             echo "✅ 基础PHP环境检查通过\n";
         } else {
             echo "❌ 基础PHP环境检查失败\n\n";
-            echo $this->environmentChecker->getDetailedInfo() . "\n";
+            echo $this->environmentChecker->getDetailedInfo($options['skip_composer']) . "\n";
 
             // 如果指定了--fix选项，尝试修复环境问题
             if (isset($options['fix']) && $options['fix']) {
@@ -90,7 +90,8 @@ class InitCommand implements CommandInterface
             'fix' => false,
             'mirror' => null,
             'prefix' => getenv('HOME') . '/.pvm',
-            'force' => false
+            'force' => false,
+            'skip_composer' => false
         ];
 
         foreach ($args as $i => $arg) {
@@ -98,6 +99,8 @@ class InitCommand implements CommandInterface
                 $options['fix'] = true;
             } elseif ($arg === '--force') {
                 $options['force'] = true;
+            } elseif ($arg === '--skip-composer') {
+                $options['skip_composer'] = true;
             } elseif (strpos($arg, '--mirror=') === 0) {
                 $options['mirror'] = substr($arg, 9);
             } elseif (strpos($arg, '--prefix=') === 0) {
@@ -575,12 +578,14 @@ class InitCommand implements CommandInterface
   --mirror=<镜像地址>   设置默认镜像地址
   --prefix=<安装路径>   设置PVM安装路径，默认为~/.pvm
   --force              强制重新初始化，即使环境已经初始化
+  --skip-composer      跳过Composer检查
 
 示例:
   pvm init
   pvm init --fix
   pvm init --mirror=https://mirrors.aliyun.com/php
   pvm init --prefix=/opt/pvm
+  pvm init --skip-composer
 USAGE;
     }
 }

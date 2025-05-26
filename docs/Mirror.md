@@ -311,13 +311,54 @@ chmod +x bin/sync.sh
 
 ### 3. 同步镜像内容
 
+#### 3.1 基本同步
+
 ```bash
 # 同步所有镜像内容
 ./bin/pvm-mirror sync
 
-# 或者使用 sync.sh 脚本
+# 或者使用 sync.sh 脚本（同步所有内容）
 ./bin/sync.sh
 ```
+
+#### 3.2 指定类型同步
+
+```bash
+# 同步指定类型的镜像内容
+./bin/pvm-mirror sync composer           # 同步所有 Composer 版本
+./bin/pvm-mirror sync php                # 同步所有 PHP 版本
+./bin/pvm-mirror sync pecl               # 同步所有 PECL 扩展
+./bin/pvm-mirror sync extensions         # 同步所有特定扩展
+```
+
+#### 3.3 指定版本同步
+
+```bash
+# Composer 版本同步
+./bin/pvm-mirror sync composer 2.6.5     # 同步指定 Composer 版本
+./bin/pvm-mirror sync composer 1.22      # 同步指定版本（即使不在配置列表中）
+
+# PHP 版本同步
+./bin/pvm-mirror sync php 8.3            # 同步指定 PHP 主版本（如 8.3.x 系列）
+./bin/pvm-mirror sync php 7.4            # 同步指定 PHP 主版本（如 7.4.x 系列）
+
+# PECL 扩展同步
+./bin/pvm-mirror sync pecl redis         # 同步指定 PECL 扩展
+./bin/pvm-mirror sync pecl xdebug        # 同步指定 PECL 扩展
+
+# GitHub 扩展同步
+./bin/pvm-mirror sync extensions redis   # 同步指定 GitHub 扩展
+./bin/pvm-mirror sync ext swoole         # 使用简写形式
+```
+
+#### 3.4 同步功能特性
+
+- **向后兼容**: 无参数时同步所有内容，保持原有行为
+- **灵活指定**: 支持按类型或版本进行精确同步
+- **错误处理**: 提供详细的错误信息和使用提示
+- **版本验证**: 对于 PHP 和 PECL，会验证版本是否在配置列表中
+- **警告提示**: 对于不在配置列表中的版本，会显示警告但仍尝试下载
+- **进度显示**: 显示下载进度和完成状态
 
 ### 4. 启动 Web 服务
 

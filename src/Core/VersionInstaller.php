@@ -214,10 +214,15 @@ class VersionInstaller
 
             // 如果没有设置yes选项，则询问用户是否继续
             if (!isset($options['yes']) || !$options['yes']) {
-                echo "\033[33m是否继续安装? (y/n) \033[0m";
-                $answer = trim(fgets(STDIN));
-                if (strtolower($answer) !== 'y') {
-                    throw new Exception("用户取消安装");
+                // 检查是否在Web环境中运行
+                if ($this->isWebEnvironment()) {
+                    echo "\033[33m在Web环境中自动确认安装\033[0m\n";
+                } else {
+                    echo "\033[33m是否继续安装? (y/n) \033[0m";
+                    $answer = trim(fgets(STDIN));
+                    if (strtolower($answer) !== 'y') {
+                        throw new Exception("用户取消安装");
+                    }
                 }
             } else {
                 echo "\033[33m自动确认安装\033[0m\n";
@@ -247,10 +252,16 @@ class VersionInstaller
 
             // 如果没有设置yes选项，则询问用户是否安装最新版本
             if (!isset($options['yes']) || !$options['yes']) {
-                echo "\033[33m是否安装最新版本? (y/n) \033[0m";
-                $answer = trim(fgets(STDIN));
-                if (strtolower($answer) === 'y') {
+                // 检查是否在Web环境中运行
+                if ($this->isWebEnvironment()) {
+                    echo "\033[33m在Web环境中自动确认安装最新版本 {$securityUpdate['latest_version']}\033[0m\n";
                     return $this->install($securityUpdate['latest_version'], $options);
+                } else {
+                    echo "\033[33m是否安装最新版本? (y/n) \033[0m";
+                    $answer = trim(fgets(STDIN));
+                    if (strtolower($answer) === 'y') {
+                        return $this->install($securityUpdate['latest_version'], $options);
+                    }
                 }
             } else {
                 echo "\033[33m自动确认安装最新版本 {$securityUpdate['latest_version']}\033[0m\n";
@@ -261,10 +272,15 @@ class VersionInstaller
 
             // 如果没有设置yes选项，则询问用户是否继续
             if (!isset($options['yes']) || !$options['yes']) {
-                echo "\033[33m是否继续安装? (y/n) \033[0m";
-                $answer = trim(fgets(STDIN));
-                if (strtolower($answer) !== 'y') {
-                    throw new Exception("用户取消安装");
+                // 检查是否在Web环境中运行
+                if ($this->isWebEnvironment()) {
+                    echo "\033[33m在Web环境中自动确认安装\033[0m\n";
+                } else {
+                    echo "\033[33m是否继续安装? (y/n) \033[0m";
+                    $answer = trim(fgets(STDIN));
+                    if (strtolower($answer) !== 'y') {
+                        throw new Exception("用户取消安装");
+                    }
                 }
             } else {
                 echo "\033[33m自动确认安装\033[0m\n";
@@ -302,6 +318,20 @@ class VersionInstaller
     {
         $versionDir = $this->versionsDir . '/' . $version;
         return is_dir($versionDir) && file_exists($versionDir . '/bin/php');
+    }
+
+    /**
+     * 检查是否在Web环境中运行
+     *
+     * @return bool
+     */
+    private function isWebEnvironment()
+    {
+        return isset($_SERVER['HTTP_HOST']) ||
+               isset($_SERVER['REQUEST_METHOD']) ||
+               php_sapi_name() === 'apache2handler' ||
+               php_sapi_name() === 'fpm-fcgi' ||
+               !defined('STDIN');
     }
 
     /**

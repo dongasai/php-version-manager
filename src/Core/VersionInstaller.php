@@ -366,111 +366,29 @@ class VersionInstaller
             ''                // 不使用权限提升
         ];
 
-        // 构建基本命令
-        $baseCommand = '';
+        // 根据包管理器分别执行命令
+        $success = false;
+        $lastError = '';
+
         switch ($packageManager) {
             case 'apt':
-                $baseCommand = 'apt-get update && apt-get install -y ' . implode(' ', $dependencies);
+                $success = $this->executeAptCommands($dependencies, $sudoCommands);
                 break;
             case 'yum':
-                $baseCommand = 'yum install -y ' . implode(' ', $dependencies);
+                $success = $this->executeYumCommands($dependencies, $sudoCommands);
                 break;
             case 'dnf':
-                $baseCommand = 'dnf install -y ' . implode(' ', $dependencies);
+                $success = $this->executeDnfCommands($dependencies, $sudoCommands);
                 break;
             case 'apk':
-                $baseCommand = 'apk add ' . implode(' ', $dependencies);
+                $success = $this->executeApkCommands($dependencies, $sudoCommands);
                 break;
             default:
                 throw new Exception("不支持的包管理器: {$packageManager}");
         }
 
-        // 尝试不同的权限提升方式
-        $success = false;
-        $lastError = '';
-
-        foreach ($sudoCommands as $sudoCmd) {
-            $command = $sudoCmd . $baseCommand;
-            // 如果是su命令，需要添加结束引号
-            if ($sudoCmd === 'su -c "') {
-                $command .= '"';
-            }
-
-            echo "\033[33m尝试执行: {$command}\033[0m\n";
-
-            try {
-                $result = $this->executeCommand($command);
-                $success = true;
-                echo "\n\033[32m依赖安装成功\033[0m\n";
-                break;
-            } catch (Exception $e) {
-                $lastError = $e->getMessage();
-                // 如果错误为空，说明命令执行成功但没有输出错误信息
-                if (trim($lastError) === '') {
-                    $success = true;
-                    echo "\n\033[32m依赖已安装或不需要安装\033[0m\n";
-                    break;
-                }
-                echo "\033[33m执行失败: {$lastError}\033[0m\n";
-                echo "\033[33m尝试下一种权限提升方式...\033[0m\n";
-                continue;
-            }
-        }
-
         if (!$success) {
-            // 如果所有方式都失败，尝试使用临时脚本
-            echo "\033[33m所有直接执行方式均失败，尝试使用临时脚本...\033[0m\n";
-
-            // 创建临时脚本
-            $scriptPath = $this->tempDir . '/install_deps_' . time() . '.sh';
-            $scriptContent = "#!/bin/bash\n" . $baseCommand . "\n";
-            file_put_contents($scriptPath, $scriptContent);
-            chmod($scriptPath, 0755);
-
-            try {
-                // 尝试使用sudo执行脚本
-                $command = "sudo {$scriptPath}";
-                echo "\033[33m尝试执行: {$command}\033[0m\n";
-                $result = $this->executeCommand($command);
-                $success = true;
-                echo "\n\033[32m依赖安装成功\033[0m\n";
-            } catch (Exception $e) {
-                $lastError = $e->getMessage();
-                // 如果错误为空，说明命令执行成功但没有输出错误信息
-                if (trim($lastError) === '') {
-                    $success = true;
-                    echo "\n\033[32m依赖已安装或不需要安装\033[0m\n";
-                } else {
-                    echo "\033[33m脚本执行失败: {$lastError}\033[0m\n";
-
-                    // 尝试使用su执行脚本
-                    try {
-                        $command = "su -c \"{$scriptPath}\"";
-                        echo "\033[33m尝试执行: {$command}\033[0m\n";
-                        $result = $this->executeCommand($command);
-                        $success = true;
-                        echo "\n\033[32m依赖安装成功\033[0m\n";
-                    } catch (Exception $e) {
-                        $lastError = $e->getMessage();
-                        // 如果错误为空，说明命令执行成功但没有输出错误信息
-                        if (trim($lastError) === '') {
-                            $success = true;
-                            echo "\n\033[32m依赖已安装或不需要安装\033[0m\n";
-                        } else {
-                            echo "\033[33m脚本执行失败: {$lastError}\033[0m\n";
-                        }
-                    }
-                }
-            }
-
-            // 清理临时脚本
-            if (file_exists($scriptPath)) {
-                unlink($scriptPath);
-            }
-        }
-
-        if (!$success) {
-            throw new Exception("依赖安装失败: " . $lastError);
+            throw new Exception("依赖安装失败：所有安装方式都失败了");
         }
 
         return true;
@@ -576,6 +494,174 @@ class VersionInstaller
         } else {
             throw new Exception("无法启动进程");
         }
+    }
+
+    /**
+     * 执行APT命令安装依赖
+     *
+     * @param array $dependencies 依赖列表
+     * @param array $sudoCommands sudo命令列表
+     * @return bool 是否安装成功
+     */
+    private function executeAptCommands($dependencies, $sudoCommands)
+    {
+        // 先执行 apt-get update
+        echo "\033[33m更新软件包列表...\033[0m\n";
+        foreach ($sudoCommands as $sudoCmd) {
+            $updateCommand = $sudoCmd . 'apt-get update';
+            if ($sudoCmd === 'su -c "') {
+                $updateCommand .= '"';
+            }
+
+            echo "\033[33m尝试执行: {$updateCommand}\033[0m\n";
+
+            try {
+                $this->executeCommand($updateCommand);
+                echo "\033[32m软件包列表更新成功\033[0m\n";
+                break;
+            } catch (Exception $e) {
+                echo "\033[33m更新失败: {$e->getMessage()}\033[0m\n";
+                echo "\033[33m尝试下一种权限提升方式...\033[0m\n";
+                continue;
+            }
+        }
+
+        // 再执行 apt-get install
+        echo "\033[33m安装依赖包...\033[0m\n";
+        foreach ($sudoCommands as $sudoCmd) {
+            $installCommand = $sudoCmd . 'apt-get install -y ' . implode(' ', $dependencies);
+            if ($sudoCmd === 'su -c "') {
+                $installCommand .= '"';
+            }
+
+            echo "\033[33m尝试执行: {$installCommand}\033[0m\n";
+
+            try {
+                $this->executeCommand($installCommand);
+                echo "\033[32m依赖安装成功\033[0m\n";
+                return true;
+            } catch (Exception $e) {
+                $lastError = $e->getMessage();
+                // 如果错误为空，说明命令执行成功但没有输出错误信息
+                if (trim($lastError) === '') {
+                    echo "\033[32m依赖已安装或不需要安装\033[0m\n";
+                    return true;
+                }
+                echo "\033[33m安装失败: {$lastError}\033[0m\n";
+                echo "\033[33m尝试下一种权限提升方式...\033[0m\n";
+                continue;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 执行YUM命令安装依赖
+     *
+     * @param array $dependencies 依赖列表
+     * @param array $sudoCommands sudo命令列表
+     * @return bool 是否安装成功
+     */
+    private function executeYumCommands($dependencies, $sudoCommands)
+    {
+        foreach ($sudoCommands as $sudoCmd) {
+            $command = $sudoCmd . 'yum install -y ' . implode(' ', $dependencies);
+            if ($sudoCmd === 'su -c "') {
+                $command .= '"';
+            }
+
+            echo "\033[33m尝试执行: {$command}\033[0m\n";
+
+            try {
+                $this->executeCommand($command);
+                echo "\033[32m依赖安装成功\033[0m\n";
+                return true;
+            } catch (Exception $e) {
+                $lastError = $e->getMessage();
+                if (trim($lastError) === '') {
+                    echo "\033[32m依赖已安装或不需要安装\033[0m\n";
+                    return true;
+                }
+                echo "\033[33m安装失败: {$lastError}\033[0m\n";
+                echo "\033[33m尝试下一种权限提升方式...\033[0m\n";
+                continue;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 执行DNF命令安装依赖
+     *
+     * @param array $dependencies 依赖列表
+     * @param array $sudoCommands sudo命令列表
+     * @return bool 是否安装成功
+     */
+    private function executeDnfCommands($dependencies, $sudoCommands)
+    {
+        foreach ($sudoCommands as $sudoCmd) {
+            $command = $sudoCmd . 'dnf install -y ' . implode(' ', $dependencies);
+            if ($sudoCmd === 'su -c "') {
+                $command .= '"';
+            }
+
+            echo "\033[33m尝试执行: {$command}\033[0m\n";
+
+            try {
+                $this->executeCommand($command);
+                echo "\033[32m依赖安装成功\033[0m\n";
+                return true;
+            } catch (Exception $e) {
+                $lastError = $e->getMessage();
+                if (trim($lastError) === '') {
+                    echo "\033[32m依赖已安装或不需要安装\033[0m\n";
+                    return true;
+                }
+                echo "\033[33m安装失败: {$lastError}\033[0m\n";
+                echo "\033[33m尝试下一种权限提升方式...\033[0m\n";
+                continue;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 执行APK命令安装依赖
+     *
+     * @param array $dependencies 依赖列表
+     * @param array $sudoCommands sudo命令列表
+     * @return bool 是否安装成功
+     */
+    private function executeApkCommands($dependencies, $sudoCommands)
+    {
+        foreach ($sudoCommands as $sudoCmd) {
+            $command = $sudoCmd . 'apk add ' . implode(' ', $dependencies);
+            if ($sudoCmd === 'su -c "') {
+                $command .= '"';
+            }
+
+            echo "\033[33m尝试执行: {$command}\033[0m\n";
+
+            try {
+                $this->executeCommand($command);
+                echo "\033[32m依赖安装成功\033[0m\n";
+                return true;
+            } catch (Exception $e) {
+                $lastError = $e->getMessage();
+                if (trim($lastError) === '') {
+                    echo "\033[32m依赖已安装或不需要安装\033[0m\n";
+                    return true;
+                }
+                echo "\033[33m安装失败: {$lastError}\033[0m\n";
+                echo "\033[33m尝试下一种权限提升方式...\033[0m\n";
+                continue;
+            }
+        }
+
+        return false;
     }
 
     /**

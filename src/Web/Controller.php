@@ -8,6 +8,7 @@ use VersionManager\Core\ComposerManager;
 use VersionManager\Core\System\MonitorManager;
 use VersionManager\Core\Config\PhpConfig;
 use VersionManager\Core\Config\MirrorConfig;
+use VersionManager\Core\Config\PvmMirrorConfig;
 use VersionManager\Core\VersionSwitcher;
 
 /**
@@ -67,6 +68,13 @@ class Controller
     private $mirrorConfig;
 
     /**
+     * PVM镜像配置
+     *
+     * @var PvmMirrorConfig
+     */
+    private $pvmMirrorConfig;
+
+    /**
      * 构造函数
      */
     public function __construct()
@@ -77,6 +85,7 @@ class Controller
         $this->monitorManager = new MonitorManager();
         $this->versionSwitcher = new VersionSwitcher();
         $this->mirrorConfig = new MirrorConfig();
+        $this->pvmMirrorConfig = new PvmMirrorConfig();
         $this->view = new View();
     }
 
@@ -158,6 +167,9 @@ class Controller
             case 'mirrors':
                 return $this->showMirrors();
 
+            case 'pvm-mirror':
+                return $this->showPvmMirror();
+
             case 'monitor':
                 return $this->showMonitor();
 
@@ -184,6 +196,21 @@ class Controller
 
             case 'actions/add-mirror':
                 return $this->actionAddMirror();
+
+            case 'actions/pvm-mirror-enable':
+                return $this->actionPvmMirrorEnable();
+
+            case 'actions/pvm-mirror-disable':
+                return $this->actionPvmMirrorDisable();
+
+            case 'actions/pvm-mirror-set':
+                return $this->actionPvmMirrorSet();
+
+            case 'actions/pvm-mirror-add':
+                return $this->actionPvmMirrorAdd();
+
+            case 'actions/pvm-mirror-remove':
+                return $this->actionPvmMirrorRemove();
 
             case 'install-progress':
                 return $this->showInstallProgress();
@@ -346,6 +373,30 @@ class Controller
             'currentPhpMirror' => $currentPhpMirror,
             'currentPeclMirror' => $currentPeclMirror,
             'currentComposerMirror' => $currentComposerMirror,
+            'privilegeStatus' => $this->getPrivilegeStatus(),
+        ]);
+    }
+
+    /**
+     * 显示PVM镜像源管理页面
+     *
+     * @return string 响应内容
+     */
+    private function showPvmMirror()
+    {
+        // 获取当前PHP版本
+        $currentVersion = $this->versionManager->getCurrentVersion();
+
+        // 获取PVM镜像源配置
+        $config = $this->pvmMirrorConfig->getConfigSummary();
+        $allMirrors = $this->pvmMirrorConfig->getAllMirrors();
+
+        // 渲染视图
+        return $this->view->render('pvm-mirror', [
+            'title' => 'PVM 管理面板 - PVM镜像源',
+            'currentVersion' => $currentVersion,
+            'config' => $config,
+            'allMirrors' => $allMirrors,
             'privilegeStatus' => $this->getPrivilegeStatus(),
         ]);
     }
@@ -1192,6 +1243,137 @@ class Controller
         }
 
         header('Location: /mirrors?message=' . urlencode($message) . '&type=' . $messageType);
+        exit;
+    }
+
+    /**
+     * 处理启用PVM镜像源操作
+     */
+    public function actionPvmMirrorEnable()
+    {
+        try {
+            if ($this->pvmMirrorConfig->enable()) {
+                $message = 'PVM镜像源已启用，所有下载将优先使用PVM镜像源';
+                $messageType = 'success';
+            } else {
+                $message = '启用PVM镜像源失败';
+                $messageType = 'error';
+            }
+        } catch (\Exception $e) {
+            $message = '启用PVM镜像源失败: ' . $e->getMessage();
+            $messageType = 'error';
+        }
+
+        header('Location: /pvm-mirror?message=' . urlencode($message) . '&type=' . $messageType);
+        exit;
+    }
+
+    /**
+     * 处理禁用PVM镜像源操作
+     */
+    public function actionPvmMirrorDisable()
+    {
+        try {
+            if ($this->pvmMirrorConfig->disable()) {
+                $message = 'PVM镜像源已禁用，所有下载将使用官方源';
+                $messageType = 'success';
+            } else {
+                $message = '禁用PVM镜像源失败';
+                $messageType = 'error';
+            }
+        } catch (\Exception $e) {
+            $message = '禁用PVM镜像源失败: ' . $e->getMessage();
+            $messageType = 'error';
+        }
+
+        header('Location: /pvm-mirror?message=' . urlencode($message) . '&type=' . $messageType);
+        exit;
+    }
+
+    /**
+     * 处理设置PVM镜像源操作
+     */
+    public function actionPvmMirrorSet()
+    {
+        $url = $_POST['url'] ?? '';
+
+        if (empty($url)) {
+            header('Location: /pvm-mirror?message=' . urlencode('请输入镜像源地址') . '&type=error');
+            exit;
+        }
+
+        try {
+            if ($this->pvmMirrorConfig->setMirrorUrl($url)) {
+                $message = "主镜像源已设置为: {$url}";
+                $messageType = 'success';
+            } else {
+                $message = '设置主镜像源失败: 无效的URL格式';
+                $messageType = 'error';
+            }
+        } catch (\Exception $e) {
+            $message = '设置主镜像源失败: ' . $e->getMessage();
+            $messageType = 'error';
+        }
+
+        header('Location: /pvm-mirror?message=' . urlencode($message) . '&type=' . $messageType);
+        exit;
+    }
+
+    /**
+     * 处理添加备用PVM镜像源操作
+     */
+    public function actionPvmMirrorAdd()
+    {
+        $url = $_POST['url'] ?? '';
+
+        if (empty($url)) {
+            header('Location: /pvm-mirror?message=' . urlencode('请输入备用镜像源地址') . '&type=error');
+            exit;
+        }
+
+        try {
+            if ($this->pvmMirrorConfig->addFallbackMirror($url)) {
+                $message = "备用镜像源已添加: {$url}";
+                $messageType = 'success';
+            } else {
+                $message = '添加备用镜像源失败: 无效的URL格式或镜像源已存在';
+                $messageType = 'error';
+            }
+        } catch (\Exception $e) {
+            $message = '添加备用镜像源失败: ' . $e->getMessage();
+            $messageType = 'error';
+        }
+
+        header('Location: /pvm-mirror?message=' . urlencode($message) . '&type=' . $messageType);
+        exit;
+    }
+
+    /**
+     * 处理移除备用PVM镜像源操作
+     */
+    public function actionPvmMirrorRemove()
+    {
+        $url = $_POST['url'] ?? '';
+
+        if (empty($url)) {
+            header('Location: /pvm-mirror?message=' . urlencode('参数缺失') . '&type=error');
+            exit;
+        }
+
+        try {
+            if ($this->pvmMirrorConfig->removeFallbackMirror($url)) {
+                $message = "备用镜像源已移除: {$url}";
+                $messageType = 'success';
+            } else {
+                $message = '移除备用镜像源失败: 镜像源不存在';
+                $messageType = 'error';
+            }
+        } catch (\Exception $e) {
+            $message = '移除备用镜像源失败: ' . $e->getMessage();
+            $messageType = 'error';
+        }
+
+        header('Location: /pvm-mirror?message=' . urlencode($message) . '&type=' . $messageType);
         exit;
     }
 }

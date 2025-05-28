@@ -53,7 +53,8 @@ class Application
             'update' => Commands\UpdateCommand::class,
             'web' => Commands\WebCommand::class, // 新增Web管理界面命令
             'composer' => Commands\ComposerCommand::class, // 新增Composer管理命令
-            'mirror' => Commands\MirrorCommand::class, // 新增镜像管理命令
+            'mirror' => Commands\MirrorCommand::class, // 下载源管理命令（已废弃）
+            'pvm-mirror' => Commands\PvmMirrorCommand::class, // PVM镜像源管理命令
 
             // 保留旧的Composer命令，以保持向后兼容性
             'composer-install' => Commands\ComposerInstallCommand::class,

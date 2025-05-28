@@ -276,9 +276,9 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?= isset($active) && $active === 'mirrors' ? 'active' : '' ?>" href="/mirrors">
+                    <a class="nav-link <?= isset($active) && $active === 'pvm-mirror' ? 'active' : '' ?>" href="/pvm-mirror">
                         <i class="bi bi-cloud-download me-2"></i>
-                        镜像管理
+                        PVM镜像源
                     </a>
                 </li>
                 <li class="nav-item">

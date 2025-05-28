@@ -16,7 +16,7 @@ class MirrorCommand implements CommandInterface
      * @var MirrorConfig
      */
     private $config;
-    
+
     /**
      * 构造函数
      */
@@ -24,7 +24,7 @@ class MirrorCommand implements CommandInterface
     {
         $this->config = new MirrorConfig();
     }
-    
+
     /**
      * 执行命令
      *
@@ -36,9 +36,9 @@ class MirrorCommand implements CommandInterface
         if (empty($args)) {
             return $this->showMirrors();
         }
-        
+
         $action = array_shift($args);
-        
+
         switch ($action) {
             case 'list':
                 return $this->showMirrors();
@@ -54,7 +54,7 @@ class MirrorCommand implements CommandInterface
                 return 1;
         }
     }
-    
+
     /**
      * 显示镜像列表
      *
@@ -66,56 +66,56 @@ class MirrorCommand implements CommandInterface
         echo "PHP镜像:" . PHP_EOL;
         $defaultPhpMirror = $this->config->getDefaultPhpMirrorName();
         $phpMirrors = $this->config->getAllPhpMirrors();
-        
+
         foreach ($phpMirrors as $name => $url) {
             $default = ($name === $defaultPhpMirror) ? ' [默认]' : '';
             echo "  * {$name}: {$url}{$default}" . PHP_EOL;
         }
-        
+
         echo PHP_EOL;
-        
+
         // 显示PECL镜像
         echo "PECL镜像:" . PHP_EOL;
         $defaultPeclMirror = $this->config->getDefaultPeclMirrorName();
         $peclMirrors = $this->config->getAllPeclMirrors();
-        
+
         foreach ($peclMirrors as $name => $url) {
             $default = ($name === $defaultPeclMirror) ? ' [默认]' : '';
             echo "  * {$name}: {$url}{$default}" . PHP_EOL;
         }
-        
+
         echo PHP_EOL;
-        
+
         // 显示扩展镜像
         echo "扩展镜像:" . PHP_EOL;
         $extensions = ['redis', 'memcached', 'xdebug'];
-        
+
         foreach ($extensions as $extension) {
             $defaultExtensionMirror = $this->config->getDefaultExtensionMirrorName($extension);
             $extensionMirrors = $this->config->getAllExtensionMirrors($extension);
-            
+
             echo "  {$extension}:" . PHP_EOL;
             foreach ($extensionMirrors as $name => $url) {
                 $default = ($name === $defaultExtensionMirror) ? ' [默认]' : '';
                 echo "    * {$name}: {$url}{$default}" . PHP_EOL;
             }
         }
-        
+
         echo PHP_EOL;
-        
+
         // 显示Composer镜像
         echo "Composer镜像:" . PHP_EOL;
         $defaultComposerMirror = $this->config->getDefaultComposerMirrorName();
         $composerMirrors = $this->config->getAllComposerMirrors();
-        
+
         foreach ($composerMirrors as $name => $url) {
             $default = ($name === $defaultComposerMirror) ? ' [默认]' : '';
             echo "  * {$name}: {$url}{$default}" . PHP_EOL;
         }
-        
+
         return 0;
     }
-    
+
     /**
      * 添加镜像
      *
@@ -129,11 +129,11 @@ class MirrorCommand implements CommandInterface
             echo "用法: pvm mirror add <类型> <名称> <地址>" . PHP_EOL;
             return 1;
         }
-        
+
         $type = array_shift($args);
         $name = array_shift($args);
         $url = array_shift($args);
-        
+
         // 如果是扩展镜像，则需要额外的扩展名称参数
         if ($type === 'extension') {
             if (empty($args)) {
@@ -141,10 +141,10 @@ class MirrorCommand implements CommandInterface
                 echo "用法: pvm mirror add extension <名称> <地址> <扩展名称>" . PHP_EOL;
                 return 1;
             }
-            
+
             $extension = array_shift($args);
             $result = $this->config->addExtensionMirror($extension, $name, $url);
-            
+
             if ($result) {
                 echo "成功添加扩展 {$extension} 的镜像 {$name}: {$url}" . PHP_EOL;
                 return 0;
@@ -153,7 +153,7 @@ class MirrorCommand implements CommandInterface
                 return 1;
             }
         }
-        
+
         // 其他类型的镜像
         switch ($type) {
             case 'php':
@@ -169,7 +169,7 @@ class MirrorCommand implements CommandInterface
                 echo "错误: 未知的镜像类型 {$type}" . PHP_EOL;
                 return 1;
         }
-        
+
         if ($result) {
             echo "成功添加{$type}镜像 {$name}: {$url}" . PHP_EOL;
             return 0;
@@ -178,7 +178,7 @@ class MirrorCommand implements CommandInterface
             return 1;
         }
     }
-    
+
     /**
      * 删除镜像
      *
@@ -192,10 +192,10 @@ class MirrorCommand implements CommandInterface
             echo "用法: pvm mirror remove <类型> <名称>" . PHP_EOL;
             return 1;
         }
-        
+
         $type = array_shift($args);
         $name = array_shift($args);
-        
+
         // 如果是扩展镜像，则需要额外的扩展名称参数
         if ($type === 'extension') {
             if (empty($args)) {
@@ -203,10 +203,10 @@ class MirrorCommand implements CommandInterface
                 echo "用法: pvm mirror remove extension <名称> <扩展名称>" . PHP_EOL;
                 return 1;
             }
-            
+
             $extension = array_shift($args);
             $result = $this->config->removeExtensionMirror($extension, $name);
-            
+
             if ($result) {
                 echo "成功删除扩展 {$extension} 的镜像 {$name}" . PHP_EOL;
                 return 0;
@@ -215,7 +215,7 @@ class MirrorCommand implements CommandInterface
                 return 1;
             }
         }
-        
+
         // 其他类型的镜像
         switch ($type) {
             case 'php':
@@ -231,7 +231,7 @@ class MirrorCommand implements CommandInterface
                 echo "错误: 未知的镜像类型 {$type}" . PHP_EOL;
                 return 1;
         }
-        
+
         if ($result) {
             echo "成功删除{$type}镜像 {$name}" . PHP_EOL;
             return 0;
@@ -240,7 +240,7 @@ class MirrorCommand implements CommandInterface
             return 1;
         }
     }
-    
+
     /**
      * 设置默认镜像
      *
@@ -254,10 +254,10 @@ class MirrorCommand implements CommandInterface
             echo "用法: pvm mirror set <类型> <名称>" . PHP_EOL;
             return 1;
         }
-        
+
         $type = array_shift($args);
         $name = array_shift($args);
-        
+
         // 如果是扩展镜像，则需要额外的扩展名称参数
         if ($type === 'extension') {
             if (empty($args)) {
@@ -265,10 +265,10 @@ class MirrorCommand implements CommandInterface
                 echo "用法: pvm mirror set extension <名称> <扩展名称>" . PHP_EOL;
                 return 1;
             }
-            
+
             $extension = array_shift($args);
             $result = $this->config->setDefaultExtensionMirror($extension, $name);
-            
+
             if ($result) {
                 echo "成功设置扩展 {$extension} 的默认镜像为 {$name}" . PHP_EOL;
                 return 0;
@@ -277,7 +277,7 @@ class MirrorCommand implements CommandInterface
                 return 1;
             }
         }
-        
+
         // 其他类型的镜像
         switch ($type) {
             case 'php':
@@ -293,7 +293,7 @@ class MirrorCommand implements CommandInterface
                 echo "错误: 未知的镜像类型 {$type}" . PHP_EOL;
                 return 1;
         }
-        
+
         if ($result) {
             echo "成功设置{$type}默认镜像为 {$name}" . PHP_EOL;
             return 0;
@@ -302,7 +302,7 @@ class MirrorCommand implements CommandInterface
             return 1;
         }
     }
-    
+
     /**
      * 获取命令描述
      *
@@ -312,7 +312,7 @@ class MirrorCommand implements CommandInterface
     {
         return '管理下载镜像配置';
     }
-    
+
     /**
      * 获取命令用法
      *
@@ -323,19 +323,22 @@ class MirrorCommand implements CommandInterface
         return <<<USAGE
 用法: pvm mirror [操作] [参数]...
 
-管理下载镜像配置。
+管理PHP源码和扩展的下载源配置。
+
+注意：这里配置的是PHP官方源码、PECL扩展等的下载源（如阿里云镜像），
+不是PVM自建镜像源。如需配置PVM镜像源，请使用 'pvm config' 命令。
 
 操作:
-  list                    显示镜像列表（默认操作）
-  add <类型> <名称> <地址>   添加镜像
-  remove <类型> <名称>      删除镜像
-  set <类型> <名称>         设置默认镜像
+  list                    显示下载源列表（默认操作）
+  add <类型> <名称> <地址>   添加下载源
+  remove <类型> <名称>      删除下载源
+  set <类型> <名称>         设置默认下载源
 
 类型:
-  php                     PHP下载镜像
-  pecl                    PECL扩展下载镜像
-  extension               特定扩展下载镜像（需要额外的扩展名称参数）
-  composer                Composer下载镜像
+  php                     PHP源码下载源
+  pecl                    PECL扩展下载源
+  extension               特定扩展下载源（需要额外的扩展名称参数）
+  composer                Composer下载源
 
 示例:
   pvm mirror list

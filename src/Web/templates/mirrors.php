@@ -14,7 +14,12 @@ ob_start();
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">镜像管理</h1>
+                <div>
+                    <h1 class="h2">下载源管理</h1>
+                    <p class="text-muted mb-0">
+                        <small>配置PHP源码、PECL扩展、Composer的下载源（如阿里云镜像）。如需配置PVM自建镜像源，请使用系统设置。</small>
+                    </p>
+                </div>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
                         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshMirrors()">
@@ -40,7 +45,7 @@ ob_start();
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i class="bi bi-code-slash me-2"></i>PHP 镜像
+                        <i class="bi bi-code-slash me-2"></i>PHP 源码下载源
                     </h5>
                     <span class="badge bg-primary">当前: <?= array_search($currentPhpMirror, $phpMirrors) ?: 'unknown' ?></span>
                 </div>
@@ -51,9 +56,9 @@ ob_start();
                             <label for="phpMirror" class="form-label">选择镜像源</label>
                             <select class="form-select" id="phpMirror" name="mirror" required>
                                 <?php foreach ($phpMirrors as $name => $url): ?>
-                                    <option value="<?= htmlspecialchars($name) ?>" 
+                                    <option value="<?= htmlspecialchars($name) ?>"
                                             <?= $url === $currentPhpMirror ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($name) ?> 
+                                        <?= htmlspecialchars($name) ?>
                                         <?php if ($name === 'official'): ?>
                                             (官方)
                                         <?php endif; ?>
@@ -79,7 +84,7 @@ ob_start();
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i class="bi bi-puzzle me-2"></i>PECL 镜像
+                        <i class="bi bi-puzzle me-2"></i>PECL 扩展下载源
                     </h5>
                     <span class="badge bg-success">当前: <?= array_search($currentPeclMirror, $peclMirrors) ?: 'unknown' ?></span>
                 </div>
@@ -90,9 +95,9 @@ ob_start();
                             <label for="peclMirror" class="form-label">选择镜像源</label>
                             <select class="form-select" id="peclMirror" name="mirror" required>
                                 <?php foreach ($peclMirrors as $name => $url): ?>
-                                    <option value="<?= htmlspecialchars($name) ?>" 
+                                    <option value="<?= htmlspecialchars($name) ?>"
                                             <?= $url === $currentPeclMirror ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($name) ?> 
+                                        <?= htmlspecialchars($name) ?>
                                         <?php if ($name === 'official'): ?>
                                             (官方)
                                         <?php endif; ?>
@@ -118,7 +123,7 @@ ob_start();
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i class="bi bi-box me-2"></i>Composer 镜像
+                        <i class="bi bi-box me-2"></i>Composer 下载源
                     </h5>
                     <span class="badge bg-warning">当前: <?= array_search($currentComposerMirror, $composerMirrors) ?: 'unknown' ?></span>
                 </div>
@@ -129,9 +134,9 @@ ob_start();
                             <label for="composerMirror" class="form-label">选择镜像源</label>
                             <select class="form-select" id="composerMirror" name="mirror" required>
                                 <?php foreach ($composerMirrors as $name => $url): ?>
-                                    <option value="<?= htmlspecialchars($name) ?>" 
+                                    <option value="<?= htmlspecialchars($name) ?>"
                                             <?= $url === $currentComposerMirror ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($name) ?> 
+                                        <?= htmlspecialchars($name) ?>
                                         <?php if ($name === 'official'): ?>
                                             (官方)
                                         <?php endif; ?>
@@ -159,25 +164,25 @@ ob_start();
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-speedometer2 me-2"></i>镜像速度测试
+                        <i class="bi bi-speedometer2 me-2"></i>下载源速度测试
                     </h5>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted">测试各个镜像源的连接速度，帮助选择最快的镜像。</p>
+                    <p class="text-muted">测试各个下载源的连接速度，帮助选择最快的下载源。</p>
                     <div class="row">
                         <div class="col-md-4">
                             <button type="button" class="btn btn-outline-primary" onclick="testMirrorSpeed('php')">
-                                <i class="bi bi-play-circle"></i> 测试 PHP 镜像
+                                <i class="bi bi-play-circle"></i> 测试 PHP 下载源
                             </button>
                         </div>
                         <div class="col-md-4">
                             <button type="button" class="btn btn-outline-success" onclick="testMirrorSpeed('pecl')">
-                                <i class="bi bi-play-circle"></i> 测试 PECL 镜像
+                                <i class="bi bi-play-circle"></i> 测试 PECL 下载源
                             </button>
                         </div>
                         <div class="col-md-4">
                             <button type="button" class="btn btn-outline-warning" onclick="testMirrorSpeed('composer')">
-                                <i class="bi bi-play-circle"></i> 测试 Composer 镜像
+                                <i class="bi bi-play-circle"></i> 测试 Composer 下载源
                             </button>
                         </div>
                     </div>
@@ -196,7 +201,7 @@ ob_start();
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-plus-circle me-2"></i>添加自定义镜像
+                        <i class="bi bi-plus-circle me-2"></i>添加自定义下载源
                     </h5>
                 </div>
                 <div class="card-body">
@@ -212,12 +217,12 @@ ob_start();
                             </div>
                             <div class="col-md-3">
                                 <label for="mirrorName" class="form-label">镜像名称</label>
-                                <input type="text" class="form-control" id="mirrorName" name="name" 
+                                <input type="text" class="form-control" id="mirrorName" name="name"
                                        placeholder="例如: custom" required>
                             </div>
                             <div class="col-md-4">
                                 <label for="mirrorUrl" class="form-label">镜像地址</label>
-                                <input type="url" class="form-control" id="mirrorUrl" name="url" 
+                                <input type="url" class="form-control" id="mirrorUrl" name="url"
                                        placeholder="https://example.com/mirror" required>
                             </div>
                             <div class="col-md-2">
@@ -242,10 +247,10 @@ function refreshMirrors() {
 function testMirrorSpeed(type) {
     const button = event.target;
     const originalText = button.innerHTML;
-    
+
     button.innerHTML = '<i class="bi bi-hourglass-split"></i> 测试中...';
     button.disabled = true;
-    
+
     fetch(`/api/test-mirror-speed?type=${type}`)
         .then(response => response.json())
         .then(data => {
@@ -264,13 +269,13 @@ function testMirrorSpeed(type) {
 function displaySpeedTestResults(type, results) {
     const resultsDiv = document.getElementById('speedTestResults');
     const contentDiv = document.getElementById('speedTestContent');
-    
+
     let html = `<h6>${type.toUpperCase()} 镜像速度测试结果:</h6>`;
     html += '<div class="table-responsive">';
     html += '<table class="table table-sm">';
     html += '<thead><tr><th>镜像</th><th>响应时间</th><th>状态</th></tr></thead>';
     html += '<tbody>';
-    
+
     for (const [name, result] of Object.entries(results)) {
         const statusClass = result.success ? 'text-success' : 'text-danger';
         const statusIcon = result.success ? 'bi-check-circle' : 'bi-x-circle';
@@ -280,9 +285,9 @@ function displaySpeedTestResults(type, results) {
             <td class="${statusClass}"><i class="bi ${statusIcon}"></i> ${result.status}</td>
         </tr>`;
     }
-    
+
     html += '</tbody></table></div>';
-    
+
     contentDiv.innerHTML = html;
     resultsDiv.style.display = 'block';
 }

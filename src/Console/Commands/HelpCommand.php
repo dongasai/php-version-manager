@@ -34,6 +34,7 @@ class HelpCommand implements CommandInterface
         'monitor' => '监控PHP进程和PHP-FPM状态',
         'update' => '更新PVM自身',
         'web' => '启动Web管理界面',
+        'mirror' => '管理下载镜像源',
         'help' => '显示帮助信息',
         'version' => '显示版本信息',
         'supported' => '显示支持的PHP版本列表',

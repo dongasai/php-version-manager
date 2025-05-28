@@ -7,6 +7,7 @@ use VersionManager\Core\ExtensionManager;
 use VersionManager\Core\ComposerManager;
 use VersionManager\Core\System\MonitorManager;
 use VersionManager\Core\Config\PhpConfig;
+use VersionManager\Core\Config\MirrorConfig;
 use VersionManager\Core\VersionSwitcher;
 
 /**
@@ -59,6 +60,13 @@ class Controller
     private $versionSwitcher;
 
     /**
+     * 镜像配置
+     *
+     * @var MirrorConfig
+     */
+    private $mirrorConfig;
+
+    /**
      * 构造函数
      */
     public function __construct()
@@ -68,6 +76,7 @@ class Controller
         $this->composerManager = new ComposerManager();
         $this->monitorManager = new MonitorManager();
         $this->versionSwitcher = new VersionSwitcher();
+        $this->mirrorConfig = new MirrorConfig();
         $this->view = new View();
     }
 
@@ -106,6 +115,19 @@ class Controller
     }
 
     /**
+     * 获取权限状态
+     *
+     * @return string
+     */
+    private function getPrivilegeStatus()
+    {
+        $hasRoot = $this->hasAdminPrivileges();
+        $canSudo = $this->canUseSudo();
+
+        return $hasRoot ? 'root' : ($canSudo ? 'sudo' : 'limited');
+    }
+
+    /**
      * 处理请求
      *
      * @param string $uri 请求URI
@@ -133,6 +155,9 @@ class Controller
             case 'composer':
                 return $this->showComposer();
 
+            case 'mirrors':
+                return $this->showMirrors();
+
             case 'monitor':
                 return $this->showMonitor();
 
@@ -153,6 +178,12 @@ class Controller
 
             case 'actions/install':
                 return $this->actionInstall();
+
+            case 'actions/set-mirror':
+                return $this->actionSetMirror();
+
+            case 'actions/add-mirror':
+                return $this->actionAddMirror();
 
             case 'install-progress':
                 return $this->showInstallProgress();
@@ -194,9 +225,7 @@ class Controller
         $systemInfo = $this->monitorManager->getSystemInfo();
 
         // 获取权限信息
-        $hasRoot = $this->hasAdminPrivileges();
-        $canSudo = $this->canUseSudo();
-        $privilegeStatus = $hasRoot ? 'root' : ($canSudo ? 'sudo' : 'limited');
+        $privilegeStatus = $this->getPrivilegeStatus();
 
         // 渲染视图
         return $this->view->render('dashboard', [
@@ -231,6 +260,7 @@ class Controller
             'currentVersion' => $currentVersion,
             'installedVersions' => $installedVersions,
             'availableVersions' => $availableVersions,
+            'privilegeStatus' => $this->getPrivilegeStatus(),
         ]);
     }
 
@@ -256,6 +286,7 @@ class Controller
             'currentVersion' => $currentVersion,
             'installedExtensions' => $installedExtensions,
             'availableExtensions' => $availableExtensions,
+            'privilegeStatus' => $this->getPrivilegeStatus(),
         ]);
     }
 
@@ -281,6 +312,41 @@ class Controller
             'currentVersion' => $currentVersion,
             'composerVersion' => $composerVersion,
             'availableComposerVersions' => $availableComposerVersions,
+            'privilegeStatus' => $this->getPrivilegeStatus(),
+        ]);
+    }
+
+    /**
+     * 显示镜像管理页面
+     *
+     * @return string 响应内容
+     */
+    private function showMirrors()
+    {
+        // 获取当前PHP版本
+        $currentVersion = $this->versionManager->getCurrentVersion();
+
+        // 获取所有镜像配置
+        $phpMirrors = $this->mirrorConfig->getAllPhpMirrors();
+        $peclMirrors = $this->mirrorConfig->getAllPeclMirrors();
+        $composerMirrors = $this->mirrorConfig->getAllComposerMirrors();
+
+        // 获取当前默认镜像
+        $currentPhpMirror = $this->mirrorConfig->getPhpMirror();
+        $currentPeclMirror = $this->mirrorConfig->getPeclMirror();
+        $currentComposerMirror = $this->mirrorConfig->getComposerMirror();
+
+        // 渲染视图
+        return $this->view->render('mirrors', [
+            'title' => 'PVM 管理面板 - 镜像管理',
+            'currentVersion' => $currentVersion,
+            'phpMirrors' => $phpMirrors,
+            'peclMirrors' => $peclMirrors,
+            'composerMirrors' => $composerMirrors,
+            'currentPhpMirror' => $currentPhpMirror,
+            'currentPeclMirror' => $currentPeclMirror,
+            'currentComposerMirror' => $currentComposerMirror,
+            'privilegeStatus' => $this->getPrivilegeStatus(),
         ]);
     }
 
@@ -314,6 +380,7 @@ class Controller
             'fpmProcesses' => $fpmProcesses,
             'memoryUsage' => $memoryUsage,
             'cpuUsage' => $cpuUsage,
+            'privilegeStatus' => $this->getPrivilegeStatus(),
         ]);
     }
 
@@ -338,6 +405,7 @@ class Controller
             'currentVersion' => $currentVersion,
             'phpIniPath' => $phpIniPath,
             'phpIniValues' => $phpIniValues,
+            'privilegeStatus' => $this->getPrivilegeStatus(),
         ]);
     }
 
@@ -1022,5 +1090,108 @@ class Controller
                 unlink($file);
             }
         }
+    }
+
+    /**
+     * 处理设置镜像操作
+     */
+    public function actionSetMirror()
+    {
+        $type = $_POST['type'] ?? '';
+        $mirror = $_POST['mirror'] ?? '';
+
+        if (empty($type) || empty($mirror)) {
+            header('Location: /mirrors?message=' . urlencode('参数缺失') . '&type=error');
+            exit;
+        }
+
+        try {
+            $success = false;
+            $message = '';
+
+            switch ($type) {
+                case 'php':
+                    $success = $this->mirrorConfig->setDefaultPhpMirror($mirror);
+                    $message = $success ? "PHP镜像已设置为: {$mirror}" : "设置PHP镜像失败";
+                    break;
+
+                case 'pecl':
+                    $success = $this->mirrorConfig->setDefaultPeclMirror($mirror);
+                    $message = $success ? "PECL镜像已设置为: {$mirror}" : "设置PECL镜像失败";
+                    break;
+
+                case 'composer':
+                    $success = $this->mirrorConfig->setDefaultComposerMirror($mirror);
+                    $message = $success ? "Composer镜像已设置为: {$mirror}" : "设置Composer镜像失败";
+                    break;
+
+                default:
+                    $message = '不支持的镜像类型';
+                    break;
+            }
+
+            $messageType = $success ? 'success' : 'error';
+        } catch (\Exception $e) {
+            $message = '设置镜像失败: ' . $e->getMessage();
+            $messageType = 'error';
+        }
+
+        header('Location: /mirrors?message=' . urlencode($message) . '&type=' . $messageType);
+        exit;
+    }
+
+    /**
+     * 处理添加镜像操作
+     */
+    public function actionAddMirror()
+    {
+        $type = $_POST['type'] ?? '';
+        $name = $_POST['name'] ?? '';
+        $url = $_POST['url'] ?? '';
+
+        if (empty($type) || empty($name) || empty($url)) {
+            header('Location: /mirrors?message=' . urlencode('参数缺失') . '&type=error');
+            exit;
+        }
+
+        // 验证URL格式
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            header('Location: /mirrors?message=' . urlencode('无效的URL格式') . '&type=error');
+            exit;
+        }
+
+        try {
+            $success = false;
+            $message = '';
+
+            switch ($type) {
+                case 'php':
+                    $success = $this->mirrorConfig->addPhpMirror($name, $url);
+                    $message = $success ? "PHP镜像 {$name} 添加成功" : "添加PHP镜像失败";
+                    break;
+
+                case 'pecl':
+                    $success = $this->mirrorConfig->addPeclMirror($name, $url);
+                    $message = $success ? "PECL镜像 {$name} 添加成功" : "添加PECL镜像失败";
+                    break;
+
+                case 'composer':
+                    $success = $this->mirrorConfig->addComposerMirror($name, $url);
+                    $message = $success ? "Composer镜像 {$name} 添加成功" : "添加Composer镜像失败";
+                    break;
+
+                default:
+                    $message = '不支持的镜像类型';
+                    break;
+            }
+
+            $messageType = $success ? 'success' : 'error';
+        } catch (\Exception $e) {
+            $message = '添加镜像失败: ' . $e->getMessage();
+            $messageType = 'error';
+        }
+
+        header('Location: /mirrors?message=' . urlencode($message) . '&type=' . $messageType);
+        exit;
     }
 }

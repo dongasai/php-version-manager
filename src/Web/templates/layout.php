@@ -216,6 +216,31 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="w-100"></div>
+
+        <!-- 权限状态提示 -->
+        <?php if (isset($privilegeStatus)): ?>
+            <div class="navbar-nav me-3">
+                <div class="nav-item">
+                    <?php if ($privilegeStatus === 'limited'): ?>
+                        <span class="navbar-text text-warning">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                            <small>权限受限</small>
+                        </span>
+                    <?php elseif ($privilegeStatus === 'sudo'): ?>
+                        <span class="navbar-text text-info">
+                            <i class="bi bi-shield-check me-1"></i>
+                            <small>Sudo权限</small>
+                        </span>
+                    <?php else: ?>
+                        <span class="navbar-text text-success">
+                            <i class="bi bi-shield-fill me-1"></i>
+                            <small>管理员权限</small>
+                        </span>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div class="navbar-nav">
             <div class="nav-item text-nowrap">
                 <a class="nav-link px-3" href="/logout">退出</a>
@@ -248,6 +273,12 @@
                     <a class="nav-link <?= isset($active) && $active === 'composer' ? 'active' : '' ?>" href="/composer">
                         <i class="bi bi-box me-2"></i>
                         Composer管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= isset($active) && $active === 'mirrors' ? 'active' : '' ?>" href="/mirrors">
+                        <i class="bi bi-cloud-download me-2"></i>
+                        镜像管理
                     </a>
                 </li>
                 <li class="nav-item">

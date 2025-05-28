@@ -146,6 +146,7 @@ class InstallProgressMonitor {
             }
 
             this.updateProgress(data);
+            this.updateLog(data);
 
             if (data.status === 'completed' || data.status === 'failed') {
                 this.isCompleted = true;
@@ -217,6 +218,65 @@ class InstallProgressMonitor {
         } else {
             this.elapsedTime.textContent = `已用时间: ${seconds}秒`;
         }
+    }
+
+    updateLog(data) {
+        if (data.log_lines && data.log_lines.length > 0) {
+            if (this.showDetailedLog) {
+                // 显示详细日志
+                this.logContent.innerHTML = data.log_lines.map(line =>
+                    `<div>${this.escapeHtml(line)}</div>`
+                ).join('');
+            } else {
+                // 显示简化日志（只显示最后几行重要信息）
+                const importantLines = data.log_lines.filter(line => {
+                    const l = line.toLowerCase();
+                    return l.includes('下载') || l.includes('download') ||
+                           l.includes('解压') || l.includes('extract') ||
+                           l.includes('配置') || l.includes('configure') ||
+                           l.includes('编译') || l.includes('make') ||
+                           l.includes('安装') || l.includes('install') ||
+                           l.includes('%') || l.includes('error') || l.includes('错误');
+                }).slice(-5); // 只显示最后5行重要信息
+
+                if (importantLines.length > 0) {
+                    this.logContent.innerHTML = importantLines.map(line =>
+                        `<div>${this.escapeHtml(line)}</div>`
+                    ).join('');
+                } else {
+                    this.logContent.innerHTML = '<div class="text-muted">正在处理中...</div>';
+                }
+            }
+
+            // 自动滚动到底部
+            this.logContainer.scrollTop = this.logContainer.scrollHeight;
+        } else {
+            this.logContent.innerHTML = '<div class="text-muted">等待日志输出...</div>';
+        }
+    }
+
+    toggleLogDisplay() {
+        this.showDetailedLog = !this.showDetailedLog;
+
+        if (this.showDetailedLog) {
+            this.toggleLogBtn.innerHTML = '<i class="bi bi-eye-slash"></i> 隐藏详细日志';
+            this.logContainer.style.height = '400px';
+        } else {
+            this.toggleLogBtn.innerHTML = '<i class="bi bi-eye"></i> 显示详细日志';
+            this.logContainer.style.height = '300px';
+        }
+
+        // 立即更新日志显示
+        this.checkStatus();
+    }
+
+    escapeHtml(text) {
+        // 清理ANSI颜色代码
+        const cleanText = text.replace(/\x1b\[[0-9;]*m/g, '');
+
+        const div = document.createElement('div');
+        div.textContent = cleanText;
+        return div.innerHTML;
     }
 }
 

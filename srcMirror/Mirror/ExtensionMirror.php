@@ -3,6 +3,7 @@
 namespace Mirror\Mirror;
 
 use Mirror\Utils\FileUtils;
+use Mirror\Service\ExtensionConfigManager;
 
 /**
  * 扩展镜像类
@@ -23,12 +24,27 @@ class ExtensionMirror
         $configManager = new \Mirror\Config\ConfigManager();
         $baseDir = $configManager->getDataDir();
 
+        // 获取扩展版本配置
+        $extensionConfigManager = new ExtensionConfigManager();
+        $extensions = $extensionConfigManager->getAllGithubExtensionVersions();
+
+        if (empty($extensions)) {
+            echo "  错误: 无法获取GitHub扩展版本配置\n";
+            return false;
+        }
+
         $success = true;
 
         // 遍历扩展
-        foreach ($config as $extension => $extConfig) {
-            if (!$this->syncExtension($baseDir, $extension, $extConfig)) {
-                $success = false;
+        foreach ($extensions as $extension => $versions) {
+            $extConfig = $extensionConfigManager->getGithubExtensionConfig($extension);
+            if (!empty($extConfig)) {
+                $extConfig['versions'] = $versions;
+                if (!$this->syncExtension($baseDir, $extension, $extConfig)) {
+                    $success = false;
+                }
+            } else {
+                echo "  警告: 扩展 $extension 配置不完整，跳过\n";
             }
         }
 
@@ -121,7 +137,7 @@ class ExtensionMirror
                     echo "  错误: $extension $version 下载失败\n";
                     return false;
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 echo "  错误: $extension $version 下载失败: " . $e->getMessage() . "\n";
                 return false;
             }
@@ -224,7 +240,7 @@ class ExtensionMirror
             }
 
             return true;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             echo "  验证失败: " . $e->getMessage() . "\n";
             return false;
         }

@@ -3,6 +3,7 @@
 namespace Mirror\Mirror;
 
 use Mirror\Utils\FileUtils;
+use Mirror\Service\ExtensionConfigManager;
 
 /**
  * PHP镜像类
@@ -32,16 +33,25 @@ class PhpMirror
             mkdir($dataDir, 0755, true);
         }
 
+        // 获取版本配置
+        $extensionConfigManager = new ExtensionConfigManager();
+        $versions = $extensionConfigManager->getPhpVersions();
+
+        if (empty($versions)) {
+            echo "  错误: 无法获取PHP版本配置\n";
+            return false;
+        }
+
         $success = true;
 
         // 遍历版本
-        foreach ($config['versions'] as $majorVersion => $versionRange) {
+        foreach ($versions as $majorVersion => $versionRange) {
             list($minVersion, $maxVersion) = $versionRange;
 
             // 获取版本列表
-            $versions = FileUtils::getVersionRange($minVersion, $maxVersion);
+            $versionList = FileUtils::getVersionRange($minVersion, $maxVersion);
 
-            foreach ($versions as $version) {
+            foreach ($versionList as $version) {
                 if (!$this->downloadVersion($source, $pattern, $dataDir, $version)) {
                     $success = false;
                 }
@@ -144,7 +154,7 @@ class PhpMirror
                     echo "  错误: PHP $version 下载失败\n";
                     return false;
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 echo "  错误: PHP $version 下载失败: " . $e->getMessage() . "\n";
                 return false;
             }
@@ -211,7 +221,7 @@ class PhpMirror
             }
 
             return true;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             echo "  验证失败: " . $e->getMessage() . "\n";
             return false;
         }

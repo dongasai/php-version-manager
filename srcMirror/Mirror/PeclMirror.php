@@ -3,6 +3,7 @@
 namespace Mirror\Mirror;
 
 use Mirror\Utils\FileUtils;
+use Mirror\Service\ExtensionConfigManager;
 
 /**
  * PECL镜像类
@@ -32,11 +33,20 @@ class PeclMirror
             mkdir($dataDir, 0755, true);
         }
 
+        // 获取扩展版本配置
+        $extensionConfigManager = new ExtensionConfigManager();
+        $extensions = $extensionConfigManager->getAllPeclExtensionVersions();
+
+        if (empty($extensions)) {
+            echo "  错误: 无法获取PECL扩展版本配置\n";
+            return false;
+        }
+
         $success = true;
 
         // 遍历扩展
-        foreach ($config['extensions'] as $extension => $versionRange) {
-            if (!$this->syncExtensionVersions($source, $pattern, $dataDir, $extension, $versionRange)) {
+        foreach ($extensions as $extension => $versions) {
+            if (!$this->syncExtensionVersions($source, $pattern, $dataDir, $extension, $versions)) {
                 $success = false;
             }
         }
@@ -68,15 +78,16 @@ class PeclMirror
             mkdir($dataDir, 0755, true);
         }
 
-        // 检查扩展是否在配置中
-        if (!isset($config['extensions'][$extensionName])) {
-            echo "  错误: 扩展 $extensionName 不在配置的扩展列表中\n";
-            echo "  可用扩展: " . implode(', ', array_keys($config['extensions'])) . "\n";
+        // 获取扩展版本配置
+        $extensionConfigManager = new ExtensionConfigManager();
+        $versions = $extensionConfigManager->getPeclExtensionVersions($extensionName);
+
+        if (empty($versions)) {
+            echo "  错误: 扩展 $extensionName 不在配置中或版本为空\n";
             return false;
         }
 
-        $versionRange = $config['extensions'][$extensionName];
-        return $this->syncExtensionVersions($source, $pattern, $dataDir, $extensionName, $versionRange);
+        return $this->syncExtensionVersions($source, $pattern, $dataDir, $extensionName, $versions);
     }
 
     /**
@@ -86,16 +97,11 @@ class PeclMirror
      * @param string $pattern 文件名模式
      * @param string $dataDir 数据目录
      * @param string $extension 扩展名
-     * @param array $versionRange 版本范围
+     * @param array $versions 版本列表
      * @return bool 是否成功
      */
-    private function syncExtensionVersions($source, $pattern, $dataDir, $extension, $versionRange)
+    private function syncExtensionVersions($source, $pattern, $dataDir, $extension, $versions)
     {
-        list($minVersion, $maxVersion) = $versionRange;
-
-        // 获取版本列表
-        $versions = FileUtils::getVersionRange($minVersion, $maxVersion);
-
         $success = true;
         foreach ($versions as $version) {
             if (!$this->downloadExtensionVersion($source, $pattern, $dataDir, $extension, $version)) {
@@ -153,7 +159,7 @@ class PeclMirror
                     echo "  错误: $extension $version 下载失败\n";
                     return false;
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 echo "  错误: $extension $version 下载失败: " . $e->getMessage() . "\n";
                 return false;
             }
@@ -223,7 +229,7 @@ class PeclMirror
             }
 
             return true;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             echo "  验证失败: " . $e->getMessage() . "\n";
             return false;
         }

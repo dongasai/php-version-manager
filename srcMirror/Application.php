@@ -6,6 +6,7 @@ use Mirror\Command\CacheCommand;
 use Mirror\Command\CleanCommand;
 use Mirror\Command\CommandInterface;
 use Mirror\Command\ConfigCommand;
+use Mirror\Command\DiscoverCommand;
 use Mirror\Command\HelpCommand;
 use Mirror\Command\IntegrateCommand;
 use Mirror\Command\LogCommand;
@@ -15,6 +16,7 @@ use Mirror\Command\SecurityCommand;
 use Mirror\Command\ServerCommand;
 use Mirror\Command\StatusCommand;
 use Mirror\Command\SyncCommand;
+use Mirror\Command\UpdateConfigCommand;
 
 /**
  * 应用程序类
@@ -53,6 +55,8 @@ class Application
         $this->addCommand(new LogCommand());
         $this->addCommand(new MonitorCommand());
         $this->addCommand(new IntegrateCommand());
+        $this->addCommand(new DiscoverCommand());
+        $this->addCommand(new UpdateConfigCommand());
         $this->addCommand(new HelpCommand($this));
     }
 

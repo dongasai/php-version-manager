@@ -3,6 +3,7 @@
 namespace Mirror\Mirror;
 
 use Mirror\Utils\FileUtils;
+use Mirror\Service\ExtensionConfigManager;
 
 /**
  * Composer镜像类
@@ -32,10 +33,19 @@ class ComposerMirror
             mkdir($dataDir, 0755, true);
         }
 
+        // 获取版本配置
+        $extensionConfigManager = new ExtensionConfigManager();
+        $versions = $extensionConfigManager->getComposerVersions();
+
+        if (empty($versions)) {
+            echo "  错误: 无法获取Composer版本配置\n";
+            return false;
+        }
+
         $success = true;
 
         // 遍历版本
-        foreach ($config['versions'] as $version) {
+        foreach ($versions as $version) {
             if (!$this->downloadVersion($source, $pattern, $dataDir, $version)) {
                 $success = false;
             }
@@ -129,7 +139,7 @@ class ComposerMirror
                     echo "  错误: Composer $version 下载失败\n";
                     return false;
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 echo "  错误: Composer $version 下载失败: " . $e->getMessage() . "\n";
                 return false;
             }

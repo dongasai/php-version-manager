@@ -305,13 +305,113 @@ chmod +x bin/pvm-mirror
 chmod +x bin/sync.sh
 ```
 
-### 2. 配置镜像应用
+### 2. 配置文件结构
 
-编辑 `configMirror/mirror.php` 文件，根据需要调整配置。
+#### 2.1 新的模块化配置结构
 
-### 3. 同步镜像内容
+pvm-mirror 采用了模块化的配置文件结构，将版本信息与基本配置分离：
 
-#### 3.1 基本同步
+```
+configMirror/
+├── mirror.php              # 主配置文件（基本设置）
+├── runtime.php             # 运行时配置
+├── download.php            # 下载配置
+├── extensions/             # 扩展配置目录
+│   ├── pecl/              # PECL 扩展版本
+│   │   ├── redis.php
+│   │   ├── swoole.php
+│   │   └── ...
+│   ├── github/            # GitHub 扩展版本
+│   │   ├── redis.php
+│   │   ├── swoole.php
+│   │   └── ...
+│   └── php/               # PHP 版本
+│       └── versions.php
+└── composer/              # Composer 版本
+    └── versions.php
+```
+
+#### 2.2 配置文件特性
+
+- **模块化管理**: 每个扩展使用独立的配置文件
+- **智能版本选择**: 自动处理大量版本（如 swoole 的 150+ 版本）
+- **元数据支持**: 记录版本发现来源、更新时间等信息
+- **向后兼容**: 同步逻辑保持不变
+
+详细的配置文件结构说明请参考：[配置文件结构文档](ConfigStructure.md)
+
+#### 2.3 配置镜像应用
+
+编辑 `configMirror/mirror.php` 文件，根据需要调整基本配置。版本信息会自动存储在独立的配置文件中。
+
+### 3. 版本发现和配置更新
+
+#### 3.1 版本发现
+
+pvm-mirror 提供了自动版本发现功能，可以从官方 API 获取最新的版本信息：
+
+```bash
+# 发现所有可用版本
+./bin/pvm-mirror discover
+
+# 发现 PHP 版本
+./bin/pvm-mirror discover php
+
+# 发现所有 PECL 扩展版本
+./bin/pvm-mirror discover pecl
+
+# 发现指定 PECL 扩展版本
+./bin/pvm-mirror discover pecl redis
+
+# 发现所有 GitHub 扩展版本
+./bin/pvm-mirror discover github
+
+# 发现指定 GitHub 扩展版本
+./bin/pvm-mirror discover ext swoole
+```
+
+#### 3.2 配置更新
+
+使用版本发现的结果更新配置文件：
+
+```bash
+# 更新所有版本配置
+./bin/pvm-mirror update-config
+
+# 试运行模式（不实际修改配置文件）
+./bin/pvm-mirror update-config --dry-run
+
+# 更新 PHP 版本配置
+./bin/pvm-mirror update-config php
+
+# 更新所有 PECL 扩展版本配置
+./bin/pvm-mirror update-config pecl
+
+# 更新指定 PECL 扩展版本配置
+./bin/pvm-mirror update-config pecl redis
+
+# 更新所有 GitHub 扩展版本配置
+./bin/pvm-mirror update-config github
+
+# 更新指定 GitHub 扩展版本配置
+./bin/pvm-mirror update-config ext swoole
+```
+
+#### 3.3 版本发现特性
+
+- **多源支持**: 从 PHP 官方 API、PECL API、GitHub API 获取版本信息
+- **智能过滤**: 自动过滤掉 alpha、beta、RC 等不稳定版本
+- **分页处理**: GitHub API 分页获取，支持获取所有版本（如 swoole 的 150+ 个版本）
+- **智能版本选择**: 对于版本数量过多的扩展，智能选择每个主版本的最新几个版本
+- **配置保持**: 更新配置时保持现有的配置结构和注释
+- **试运行模式**: 支持预览要更新的内容而不实际修改文件
+- **增量更新**: 支持更新指定类型或指定扩展的版本信息
+- **版本压缩**: 自动将大量版本压缩为合理数量，避免配置文件过大
+- **模块化配置**: 每个扩展使用独立的配置文件，便于管理和维护
+
+### 4. 同步镜像内容
+
+#### 4.1 基本同步
 
 ```bash
 # 同步所有镜像内容
@@ -321,7 +421,7 @@ chmod +x bin/sync.sh
 ./bin/sync.sh
 ```
 
-#### 3.2 指定类型同步
+#### 4.2 指定类型同步
 
 ```bash
 # 同步指定类型的镜像内容
@@ -331,7 +431,7 @@ chmod +x bin/sync.sh
 ./bin/pvm-mirror sync extensions         # 同步所有特定扩展
 ```
 
-#### 3.3 指定版本同步
+#### 4.3 指定版本同步
 
 ```bash
 # Composer 版本同步
@@ -351,7 +451,7 @@ chmod +x bin/sync.sh
 ./bin/pvm-mirror sync ext swoole         # 使用简写形式
 ```
 
-#### 3.4 同步功能特性
+#### 4.4 同步功能特性
 
 - **向后兼容**: 无参数时同步所有内容，保持原有行为
 - **灵活指定**: 支持按类型或版本进行精确同步
@@ -360,11 +460,11 @@ chmod +x bin/sync.sh
 - **警告提示**: 对于不在配置列表中的版本，会显示警告但仍尝试下载
 - **进度显示**: 显示下载进度和完成状态
 
-#### 3.5 下载验证和空包检测
+#### 4.5 下载验证和空包检测
 
 为了避免下载空包或无效文件，系统实现了多层验证机制：
 
-##### 3.5.1 基础验证
+##### 4.5.1 基础验证
 - **文件大小检查**: 确保下载的文件达到最小大小要求
   - Composer: 最小 100KB
   - PHP 源码包: 最小 5MB
@@ -375,7 +475,7 @@ chmod +x bin/sync.sh
 - **重试机制**: 下载失败时自动重试，最多 3 次
 - **进度显示**: 实时显示下载进度和文件大小
 
-##### 3.5.2 内容验证
+##### 4.5.2 内容验证
 - **文件格式验证**: 检查文件头部魔数，确保文件格式正确
   - Gzip 文件: 检查 `1f 8b` 魔数
   - ZIP 文件: 检查 `PK` 魔数
@@ -385,7 +485,7 @@ chmod +x bin/sync.sh
 - **空文件检测**: 拒绝空文件或只包含空白字符的文件
 - **错误关键词检测**: 检测文件中的错误信息关键词
 
-##### 3.5.3 特定文件类型验证
+##### 4.5.3 特定文件类型验证
 
 **Composer PHAR 验证**:
 - 验证 PHAR 文件结构完整性
@@ -407,19 +507,19 @@ chmod +x bin/sync.sh
 - 检查主目录结构
 - 验证是否包含源代码文件
 
-##### 3.5.4 已存在文件验证
+##### 4.5.4 已存在文件验证
 - 对已存在的文件进行完整性检查
 - 发现损坏文件时自动重新下载
 - 避免使用无效的缓存文件
 
-##### 3.5.5 验证配置
+##### 4.5.5 验证配置
 可以通过 `configMirror/download.php` 配置文件自定义验证规则：
 - 调整最小文件大小要求
 - 配置重试次数和超时时间
 - 启用/禁用特定验证项
 - 自定义错误检测关键词
 
-### 4. 启动 Web 服务
+### 5. 启动 Web 服务
 
 ```bash
 # 使用 PHP 内置 Web 服务器（前台运行）
@@ -437,7 +537,7 @@ php -S 0.0.0.0:8080
 # 或者配置 Nginx/Apache
 ```
 
-### 5. 配置 PVM 使用镜像
+### 6. 配置 PVM 使用镜像
 
 编辑 PVM 的镜像配置文件 `~/.pvm/config/mirrors.php`：
 

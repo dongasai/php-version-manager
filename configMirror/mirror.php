@@ -54,11 +54,92 @@ return [
         // 扩展配置目录
         'config_dir' => 'extensions/pecl',
 
-        // 支持的扩展列表
+        // 支持的扩展列表 (132个扩展)
         'extensions' => [
-            'redis', 'memcached', 'xdebug', 'mongodb',
-            'imagick', 'swoole', 'yaml', 'protobuf',
-            'grpc', 'igbinary'
+            // 缓存扩展
+            'apcu', 'apcu_bc', 'memcache', 'memcached', 'redis', 'relay', 'yac',
+
+            // 数据库扩展
+            'cassandra', 'dba', 'interbase', 'mongo', 'mongodb', 'mssql', 'mysql', 'mysqli',
+            'oci8', 'odbc', 'pdo_dblib', 'pdo_firebird', 'pdo_mysql', 'pdo_oci', 'pdo_odbc',
+            'pdo_pgsql', 'pdo_sqlsrv', 'pgsql', 'sqlsrv', 'sybase_ct',
+
+            // 调试和性能
+            'blackfire', 'ddtrace', 'excimer', 'memprof', 'opcache', 'pcov', 'spx', 'xdebug', 'xhprof',
+
+            // 图像处理
+            'exif', 'gd', 'gmagick', 'imagick', 'vips',
+
+            // 网络和通信
+            'amqp', 'curl', 'grpc', 'http', 'imap', 'ldap', 'mosquitto', 'oauth', 'openswoole',
+            'smbclient', 'snmp', 'soap', 'sockets', 'ssh2', 'stomp', 'swoole',
+
+            // 数据格式
+            'csv', 'json_post', 'msgpack', 'protobuf', 'simdjson', 'wddx', 'xmldiff', 'xmlrpc', 'xsl', 'yaml',
+
+            // 字符串和编码
+            'enchant', 'gettext', 'igbinary', 'iconv', 'intl', 'mbstring', 'pspell', 'recode', 'tidy',
+
+            // 加密和安全
+            'gnupg', 'mcrypt', 'openssl', 'sodium',
+
+            // 数学计算
+            'bcmath', 'decimal', 'gmp',
+
+            // 文件和压缩
+            'bz2', 'lz4', 'lzf', 'snappy', 'zip', 'zstd',
+
+            // 系统功能
+            'calendar', 'ffi', 'inotify', 'parallel', 'pcntl', 'shmop', 'sysvmsg', 'sysvsem', 'sysvshm',
+            'uopz', 'uploadprogress', 'uuid',
+
+            // 事件处理
+            'ev', 'event',
+
+            // 框架扩展
+            'phalcon', 'yaf', 'yar', 'zephir_parser',
+
+            // 语言工具
+            'ast', 'ds', 'parle', 'php_trie',
+
+            // 日志
+            'seaslog',
+
+            // 地理和位置
+            'gearman', 'geoip', 'geos', 'geospatial', 'maxminddb',
+
+            // 机器学习
+            'tensor',
+
+            // 搜索
+            'solr',
+
+            // 消息队列
+            'rdkafka', 'zmq', 'zookeeper',
+
+            // 邮件处理
+            'mailparse',
+
+            // 标记语言
+            'cmark',
+
+            // 脚本引擎
+            'luasandbox',
+
+            // 办公文档
+            'xlswriter',
+
+            // 时间处理
+            'timezonedb',
+
+            // 安全防护
+            'snuffleupagus', 'sourceguardian', 'ioncube_loader',
+
+            // 监控追踪
+            'opencensus', 'opentelemetry',
+
+            // 其他工具
+            'ion', 'jsmin', 'propro', 'pthreads', 'raphf', 'xdiff'
         ],
 
         // 是否启用此镜像
@@ -71,8 +152,26 @@ return [
 
         // 支持的扩展列表
         'extensions' => [
-            'redis', 'memcached', 'xdebug', 'mongodb',
-            'imagick', 'swoole'
+            // 缓存和数据库
+            'redis', 'memcached', 'mongodb',
+
+            // 调试和性能
+            'xdebug', 'tideways',
+
+            // 图像和媒体
+            'imagick',
+
+            // 网络和通信
+            'swoole',
+
+            // 框架扩展
+            'phalcon', 'yaf',
+
+            // 语言工具
+            'php-ast', 'php-ds',
+
+            // 日志和监控
+            'seaslog'
         ],
 
         // 是否启用此镜像

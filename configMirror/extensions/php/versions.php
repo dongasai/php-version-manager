@@ -4,7 +4,7 @@
  * Extension 版本配置文件
  * 
  * 此文件由版本发现服务自动更新
- * 最后更新时间: 2025-05-29 00:00:41
+ * 最后更新时间: 2025-05-29 00:03:59
  */
 
 return [
@@ -73,7 +73,7 @@ return [
     ],
     'metadata' => [
         'total_versions' => 13,
-        'last_updated' => '2025-05-29 00:00:41',
+        'last_updated' => '2025-05-29 00:03:59',
         'discovery_source' => 'https://www.php.net/releases/index.php?json=1',
         'auto_updated' => true,
     ],

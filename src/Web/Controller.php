@@ -154,6 +154,9 @@ class Controller
             case 'actions/install':
                 return $this->actionInstall();
 
+            case 'install-progress':
+                return $this->showInstallProgress();
+
             case 'api/versions':
                 return $this->apiVersions();
 
@@ -162,6 +165,9 @@ class Controller
 
             case 'api/monitor':
                 return $this->apiMonitor();
+
+            case 'api/install-status':
+                return $this->apiInstallStatus();
 
             default:
                 return $this->show404();
@@ -596,15 +602,53 @@ class Controller
                 $message = '不能删除当前正在使用的PHP版本';
                 $type = 'error';
             } else {
-                // 使用VersionManager删除版本
-                $result = $this->versionManager->remove($version);
+                // 检查版本是否为不完整安装
+                $installedVersions = $this->versionManager->getInstalledVersions();
+                $isIncomplete = false;
 
-                if ($result) {
-                    $message = "成功删除PHP版本 {$version}";
-                    $type = 'success';
+                foreach ($installedVersions as $installedVersion) {
+                    if ($installedVersion['version'] === $version && $installedVersion['status'] === 'incomplete') {
+                        $isIncomplete = true;
+                        break;
+                    }
+                }
+
+                if ($isIncomplete) {
+                    // 对于不完整的版本，直接删除目录
+                    $homeDir = getenv('HOME') ?: '/root';
+                    $versionDir = $homeDir . '/.pvm/versions/' . $version;
+
+                    if (!$versionDir || $versionDir === $homeDir . '/.pvm/versions/') {
+                        throw new \Exception('无效的版本目录路径');
+                    }
+
+                    if (is_dir($versionDir)) {
+                        // 使用系统命令删除目录
+                        $command = "rm -rf " . escapeshellarg($versionDir);
+                        exec($command, $output, $returnCode);
+
+                        if ($returnCode === 0) {
+                            $message = "成功删除不完整的PHP版本 {$version}";
+                            $type = 'success';
+                        } else {
+                            $message = "删除不完整版本 {$version} 失败";
+                            $type = 'error';
+                        }
+                    } else {
+                        $message = "版本目录不存在: {$version}";
+                        $type = 'warning';
+                    }
                 } else {
-                    $message = "删除PHP版本 {$version} 失败";
-                    $type = 'error';
+                    // 使用VersionManager删除完整安装的版本
+                    $result = $this->versionManager->remove($version);
+
+                    if ($result) {
+                        $message = "成功删除PHP版本 {$version}";
+                        $type = 'success';
+                    } else {
+                        $message = "删除PHP版本 {$version} 失败";
+                        $type = 'error';
+                    }
                 }
             }
         } catch (\Exception $e) {
@@ -651,22 +695,332 @@ class Controller
                 }
             }
 
-            // 使用VersionManager安装版本
-            $result = $this->versionManager->install($version);
+            // 启动异步安装
+            $taskId = $this->startAsyncInstall($version);
 
-            if ($result) {
-                $message = "成功安装PHP版本 {$version}";
-                $type = 'success';
+            if ($taskId) {
+                // 重定向到安装进度页面
+                header('Location: /install-progress?task_id=' . $taskId . '&version=' . urlencode($version));
+                exit;
             } else {
-                $message = "安装PHP版本 {$version} 失败";
+                $message = "启动安装任务失败";
                 $type = 'error';
+                header('Location: /versions?message=' . urlencode($message) . '&type=' . $type);
+                exit;
             }
         } catch (\Exception $e) {
             $message = '版本安装失败: ' . $e->getMessage();
             $type = 'error';
+            header('Location: /versions?message=' . urlencode($message) . '&type=' . $type);
+            exit;
+        }
+    }
+
+    /**
+     * 启动异步安装任务
+     *
+     * @param string $version PHP版本
+     * @return string|false 任务ID或false
+     */
+    private function startAsyncInstall($version)
+    {
+        // 生成任务ID
+        $taskId = uniqid('install_', true);
+
+        // 创建任务目录
+        $taskDir = sys_get_temp_dir() . '/pvm_tasks';
+        if (!is_dir($taskDir)) {
+            mkdir($taskDir, 0755, true);
         }
 
-        header('Location: /versions?message=' . urlencode($message) . '&type=' . $type);
-        exit;
+        // 清理旧任务文件（超过24小时的）
+        $this->cleanupOldTasks($taskDir);
+
+        // 创建任务状态文件
+        $taskFile = $taskDir . '/' . $taskId . '.json';
+        $taskData = [
+            'id' => $taskId,
+            'version' => $version,
+            'status' => 'starting',
+            'progress' => 0,
+            'message' => '正在启动安装任务...',
+            'start_time' => time(),
+            'log' => []
+        ];
+
+        file_put_contents($taskFile, json_encode($taskData, JSON_PRETTY_PRINT));
+
+        // 构建安装命令
+        $pvmBin = dirname(dirname(__DIR__)) . '/bin/pvm';
+        $logFile = $taskDir . '/' . $taskId . '.log';
+
+        // 使用nohup在后台执行安装命令
+        $command = sprintf(
+            'nohup %s install %s --yes > %s 2>&1 & echo $!',
+            escapeshellarg($pvmBin),
+            escapeshellarg($version),
+            escapeshellarg($logFile)
+        );
+
+        // 执行命令并获取进程ID
+        $output = [];
+        exec($command, $output, $returnCode);
+
+        if ($returnCode === 0 && !empty($output)) {
+            $pid = trim($output[0]);
+
+            // 更新任务状态
+            $taskData['status'] = 'running';
+            $taskData['progress'] = 5;
+            $taskData['message'] = '安装任务已启动...';
+            $taskData['pid'] = $pid;
+
+            file_put_contents($taskFile, json_encode($taskData, JSON_PRETTY_PRINT));
+
+            return $taskId;
+        }
+
+        return false;
+    }
+
+    /**
+     * 显示安装进度页面
+     *
+     * @return string 响应内容
+     */
+    private function showInstallProgress()
+    {
+        $taskId = $_GET['task_id'] ?? '';
+        $version = $_GET['version'] ?? '';
+
+        if (empty($taskId) || empty($version)) {
+            header('Location: /versions?message=' . urlencode('任务参数缺失') . '&type=error');
+            exit;
+        }
+
+        // 渲染安装进度页面
+        return $this->view->render('install-progress', [
+            'title' => 'PVM 管理面板 - 安装进度',
+            'taskId' => $taskId,
+            'version' => $version,
+        ]);
+    }
+
+    /**
+     * API: 获取安装状态
+     *
+     * @return string JSON响应
+     */
+    private function apiInstallStatus()
+    {
+        header('Content-Type: application/json');
+
+        $taskId = $_GET['task_id'] ?? '';
+
+        if (empty($taskId)) {
+            return json_encode(['error' => '任务ID缺失']);
+        }
+
+        // 获取任务状态
+        $taskDir = sys_get_temp_dir() . '/pvm_tasks';
+        $taskFile = $taskDir . '/' . $taskId . '.json';
+        $logFile = $taskDir . '/' . $taskId . '.log';
+
+        if (!file_exists($taskFile)) {
+            return json_encode(['error' => '任务不存在']);
+        }
+
+        $taskData = json_decode(file_get_contents($taskFile), true);
+
+        // 检查进程是否还在运行
+        if (isset($taskData['pid'])) {
+            $pid = $taskData['pid'];
+            $isRunning = $this->isProcessRunning($pid);
+
+            if (!$isRunning && $taskData['status'] === 'running') {
+                // 进程已结束，检查安装结果
+                $this->updateTaskStatus($taskId, $taskData);
+            }
+        }
+
+        // 读取日志文件
+        $log = [];
+        if (file_exists($logFile)) {
+            $logContent = file_get_contents($logFile);
+            $log = array_filter(explode("\n", $logContent));
+
+            // 分析日志内容更新进度
+            $this->analyzeLogAndUpdateProgress($taskId, $taskData, $log);
+        }
+
+        // 重新读取更新后的任务数据
+        if (file_exists($taskFile)) {
+            $taskData = json_decode(file_get_contents($taskFile), true);
+        }
+
+        // 添加日志内容到响应中
+        if (!empty($log)) {
+            // 只返回最后100行日志，避免响应过大
+            $taskData['log_lines'] = array_slice($log, -100);
+        } else {
+            $taskData['log_lines'] = [];
+        }
+
+        return json_encode($taskData);
+    }
+
+    /**
+     * 检查进程是否正在运行
+     *
+     * @param int $pid 进程ID
+     * @return bool 是否正在运行
+     */
+    private function isProcessRunning($pid)
+    {
+        $output = [];
+        $returnCode = 0;
+        exec("ps -p {$pid}", $output, $returnCode);
+
+        return $returnCode === 0 && count($output) > 1;
+    }
+
+    /**
+     * 更新任务状态
+     *
+     * @param string $taskId 任务ID
+     * @param array $taskData 任务数据
+     */
+    private function updateTaskStatus($taskId, &$taskData)
+    {
+        $taskDir = sys_get_temp_dir() . '/pvm_tasks';
+        $taskFile = $taskDir . '/' . $taskId . '.json';
+        $logFile = $taskDir . '/' . $taskId . '.log';
+
+        // 检查安装是否成功
+        $version = $taskData['version'];
+        $isInstalled = $this->versionManager->isVersionInstalled($version);
+
+        if ($isInstalled) {
+            $taskData['status'] = 'completed';
+            $taskData['progress'] = 100;
+            $taskData['message'] = "PHP版本 {$version} 安装成功！";
+            $taskData['end_time'] = time();
+        } else {
+            $taskData['status'] = 'failed';
+            $taskData['progress'] = 0;
+            $taskData['message'] = "PHP版本 {$version} 安装失败";
+            $taskData['end_time'] = time();
+
+            // 尝试从日志中获取错误信息
+            if (file_exists($logFile)) {
+                $logContent = file_get_contents($logFile);
+                $lines = array_filter(explode("\n", $logContent));
+                $errorLines = array_filter($lines, function($line) {
+                    return stripos($line, 'error') !== false ||
+                           stripos($line, 'failed') !== false ||
+                           stripos($line, '错误') !== false ||
+                           stripos($line, '失败') !== false;
+                });
+
+                if (!empty($errorLines)) {
+                    $taskData['error'] = implode("\n", array_slice($errorLines, -3));
+                }
+            }
+        }
+
+        file_put_contents($taskFile, json_encode($taskData, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * 分析日志并更新进度
+     *
+     * @param string $taskId 任务ID
+     * @param array $taskData 任务数据
+     * @param array $log 日志行
+     */
+    private function analyzeLogAndUpdateProgress($taskId, &$taskData, $log)
+    {
+        $taskDir = sys_get_temp_dir() . '/pvm_tasks';
+        $taskFile = $taskDir . '/' . $taskId . '.json';
+
+        $updated = false;
+        $currentProgress = $taskData['progress'];
+        $currentMessage = $taskData['message'];
+
+        // 分析日志内容，更新进度
+        foreach ($log as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+
+            // 根据关键词判断进度，使用更精确的匹配
+            if ((stripos($line, '下载PHP') !== false || stripos($line, 'downloading') !== false) && $currentProgress < 10) {
+                $currentProgress = 10;
+                $currentMessage = '正在下载PHP源码...';
+                $updated = true;
+            } elseif ((stripos($line, '解压') !== false || stripos($line, 'extracting') !== false) && $currentProgress < 30) {
+                $currentProgress = 30;
+                $currentMessage = '正在解压源码...';
+                $updated = true;
+            } elseif ((stripos($line, './configure') !== false || stripos($line, '配置编译') !== false) && $currentProgress < 40) {
+                $currentProgress = 40;
+                $currentMessage = '正在配置编译选项...';
+                $updated = true;
+            } elseif ((stripos($line, 'make -j') !== false || stripos($line, '编译PHP') !== false) && $currentProgress < 70) {
+                $currentProgress = 70;
+                $currentMessage = '正在编译PHP...';
+                $updated = true;
+            } elseif ((stripos($line, 'make install') !== false || stripos($line, '安装PHP') !== false) && $currentProgress < 90) {
+                $currentProgress = 90;
+                $currentMessage = '正在安装PHP...';
+                $updated = true;
+            } elseif ((stripos($line, '安装完成') !== false || stripos($line, 'installation completed') !== false) && $currentProgress < 100) {
+                $currentProgress = 100;
+                $currentMessage = 'PHP安装完成！';
+                $updated = true;
+            }
+
+            // 检测下载进度百分比
+            if (preg_match('/(\d+(?:\.\d+)?)%/', $line, $matches)) {
+                $downloadProgress = (float)$matches[1];
+                if ($downloadProgress > 0 && $currentProgress >= 5 && $currentProgress < 30) {
+                    // 下载阶段占10-29%，根据实际下载进度动态更新
+                    $newProgress = min(29, 10 + ($downloadProgress * 0.19)); // 100% 下载对应 19% 总进度
+                    if ($newProgress > $currentProgress || ($currentProgress >= 10 && $currentProgress < 30)) {
+                        $currentProgress = $newProgress;
+                        $currentMessage = "正在下载PHP源码... {$downloadProgress}%";
+                        $updated = true;
+                    }
+                }
+            }
+        }
+
+        // 如果有更新，保存到文件
+        if ($updated) {
+            $taskData['progress'] = $currentProgress;
+            $taskData['message'] = $currentMessage;
+            file_put_contents($taskFile, json_encode($taskData, JSON_PRETTY_PRINT));
+        }
+    }
+
+    /**
+     * 清理旧任务文件
+     *
+     * @param string $taskDir 任务目录
+     */
+    private function cleanupOldTasks($taskDir)
+    {
+        if (!is_dir($taskDir)) {
+            return;
+        }
+
+        $files = glob($taskDir . '/*');
+        $now = time();
+        $maxAge = 24 * 60 * 60; // 24小时
+
+        foreach ($files as $file) {
+            if (is_file($file) && ($now - filemtime($file)) > $maxAge) {
+                unlink($file);
+            }
+        }
     }
 }

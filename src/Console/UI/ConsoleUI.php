@@ -68,8 +68,10 @@ class ConsoleUI
         // 检测是否支持彩色输出
         $this->colorEnabled = $this->supportsColor();
 
-        // 获取终端尺寸
-        $this->detectTerminalSize();
+        // 获取终端尺寸（仅在真正的TTY环境中）
+        if (function_exists('posix_isatty') && @posix_isatty(STDOUT)) {
+            $this->detectTerminalSize();
+        }
     }
 
     /**
@@ -451,14 +453,25 @@ class ConsoleUI
      */
     private function detectTerminalSize()
     {
-        // 尝试使用stty命令获取终端尺寸
+        // 尝试从环境变量获取终端尺寸
+        $columns = getenv('COLUMNS');
+        $lines = getenv('LINES');
+
+        if ($columns !== false && $lines !== false) {
+            $this->terminalWidth = (int) $columns;
+            $this->terminalHeight = (int) $lines;
+            return;
+        }
+
+        // 尝试使用stty命令获取终端尺寸（添加超时保护）
         if (PHP_OS_FAMILY !== 'Windows' && function_exists('exec')) {
             $output = [];
             $returnCode = 0;
 
-            exec('stty size 2>/dev/null', $output, $returnCode);
+            // 使用timeout命令防止阻塞
+            exec('timeout 1 stty size 2>/dev/null || echo ""', $output, $returnCode);
 
-            if ($returnCode === 0 && isset($output[0])) {
+            if ($returnCode === 0 && isset($output[0]) && !empty(trim($output[0]))) {
                 $parts = explode(' ', trim($output[0]));
                 if (count($parts) === 2) {
                     $this->terminalHeight = (int) $parts[0];
@@ -468,21 +481,21 @@ class ConsoleUI
             }
         }
 
-        // 尝试使用tput命令获取终端尺寸
+        // 尝试使用tput命令获取终端尺寸（添加超时保护）
         if (PHP_OS_FAMILY !== 'Windows' && function_exists('exec')) {
             $output = [];
             $returnCode = 0;
 
-            exec('tput cols 2>/dev/null', $output, $returnCode);
-            if ($returnCode === 0 && isset($output[0])) {
+            exec('timeout 1 tput cols 2>/dev/null || echo ""', $output, $returnCode);
+            if ($returnCode === 0 && isset($output[0]) && !empty(trim($output[0]))) {
                 $this->terminalWidth = (int) $output[0];
             }
 
             $output = [];
             $returnCode = 0;
 
-            exec('tput lines 2>/dev/null', $output, $returnCode);
-            if ($returnCode === 0 && isset($output[0])) {
+            exec('timeout 1 tput lines 2>/dev/null || echo ""', $output, $returnCode);
+            if ($returnCode === 0 && isset($output[0]) && !empty(trim($output[0]))) {
                 $this->terminalHeight = (int) $output[0];
             }
         }

@@ -184,7 +184,8 @@ class InitCommand implements CommandInterface
             if (!$success) {
                 echo "\n❌ 安装PHP扩展失败\n";
                 echo "请尝试手动执行以下命令安装扩展：\n";
-                echo "sudo apt-get update && sudo apt-get install -y " . implode(' ', $extensionPackages) . "\n";
+                echo "sudo apt-get update\n";
+                echo "sudo apt-get install -y " . implode(' ', $extensionPackages) . "\n";
                 return false;
             }
 
@@ -195,40 +196,76 @@ class InitCommand implements CommandInterface
         if (!empty($missingCommands)) {
             echo "\n正在安装缺失的系统命令...\n";
 
-            // 根据包管理器构建命令
-            $installCommandsCommand = "";
+            $success = false;
+
+            // 根据包管理器执行安装命令
             switch ($packageManager) {
                 case 'apt':
-                    $installCommandsCommand = "sudo apt-get update && sudo apt-get install -y " . implode(' ', $missingCommands);
+                    // 先执行 apt-get update
+                    echo "正在更新软件包列表...\n";
+                    $updateSuccess = $this->executeCommand("sudo apt-get update");
+
+                    if (!$updateSuccess) {
+                        echo "\n尝试不使用sudo更新软件包列表...\n";
+                        $updateSuccess = $this->executeCommand("apt-get update");
+                    }
+
+                    if ($updateSuccess) {
+                        // 然后安装软件包
+                        $installCommand = "sudo apt-get install -y " . implode(' ', $missingCommands);
+                        $success = $this->executeCommand($installCommand);
+
+                        if (!$success) {
+                            echo "\n尝试不使用sudo安装软件包...\n";
+                            $installCommand = "apt-get install -y " . implode(' ', $missingCommands);
+                            $success = $this->executeCommand($installCommand);
+                        }
+                    }
                     break;
                 case 'yum':
-                    $installCommandsCommand = "sudo yum install -y " . implode(' ', $missingCommands);
+                    $installCommand = "sudo yum install -y " . implode(' ', $missingCommands);
+                    $success = $this->executeCommand($installCommand);
+
+                    if (!$success) {
+                        echo "\n尝试不使用sudo执行命令...\n";
+                        $installCommand = "yum install -y " . implode(' ', $missingCommands);
+                        $success = $this->executeCommand($installCommand);
+                    }
                     break;
                 case 'dnf':
-                    $installCommandsCommand = "sudo dnf install -y " . implode(' ', $missingCommands);
+                    $installCommand = "sudo dnf install -y " . implode(' ', $missingCommands);
+                    $success = $this->executeCommand($installCommand);
+
+                    if (!$success) {
+                        echo "\n尝试不使用sudo执行命令...\n";
+                        $installCommand = "dnf install -y " . implode(' ', $missingCommands);
+                        $success = $this->executeCommand($installCommand);
+                    }
                     break;
                 case 'apk':
-                    $installCommandsCommand = "sudo apk add " . implode(' ', $missingCommands);
+                    $installCommand = "sudo apk add " . implode(' ', $missingCommands);
+                    $success = $this->executeCommand($installCommand);
+
+                    if (!$success) {
+                        echo "\n尝试不使用sudo执行命令...\n";
+                        $installCommand = "apk add " . implode(' ', $missingCommands);
+                        $success = $this->executeCommand($installCommand);
+                    }
                     break;
                 default:
                     echo "❌ 不支持的包管理器: {$packageManager}\n";
                     return false;
             }
 
-            // 执行安装命令
-            $success = $this->executeCommand($installCommandsCommand);
-
-            // 如果使用sudo失败，尝试不使用sudo
-            if (!$success) {
-                echo "\n尝试不使用sudo执行命令...\n";
-                $installCommandsCommand = str_replace("sudo ", "", $installCommandsCommand);
-                $success = $this->executeCommand($installCommandsCommand);
-            }
-
             if (!$success) {
                 echo "\n❌ 安装系统命令失败\n";
                 echo "请尝试手动执行以下命令安装系统命令：\n";
-                echo "sudo apt-get update && sudo apt-get install -y " . implode(' ', $missingCommands) . "\n";
+                if ($packageManager === 'apt') {
+                    echo "sudo apt-get update\n";
+                    echo "sudo apt-get install -y " . implode(' ', $missingCommands) . "\n";
+                } else {
+                    echo "sudo {$packageManager} install -y " . implode(' ', $missingCommands) . "\n";
+                }
                 return false;
             }
 
@@ -259,15 +296,40 @@ class InitCommand implements CommandInterface
             }
 
             // 安装Composer到PHP版本目录
-            $installComposerCommand = "curl -sS https://getcomposer.org/installer | php && mv composer.phar " . escapeshellarg($composerDir . '/composer.phar') . " && chmod +x " . escapeshellarg($composerDir . '/composer.phar');
-            $success = $this->executeCommand($installComposerCommand);
+            // 步骤1: 下载并安装Composer
+            echo "正在下载Composer安装程序...\n";
+            $downloadSuccess = $this->executeCommand("curl -sS https://getcomposer.org/installer | php");
 
-            if (!$success) {
-                echo "\n❌ 安装Composer失败\n";
+            if (!$downloadSuccess) {
+                echo "\n❌ 下载Composer安装程序失败\n";
                 echo "请尝试手动执行以下命令安装Composer：\n";
                 echo "curl -sS https://getcomposer.org/installer | php\n";
                 echo "mkdir -p " . $composerDir . "\n";
                 echo "mv composer.phar " . $composerDir . "/composer.phar\n";
+                echo "chmod +x " . $composerDir . "/composer.phar\n";
+                return false;
+            }
+
+            // 步骤2: 移动composer.phar到目标目录
+            echo "正在移动Composer到目标目录...\n";
+            $targetPath = escapeshellarg($composerDir . '/composer.phar');
+            $moveSuccess = $this->executeCommand("mv composer.phar " . $targetPath);
+
+            if (!$moveSuccess) {
+                echo "\n❌ 移动Composer文件失败\n";
+                echo "请尝试手动执行以下命令：\n";
+                echo "mv composer.phar " . $composerDir . "/composer.phar\n";
+                echo "chmod +x " . $composerDir . "/composer.phar\n";
+                return false;
+            }
+
+            // 步骤3: 设置执行权限
+            echo "正在设置Composer执行权限...\n";
+            $chmodSuccess = $this->executeCommand("chmod +x " . $targetPath);
+
+            if (!$chmodSuccess) {
+                echo "\n❌ 设置Composer执行权限失败\n";
+                echo "请尝试手动执行以下命令：\n";
                 echo "chmod +x " . $composerDir . "/composer.phar\n";
                 return false;
             }

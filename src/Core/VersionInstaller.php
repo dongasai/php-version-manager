@@ -398,10 +398,11 @@ class VersionInstaller
      * 执行命令并实时显示输出
      *
      * @param string $command 要执行的命令
+     * @param int $timeout 超时时间（秒），0表示无超时
      * @return bool 是否执行成功
      * @throws Exception 执行失败时抛出异常
      */
-    private function executeCommand($command)
+    private function executeCommand($command, $timeout = 0)
     {
         // 使用proc_open实现实时输出
         $descriptorspec = [
@@ -422,6 +423,8 @@ class VersionInstaller
 
             $output = '';
             $error = '';
+            $startTime = time();
+            $lastOutputTime = $startTime;
 
             // 循环读取输出，直到进程结束
             while (true) {
@@ -432,6 +435,7 @@ class VersionInstaller
                 if ($stdout) {
                     echo $stdout;
                     $output .= $stdout;
+                    $lastOutputTime = time();
                 }
 
                 // 读取stderr
@@ -439,6 +443,7 @@ class VersionInstaller
                 if ($stderr) {
                     echo $stderr;
                     $error .= $stderr;
+                    $lastOutputTime = time();
                 }
 
                 // 如果进程已结束，则退出循环
@@ -457,6 +462,22 @@ class VersionInstaller
                     }
 
                     break;
+                }
+
+                // 检查超时
+                $currentTime = time();
+                if ($timeout > 0) {
+                    // 总超时检查
+                    if (($currentTime - $startTime) > $timeout) {
+                        proc_terminate($process);
+                        throw new Exception("命令执行超时（{$timeout}秒）");
+                    }
+
+                    // 无输出超时检查（如果超过5分钟没有输出，认为可能卡死）
+                    if (($currentTime - $lastOutputTime) > 300) {
+                        proc_terminate($process);
+                        throw new Exception("命令执行无响应超时（5分钟无输出）");
+                    }
                 }
 
                 // 避免 CPU 占用过高
@@ -771,37 +792,31 @@ class VersionInstaller
         }
 
         // 执行配置
+        echo "配置编译选项...\n";
         $configureCommand = "cd {$sourceDir} && ./configure " . implode(' ', $configureOptions);
-        echo "执行配置: {$configureCommand}\n";
-        $output = [];
-        $returnCode = 0;
-        exec($configureCommand, $output, $returnCode);
-
-        if ($returnCode !== 0) {
-            throw new Exception("配置失败: " . implode("\n", $output));
+        try {
+            $this->executeCommand($configureCommand, 600); // 10分钟超时
+        } catch (Exception $e) {
+            throw new Exception("配置失败: " . $e->getMessage());
         }
 
         // 编译
         echo "编译PHP {$version}...\n";
         $cpuCores = $this->detectCPUCores();
         $makeCommand = "cd {$sourceDir} && make -j{$cpuCores}";
-        $output = [];
-        $returnCode = 0;
-        exec($makeCommand, $output, $returnCode);
-
-        if ($returnCode !== 0) {
-            throw new Exception("编译失败: " . implode("\n", $output));
+        try {
+            $this->executeCommand($makeCommand, 3600); // 1小时超时
+        } catch (Exception $e) {
+            throw new Exception("编译失败: " . $e->getMessage());
         }
 
         // 安装
         echo "安装PHP {$version}...\n";
         $installCommand = "cd {$sourceDir} && make install";
-        $output = [];
-        $returnCode = 0;
-        exec($installCommand, $output, $returnCode);
-
-        if ($returnCode !== 0) {
-            throw new Exception("安装失败: " . implode("\n", $output));
+        try {
+            $this->executeCommand($installCommand, 600); // 10分钟超时
+        } catch (Exception $e) {
+            throw new Exception("安装失败: " . $e->getMessage());
         }
 
         // 创建配置目录

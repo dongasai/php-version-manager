@@ -177,11 +177,25 @@ class WebCommand implements CommandInterface
      */
     private function canUseSudo()
     {
+        // 如果已经是root用户，就不需要sudo
+        if ($this->hasAdminPrivileges()) {
+            return true;
+        }
+
+        // 检查用户是否在sudo组中
         $output = [];
         $returnCode = 0;
-        exec('sudo -n true 2>/dev/null', $output, $returnCode);
+        exec('groups 2>/dev/null', $output, $returnCode);
 
-        return $returnCode === 0;
+        if ($returnCode === 0 && !empty($output)) {
+            $groups = implode(' ', $output);
+            if (strpos($groups, 'sudo') !== false || strpos($groups, 'wheel') !== false) {
+                return true;
+            }
+        }
+
+        // 如果用户在sudo组中，假设可以使用sudo
+        return false;
     }
 
     /**

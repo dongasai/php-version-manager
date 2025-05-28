@@ -609,12 +609,26 @@ class ComposerManager
         $composerWrapper = $composerVersionDir . '/composer';
 
         // 执行命令
-        $fullCommand = "cd {$workingDir} && {$composerWrapper} {$command}";
-        $output = [];
-        $returnCode = 0;
+        // 保存当前工作目录
+        $originalDir = getcwd();
 
-        exec($fullCommand . ' 2>&1', $output, $returnCode);
+        try {
+            // 切换到工作目录
+            if (!chdir($workingDir)) {
+                throw new \Exception("无法切换到工作目录: {$workingDir}");
+            }
 
-        return [$output, $returnCode];
+            // 执行Composer命令
+            $fullCommand = "{$composerWrapper} {$command}";
+            $output = [];
+            $returnCode = 0;
+
+            exec($fullCommand . ' 2>&1', $output, $returnCode);
+
+            return [$output, $returnCode];
+        } finally {
+            // 恢复原始工作目录
+            chdir($originalDir);
+        }
     }
 }

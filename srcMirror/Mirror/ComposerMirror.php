@@ -87,9 +87,16 @@ class ComposerMirror
      */
     private function downloadVersion($source, $pattern, $dataDir, $version)
     {
-        $filename = str_replace('{version}', $version, $pattern);
-        $sourceUrl = $source . '/' . $filename;
-        $targetFile = $dataDir . '/' . $filename;
+        // 根据URL转换规则处理不同版本的URL和文件名
+        if ($version === 'stable') {
+            // 稳定版：源URL为 /download/composer.phar，目标文件为 composer.phar
+            $sourceUrl = $source . '/composer.phar';
+            $targetFile = $dataDir . '/composer.phar';
+        } else {
+            // 指定版本：源URL为 /download/{version}/composer.phar，目标文件为 composer-{version}.phar
+            $sourceUrl = $source . '/' . $version . '/composer.phar';
+            $targetFile = $dataDir . '/composer-' . $version . '.phar';
+        }
 
         // 如果文件不存在，则下载
         if (!file_exists($targetFile)) {

@@ -135,6 +135,45 @@ pvm pvm-mirror config
 - ✅ **URL转换正确**：所有4类官方源都能正确转换为镜像URL
 - ✅ **镜像支持检测**：能正确识别URL是否支持镜像
 
+### 6. URL转换规则文档化
+
+#### 🔧 实现内容
+- **创建URL转换规则文档**：`docs/URL_CONVERSION_RULES.md` 详细的转换规则说明
+- **定义转换算法**：明确每种官方源的转换逻辑和路径映射
+- **提供使用示例**：包含完整的使用方式和优先级说明
+
+#### ✅ 文档内容
+- **4类官方源转换规则**：php.net、pecl.php.net、getcomposer.org、github.com
+- **镜像源目录结构**：`/php/`、`/pecl/`、`/composer/`、`/github/{owner}/{repo}/`
+- **转换算法实现**：核心转换逻辑的PHP代码示例
+- **使用方式说明**：UrlManager的使用方法和优先级顺序
+
+### 7. 镜像同步策略修复
+
+#### 🔧 修复内容
+- **修复Composer同步策略**：调整文件命名规则，支持稳定版和指定版本
+- **修复GitHub扩展同步**：使用`/github/{owner}/{repo}/`目录结构
+- **创建镜像同步策略文档**：`docs/MIRROR_SYNC_STRATEGY.md` 完整的同步策略
+- **修复配置文件**：更新`config/mirror.php`中的Composer配置
+
+#### ✅ 同步策略调整
+1. **Composer文件命名**：
+   - 稳定版：`composer.phar`
+   - 指定版本：`composer-{version}.phar`
+
+2. **GitHub扩展目录结构**：
+   - 旧结构：`/extensions/{extension}/`
+   - 新结构：`/github/{owner}/{repo}/`
+
+3. **配置文件更新**：
+   - 添加稳定版支持：`'versions' => ['stable', '2.2.21', ...]`
+   - 调整文件模式：`'pattern' => 'composer-{version}.phar'`
+
+#### ✅ 一致性验证
+- ✅ **测试覆盖率100%**：9个测试用例全部通过
+- ✅ **URL转换一致**：UrlManager转换结果与镜像同步策略完全匹配
+- ✅ **目录结构统一**：所有类型的文件都使用统一的目录结构
+
 ## 📁 修改的文件列表
 
 ### 核心功能文件
@@ -147,9 +186,16 @@ pvm pvm-mirror config
 7. **src/Web/templates/layout.php** - 添加权限提示和PVM镜像源菜单
 8. **src/Web/templates/pvm-mirror.php** - 新建PVM镜像源管理页面模板
 
+### 镜像同步策略修复
+9. **config/mirror.php** - 修复Composer配置，添加稳定版支持
+10. **srcMirror/Mirror/ComposerMirror.php** - 修复Composer文件命名规则
+11. **srcMirror/Mirror/ExtensionMirror.php** - 修复GitHub扩展目录结构
+
 ### 配置和文档文件
-9. **docs/DEV.md** - 更新开发文档，标记任务完成
-10. **MIRROR_MANAGEMENT_FIX_REPORT.md** - 本修复报告
+12. **docs/URL_CONVERSION_RULES.md** - 新建URL转换规则文档
+13. **docs/MIRROR_SYNC_STRATEGY.md** - 新建镜像同步策略文档
+14. **docs/DEV.md** - 更新开发文档，标记任务完成
+15. **MIRROR_MANAGEMENT_FIX_REPORT.md** - 本修复报告
 
 ## 🧪 完整测试验证
 

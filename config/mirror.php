@@ -104,11 +104,11 @@ return [
         // 官方源
         'source' => 'https://getcomposer.org/download',
 
-        // 需要镜像的版本
-        'versions' => ['2.2.21', '2.3.10', '2.4.4', '2.5.8', '2.6.5', '2.7.9', '2.8.9'],
+        // 需要镜像的版本（包含稳定版）
+        'versions' => ['stable', '2.2.21', '2.3.10', '2.4.4', '2.5.8', '2.6.5', '2.7.9', '2.8.9'],
 
-        // 文件名模式
-        'pattern' => '{version}/composer.phar',
+        // 文件名模式（根据URL转换规则调整）
+        'pattern' => 'composer-{version}.phar',
 
         // 是否启用此镜像
         'enabled' => true,

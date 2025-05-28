@@ -47,7 +47,15 @@ class ExtensionMirror
     {
         $source = $extConfig['source'];
         $pattern = $extConfig['pattern'];
-        $dataDir = $baseDir . '/extensions/' . $extension; // 强制添加二级目录结构
+
+        // 根据URL转换规则，GitHub扩展使用 /github/{owner}/{repo}/ 目录结构
+        $githubInfo = $this->parseGithubSource($source);
+        if ($githubInfo) {
+            $dataDir = $baseDir . '/github/' . $githubInfo['owner'] . '/' . $githubInfo['repo'];
+        } else {
+            // 兼容旧的目录结构
+            $dataDir = $baseDir . '/extensions/' . $extension;
+        }
 
         // 确保目录存在
         if (!is_dir($dataDir)) {
@@ -128,6 +136,25 @@ class ExtensionMirror
                 return $this->downloadExtensionVersion($source, $pattern, $dataDir, $extension, $version);
             }
         }
+    }
+
+    /**
+     * 解析GitHub源地址，提取owner和repo信息
+     *
+     * @param string $source GitHub源地址
+     * @return array|null 包含owner和repo的数组，失败返回null
+     */
+    private function parseGithubSource($source)
+    {
+        // 匹配GitHub源地址格式：https://github.com/{owner}/{repo}/archive/refs/tags
+        if (preg_match('#^https://github\.com/([^/]+)/([^/]+)/archive/refs/tags$#', $source, $matches)) {
+            return [
+                'owner' => $matches[1],
+                'repo' => $matches[2]
+            ];
+        }
+
+        return null;
     }
 
     /**

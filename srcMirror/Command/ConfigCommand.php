@@ -132,16 +132,16 @@ class ConfigCommand extends AbstractCommand
         // 解析键路径
         $parts = explode('.', $key);
         $configType = $parts[0];
-        
+
         // 确定配置类型
         if ($configType === 'runtime' || $configType === 'mirror') {
             array_shift($parts);
             $configKey = implode('.', $parts);
-            
+
             // 更新配置
             $config = $allConfig[$configType];
             $this->updateNestedArray($config, $parts, $value);
-            
+
             // 保存配置
             if ($configType === 'runtime') {
                 $configManager->saveRuntimeConfig($config);
@@ -150,7 +150,7 @@ class ConfigCommand extends AbstractCommand
                 $configManager->saveMirrorConfig($config);
                 echo "镜像配置已更新\n";
             }
-            
+
             return 0;
         } else {
             echo "错误: 无效的配置类型 '$configType'，必须是 'runtime' 或 'mirror'\n";
@@ -168,7 +168,7 @@ class ConfigCommand extends AbstractCommand
     private function updateNestedArray(&$array, $keys, $value)
     {
         $key = array_shift($keys);
-        
+
         if (empty($keys)) {
             // 尝试转换值类型
             if ($value === 'true') {
@@ -184,13 +184,13 @@ class ConfigCommand extends AbstractCommand
                     $value = (int) $value;
                 }
             }
-            
+
             $array[$key] = $value;
         } else {
             if (!isset($array[$key]) || !is_array($array[$key])) {
                 $array[$key] = [];
             }
-            
+
             $this->updateNestedArray($array[$key], $keys, $value);
         }
     }
@@ -205,7 +205,7 @@ class ConfigCommand extends AbstractCommand
     {
         $configType = isset($args[0]) ? $args[0] : 'all';
         $configManager = new ConfigManager();
-        
+
         if ($configType === 'runtime') {
             $config = $configManager->getRuntimeConfig();
             echo "运行时配置:\n";
@@ -219,7 +219,7 @@ class ConfigCommand extends AbstractCommand
             echo "所有配置:\n";
             echo json_encode($config, JSON_PRETTY_PRINT) . "\n";
         }
-        
+
         return 0;
     }
 
@@ -232,32 +232,32 @@ class ConfigCommand extends AbstractCommand
     private function editConfig(array $args)
     {
         $configType = isset($args[0]) ? $args[0] : 'runtime';
-        
+
         if ($configType === 'runtime') {
-            $configFile = ROOT_DIR . '/config/runtime.php';
+            $configFile = ROOT_DIR . '/configMirror/runtime.php';
             echo "编辑运行时配置文件: $configFile\n";
         } elseif ($configType === 'mirror') {
-            $configFile = ROOT_DIR . '/config/mirror.php';
+            $configFile = ROOT_DIR . '/configMirror/mirror.php';
             echo "编辑镜像配置文件: $configFile\n";
         } else {
             echo "错误: 无效的配置类型 '$configType'，必须是 'runtime' 或 'mirror'\n";
             return 1;
         }
-        
+
         // 检查编辑器
         $editor = getenv('EDITOR');
         if (empty($editor)) {
             $editor = 'vi';
         }
-        
+
         // 打开编辑器
         system("$editor $configFile", $returnCode);
-        
+
         if ($returnCode !== 0) {
             echo "错误: 编辑器返回错误代码 $returnCode\n";
             return 1;
         }
-        
+
         echo "配置文件已编辑\n";
         return 0;
     }

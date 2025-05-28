@@ -73,7 +73,7 @@ pvm-mirror/
 
 ### 3. 配置设计
 
-镜像配置文件 `config/mirror.php` 示例：
+镜像配置文件 `configMirror/mirror.php` 示例：
 
 ```php
 <?php
@@ -307,7 +307,7 @@ chmod +x bin/sync.sh
 
 ### 2. 配置镜像应用
 
-编辑 `config/mirror.php` 文件，根据需要调整配置。
+编辑 `configMirror/mirror.php` 文件，根据需要调整配置。
 
 ### 3. 同步镜像内容
 
@@ -413,7 +413,7 @@ chmod +x bin/sync.sh
 - 避免使用无效的缓存文件
 
 ##### 3.5.5 验证配置
-可以通过 `config/download.php` 配置文件自定义验证规则：
+可以通过 `configMirror/download.php` 配置文件自定义验证规则：
 - 调整最小文件大小要求
 - 配置重试次数和超时时间
 - 启用/禁用特定验证项

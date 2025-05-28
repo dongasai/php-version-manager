@@ -45,7 +45,7 @@ class ConfigManager
      */
     private function loadMirrorConfig()
     {
-        $configFile = ROOT_DIR . '/config/mirror.php';
+        $configFile = ROOT_DIR . '/configMirror/mirror.php';
 
         if (!file_exists($configFile)) {
             throw new \Exception("镜像配置文件不存在: $configFile");
@@ -59,7 +59,7 @@ class ConfigManager
      */
     private function loadRuntimeConfig()
     {
-        $configFile = ROOT_DIR . '/config/runtime.php';
+        $configFile = ROOT_DIR . '/configMirror/runtime.php';
 
         if (!file_exists($configFile)) {
             throw new \Exception("运行时配置文件不存在: $configFile");
@@ -328,7 +328,7 @@ class ConfigManager
 
         $content = "<?php\n\n/**\n * PVM 镜像内容配置文件\n * \n * 用于配置需要镜像的内容，包括PHP版本、扩展等\n */\n\nreturn " . var_export($config, true) . ";\n";
 
-        $configFile = ROOT_DIR . '/config/mirror.php';
+        $configFile = ROOT_DIR . '/configMirror/mirror.php';
 
         return file_put_contents($configFile, $content) !== false;
     }
@@ -345,7 +345,7 @@ class ConfigManager
 
         $content = "<?php\n\n/**\n * PVM 镜像运行时配置文件\n * \n * 用于配置镜像服务的运行环境和行为\n */\n\nreturn " . var_export($config, true) . ";\n";
 
-        $configFile = ROOT_DIR . '/config/runtime.php';
+        $configFile = ROOT_DIR . '/configMirror/runtime.php';
 
         return file_put_contents($configFile, $content) !== false;
     }

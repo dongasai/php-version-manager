@@ -187,7 +187,7 @@ pvm pvm-mirror config
 8. **src/Web/templates/pvm-mirror.php** - 新建PVM镜像源管理页面模板
 
 ### 镜像同步策略修复
-9. **config/mirror.php** - 修复Composer配置，添加稳定版支持
+9. **configMirror/mirror.php** - 修复Composer配置，添加稳定版支持
 10. **srcMirror/Mirror/ComposerMirror.php** - 修复Composer文件命名规则
 11. **srcMirror/Mirror/ExtensionMirror.php** - 修复GitHub扩展目录结构
 

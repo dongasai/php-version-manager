@@ -49,8 +49,8 @@ class StatusCommand extends AbstractCommand
         // 显示内容存储位置和配置文件位置
         echo "\n存储位置信息:\n";
         echo "内容存储位置: " . $dataDir . "\n";
-        echo "镜像配置文件: " . ROOT_DIR . "/config/mirror.php\n";
-        echo "运行时配置文件: " . ROOT_DIR . "/config/runtime.php\n";
+        echo "镜像配置文件: " . ROOT_DIR . "/configMirror/mirror.php\n";
+        echo "运行时配置文件: " . ROOT_DIR . "/configMirror/runtime.php\n";
 
         // 显示运行时配置摘要
         $runtimeConfig = $configManager->getRuntimeConfig();

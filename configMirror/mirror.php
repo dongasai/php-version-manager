@@ -150,28 +150,61 @@ return [
         // 扩展配置目录
         'config_dir' => 'extensions/github',
 
-        // 支持的扩展列表
+        // 支持的扩展列表 (GitHub 扩展)
         'extensions' => [
             // 缓存和数据库
-            'redis', 'memcached', 'mongodb',
+            'redis', 'memcached', 'mongodb', 'relay',
 
             // 调试和性能
-            'xdebug', 'tideways',
+            'xdebug', 'tideways', 'blackfire', 'ddtrace', 'excimer', 'memprof', 'pcov', 'spx', 'xhprof',
 
             // 图像和媒体
-            'imagick',
+            'imagick', 'gmagick', 'vips',
 
             // 网络和通信
-            'swoole',
+            'swoole', 'openswoole', 'grpc', 'amqp', 'mosquitto', 'ssh2', 'stomp',
+
+            // 数据格式
+            'msgpack', 'protobuf', 'simdjson', 'yaml',
 
             // 框架扩展
-            'phalcon', 'yaf',
+            'phalcon', 'yaf', 'yar', 'zephir_parser',
 
             // 语言工具
-            'php-ast', 'php-ds',
+            'ast', 'ds', 'parle', 'php_trie',
 
             // 日志和监控
-            'seaslog'
+            'seaslog', 'opencensus', 'opentelemetry',
+
+            // 地理和位置
+            'gearman', 'geoip', 'geos', 'geospatial', 'maxminddb',
+
+            // 机器学习
+            'tensor',
+
+            // 搜索
+            'solr',
+
+            // 消息队列
+            'rdkafka', 'zmq', 'zookeeper',
+
+            // 邮件处理
+            'mailparse',
+
+            // 标记语言
+            'cmark',
+
+            // 办公文档
+            'xlswriter',
+
+            // 文件和压缩
+            'lz4', 'lzf', 'snappy', 'zstd',
+
+            // 系统功能
+            'parallel', 'uopz', 'uploadprogress', 'uuid',
+
+            // 其他工具
+            'ion', 'jsmin', 'xdiff'
         ],
 
         // 是否启用此镜像

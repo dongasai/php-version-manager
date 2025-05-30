@@ -39,6 +39,7 @@ class Application
             'switch' => Commands\SwitchCommand::class, // 新增临时切换PHP版本命令
             'remove' => Commands\RemoveCommand::class,
             'list' => Commands\ListCommand::class,
+            'status' => Commands\StatusCommand::class,
             'help' => Commands\HelpCommand::class,
             'version' => Commands\VersionCommand::class,
             'supported' => Commands\SupportedCommand::class,

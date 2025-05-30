@@ -19,6 +19,7 @@ class HelpCommand implements CommandInterface
         'switch' => '临时切换到指定的PHP版本（仅当前终端会话有效）',
         'remove' => '删除指定的PHP版本',
         'list' => '列出所有已安装的PHP版本',
+        'status' => '显示PVM程序状态信息',
         'ext' => '管理PHP扩展',
         'config' => '管理PHP配置',
         'config-menu' => '交互式配置菜单',

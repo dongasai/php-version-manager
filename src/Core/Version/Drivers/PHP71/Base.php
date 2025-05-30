@@ -100,17 +100,13 @@ class Base extends AbstractVersionDriver
      *
      * @param string $version PHP版本
      * @param string $mirror 镜像名称，如果为null则使用默认镜像
-     * @return string
+     * @return array 源码URL数组（按优先级排序）
      */
     protected function getSourceUrl($version, $mirror = null)
     {
-        // 如果是PHP 7.1.0，则使用特定的URL
-        if ($version === '7.1.0') {
-            return "https://www.php.net/distributions/php-7.1.0.tar.gz";
-        }
-
-        // 构建源码URL
-        return "https://www.php.net/distributions/php-{$version}.tar.gz";
+        // 使用UrlManager获取下载URL，支持镜像源
+        $urlManager = new \VersionManager\Core\Download\UrlManager();
+        return $urlManager->getPhpDownloadUrls($version);
     }
 
 
@@ -125,26 +121,22 @@ class Base extends AbstractVersionDriver
     /**
      * 下载文件
      *
-     * @param string $url 文件URL
+     * @param string|array $url 文件URL或URL数组
      * @param string $destination 目标路径
      * @return bool
      * @throws \Exception
      */
     protected function downloadFile($url, $destination)
     {
-        // 使用curl的进度显示选项
-        $command = "curl -L --progress-bar -o {$destination} {$url}";
+        // 使用DownloadManager进行下载，支持镜像源和自动回退
+        $downloadManager = new \VersionManager\Core\Download\DownloadManager();
+        $downloadManager->setShowProgress(true);
 
-        // 使用passthru而不是exec，这样可以实时显示输出
-        echo "正在下载 {$url}...\n";
-        passthru($command, $returnCode);
-
-        if ($returnCode !== 0) {
-            throw new \Exception("下载文件失败，返回代码: {$returnCode}");
+        try {
+            return $downloadManager->download($url, $destination);
+        } catch (\Exception $e) {
+            throw new \Exception("下载文件失败: " . $e->getMessage());
         }
-
-        echo "下载完成: " . basename($destination) . "\n";
-        return true;
     }
 
     /**
@@ -490,11 +482,11 @@ class Base extends AbstractVersionDriver
 
         try {
             // 下载PHP源码
-            $sourceUrl = $this->getSourceUrl($version);
-            $sourceFile = $tempDir . '/' . basename($sourceUrl);
+            $sourceUrls = $this->getSourceUrl($version);
+            $sourceFile = $tempDir . '/php-' . $version . '.tar.gz';
 
             echo "下载PHP {$version} 源码...\n";
-            $this->downloadFile($sourceUrl, $sourceFile);
+            $this->downloadFile($sourceUrls, $sourceFile);
 
             // 解压源码
             echo "解压源码...\n";

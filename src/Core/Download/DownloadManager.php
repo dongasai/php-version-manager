@@ -143,7 +143,7 @@ class DownloadManager
     /**
      * 下载文件
      *
-     * @param string $url 文件URL
+     * @param string|array $url 文件URL或URL数组（按优先级排序）
      * @param string $destination 目标路径
      * @param array $options 下载选项
      * @return bool 是否下载成功
@@ -153,6 +153,11 @@ class DownloadManager
     {
         // 检查用户权限
         $this->permissionManager->checkUserPermission();
+
+        // 如果传入的是数组，按优先级尝试下载
+        if (is_array($url)) {
+            return $this->downloadWithFallback($url, $destination, $options);
+        }
 
         // 检查缓存
         if ($this->useCache) {
@@ -196,6 +201,97 @@ class DownloadManager
         }
 
         return $success;
+    }
+
+    /**
+     * 使用多个URL按优先级尝试下载
+     *
+     * @param array $urls URL数组（按优先级排序）
+     * @param string $destination 目标路径
+     * @param array $options 下载选项
+     * @return bool 是否下载成功
+     * @throws \Exception 所有URL都下载失败时抛出异常
+     */
+    private function downloadWithFallback(array $urls, $destination, array $options = [])
+    {
+        $lastException = null;
+        $attemptCount = 0;
+
+        foreach ($urls as $url) {
+            $attemptCount++;
+
+            try {
+                if ($this->showProgress) {
+                    // 判断是否为镜像源
+                    $isMirror = $this->isMirrorUrl($url);
+                    $sourceType = $isMirror ? "镜像源" : "官方源";
+                    echo "\033[1;36m尝试从{$sourceType}下载 (第{$attemptCount}个源): " . $this->getUrlHost($url) . "\033[0m" . PHP_EOL;
+                }
+
+                // 尝试下载
+                $success = $this->download($url, $destination, $options);
+
+                if ($success) {
+                    if ($this->showProgress && $attemptCount > 1) {
+                        echo "\033[1;32m下载成功！\033[0m" . PHP_EOL;
+                    }
+                    return true;
+                }
+            } catch (\Exception $e) {
+                $lastException = $e;
+
+                if ($this->showProgress) {
+                    echo "\033[1;33m下载失败: " . $e->getMessage() . "\033[0m" . PHP_EOL;
+
+                    // 如果还有其他URL可以尝试，显示切换信息
+                    if ($attemptCount < count($urls)) {
+                        echo "\033[1;33m正在切换到下一个源...\033[0m" . PHP_EOL;
+                    }
+                }
+
+                // 继续尝试下一个URL
+                continue;
+            }
+        }
+
+        // 所有URL都失败了
+        $errorMessage = "所有下载源都失败了";
+        if ($lastException) {
+            $errorMessage .= "，最后一个错误: " . $lastException->getMessage();
+        }
+
+        throw new \Exception($errorMessage);
+    }
+
+    /**
+     * 判断URL是否为镜像源
+     *
+     * @param string $url URL
+     * @return bool
+     */
+    private function isMirrorUrl($url)
+    {
+        // 简单判断：如果不是官方域名，则认为是镜像源
+        $officialHosts = [
+            'www.php.net',
+            'pecl.php.net',
+            'getcomposer.org',
+            'github.com'
+        ];
+
+        $host = parse_url($url, PHP_URL_HOST);
+        return !in_array($host, $officialHosts);
+    }
+
+    /**
+     * 获取URL的主机名
+     *
+     * @param string $url URL
+     * @return string
+     */
+    private function getUrlHost($url)
+    {
+        return parse_url($url, PHP_URL_HOST) ?: $url;
     }
 
     /**

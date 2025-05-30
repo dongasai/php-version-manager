@@ -83,9 +83,9 @@ class GenericVersionDriver extends AbstractVersionDriver
         try {
             // 下载PHP源码
             $mirror = isset($options['mirror']) ? $options['mirror'] : null;
-            $sourceUrl = $this->getSourceUrl($version, $mirror);
-            $sourceFile = $tempDir . '/' . basename($sourceUrl);
-            $this->downloadFile($sourceUrl, $sourceFile);
+            $sourceUrls = $this->getSourceUrl($version, $mirror);
+            $sourceFile = $tempDir . '/php-' . $version . '.tar.gz';
+            $this->downloadFile($sourceUrls, $sourceFile);
 
             // 解压源码
             $sourceDir = $tempDir . '/php-' . $version;
@@ -147,16 +147,13 @@ class GenericVersionDriver extends AbstractVersionDriver
      *
      * @param string $version PHP版本
      * @param string $mirror 镜像名称，如果为null则使用默认镜像
-     * @return string
+     * @return array 源码URL数组（按优先级排序）
      */
     protected function getSourceUrl($version, $mirror = null)
     {
-        // 获取镜像配置
-        $mirrorConfig = new MirrorConfig();
-        $mirrorUrl = $mirrorConfig->getPhpMirror($mirror);
-
-        // 构建源码URL
-        return "{$mirrorUrl}/php-{$version}.tar.gz";
+        // 使用UrlManager获取下载URL，支持镜像源
+        $urlManager = new \VersionManager\Core\Download\UrlManager();
+        return $urlManager->getPhpDownloadUrls($version);
     }
 
     /**

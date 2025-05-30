@@ -63,11 +63,8 @@ class Base extends GenericVersionDriver
      */
     protected function getSourceUrl($version, $mirror = null)
     {
-        // 如果是PHP 8.0.0，则使用特定的URL
-        if ($version === '8.0.0') {
-            return "https://www.php.net/distributions/php-8.0.0.tar.gz";
-        }
-
-        return parent::getSourceUrl($version, $mirror);
+        // 使用UrlManager获取下载URL，支持镜像源
+        $urlManager = new \VersionManager\Core\Download\UrlManager();
+        return $urlManager->getPhpDownloadUrls($version);
     }
 }

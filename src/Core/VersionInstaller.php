@@ -1061,14 +1061,13 @@ class VersionInstaller
      * 获取源码URL
      *
      * @param string $version PHP版本
-     * @return string 源码URL
+     * @return array 源码URL数组（按优先级排序）
      */
     private function getSourceUrl($version)
     {
-        $majorVersion = substr($version, 0, 1);
-        $minorVersion = substr($version, 0, 3);
-
-        return "https://www.php.net/distributions/php-{$version}.tar.gz";
+        // 使用UrlManager获取下载URL，支持镜像源
+        $urlManager = new \VersionManager\Core\Download\UrlManager();
+        return $urlManager->getPhpDownloadUrls($version);
     }
 
     /**

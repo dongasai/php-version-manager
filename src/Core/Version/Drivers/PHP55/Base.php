@@ -18,7 +18,7 @@ class Base extends GenericVersionDriver
         $this->name = 'php55';
         $this->description = 'PHP 5.5版本安装驱动';
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -27,7 +27,7 @@ class Base extends GenericVersionDriver
         // 只支持PHP 5.5.x版本
         return preg_match('/^5\.5\.\d+$/', $version);
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -59,24 +59,25 @@ class Base extends GenericVersionDriver
             "--enable-sockets",
             "--enable-opcache",
         ];
-        
+
         // 添加自定义配置选项
         if (isset($options['configure_options']) && is_array($options['configure_options'])) {
             $configureOptions = array_merge($configureOptions, $options['configure_options']);
         }
-        
+
         return $configureOptions;
     }
-    
+
     /**
      * {@inheritdoc}
      */
     protected function getSourceUrl($version, $mirror = null)
     {
-        // 使用PHP官方源码URL
-        return "https://www.php.net/distributions/php-{$version}.tar.gz";
+        // 使用UrlManager获取下载URL，支持镜像源
+        $urlManager = new \VersionManager\Core\Download\UrlManager();
+        return $urlManager->getPhpDownloadUrls($version);
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -97,7 +98,7 @@ class Base extends GenericVersionDriver
             'libzip-dev',
             'libicu-dev',
         ];
-        
+
         return $dependencies;
     }
 }

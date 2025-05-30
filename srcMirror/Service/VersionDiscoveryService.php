@@ -159,11 +159,10 @@ class VersionDiscoveryService
         $versions = [];
         $configVersions = $this->extensionConfigManager->getPhpVersions();
 
-        foreach ($configVersions as $range) {
-            list($minVersion, $maxVersion) = $range;
-            $versions[] = $minVersion;
-            if ($minVersion !== $maxVersion) {
-                $versions[] = $maxVersion;
+        // 新格式：按主版本分组的完整版本列表
+        foreach ($configVersions as $versionList) {
+            if (is_array($versionList)) {
+                $versions = array_merge($versions, $versionList);
             }
         }
 

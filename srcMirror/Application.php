@@ -16,6 +16,7 @@ use Mirror\Command\SecurityCommand;
 use Mirror\Command\ServerCommand;
 use Mirror\Command\StatusCommand;
 use Mirror\Command\SyncCommand;
+use Mirror\Command\SplitVersionsCommand;
 use Mirror\Command\UpdateConfigCommand;
 
 /**
@@ -57,6 +58,7 @@ class Application
         $this->addCommand(new IntegrateCommand());
         $this->addCommand(new DiscoverCommand());
         $this->addCommand(new UpdateConfigCommand());
+        $this->addCommand(new SplitVersionsCommand());
         $this->addCommand(new HelpCommand($this));
     }
 

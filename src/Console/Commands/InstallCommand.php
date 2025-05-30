@@ -107,10 +107,18 @@ class InstallCommand implements CommandInterface
             if (isset($options['skip_composer']) && $options['skip_composer']) {
                 echo "已跳过Composer检查，继续安装..." . PHP_EOL;
             } else {
-                // 询问是否修复环境问题
-                echo "是否立即修复环境问题？(y/n) ";
-                $answer = trim(fgets(STDIN));
-                if (strtolower($answer) === 'y') {
+                // 检查是否使用自动确认
+                if (isset($options['yes']) && $options['yes']) {
+                    echo "自动确认修复环境问题..." . PHP_EOL;
+                    $shouldFix = true;
+                } else {
+                    // 询问是否修复环境问题
+                    echo "是否立即修复环境问题？(y/n) ";
+                    $answer = trim(fgets(STDIN));
+                    $shouldFix = (strtolower($answer) === 'y');
+                }
+
+                if ($shouldFix) {
                     echo "正在尝试修复环境问题..." . PHP_EOL;
 
                     // 尝试修复环境问题

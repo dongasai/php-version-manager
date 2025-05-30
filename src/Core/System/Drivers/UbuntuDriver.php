@@ -69,4 +69,137 @@ class UbuntuDriver extends AbstractOsDriver
             }
         }
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getPackageManager()
+    {
+        return 'apt';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function updatePackageCache(array $options = [])
+    {
+        \VersionManager\Core\Logger\Logger::info("更新软件包列表...", "\033[33m");
+
+        $command = 'apt-get update';
+        list($output, $returnCode) = $this->executeWithPrivileges($command, $options);
+
+        // 在详细模式下显示命令输出
+        if (\VersionManager\Core\Logger\Logger::isVerbose()) {
+            \VersionManager\Core\Logger\Logger::verbose("执行命令: $command");
+            foreach ($output as $line) {
+                \VersionManager\Core\Logger\Logger::verbose("  $line");
+            }
+        }
+
+        // 对于apt-get update，只要退出码为0就认为成功，忽略警告信息
+        if ($returnCode === 0) {
+            \VersionManager\Core\Logger\Logger::success("软件包列表更新成功");
+            return true;
+        }
+
+        // 检查是否是权限问题
+        $outputStr = implode("\n", $output);
+        if (strpos($outputStr, '权限不够') !== false ||
+            strpos($outputStr, 'Permission denied') !== false ||
+            strpos($outputStr, '无法对目录') !== false ||
+            strpos($outputStr, '无法打开锁文件') !== false) {
+            throw new \Exception("权限不足，无法更新软件包列表");
+        }
+
+        // 检查是否是认证失败
+        if (strpos($outputStr, '认证失败') !== false ||
+            strpos($outputStr, 'Authentication failure') !== false) {
+            throw new \Exception("认证失败，无法更新软件包列表");
+        }
+
+        // 检查是否是网络问题（ESM源连接超时等）
+        if (strpos($outputStr, '连接超时') !== false ||
+            strpos($outputStr, 'Connection timed out') !== false ||
+            strpos($outputStr, '无法连接') !== false ||
+            strpos($outputStr, 'Could not connect') !== false) {
+            // 网络问题不应该阻止安装过程，只是警告
+            \VersionManager\Core\Logger\Logger::warning("部分软件源连接失败，但主要软件源可用");
+            return true;
+        }
+
+        throw new \Exception("更新软件包列表失败: " . $outputStr);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function isPackageInstalled($package)
+    {
+        $command = "dpkg -l | grep -w '{$package}' | grep -v '^rc'";
+        $output = [];
+        $returnCode = 0;
+
+        exec($command, $output, $returnCode);
+
+        return $returnCode === 0 && !empty($output);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function installPackages(array $packages, array $options = [])
+    {
+        if (empty($packages)) {
+            return true;
+        }
+
+        // 过滤掉已安装的包
+        $packagesToInstall = [];
+        foreach ($packages as $package) {
+            if (!$this->isPackageInstalled($package)) {
+                $packagesToInstall[] = $package;
+            }
+        }
+
+        if (empty($packagesToInstall)) {
+            \VersionManager\Core\Logger\Logger::info("所有依赖包已安装", "\033[32m");
+            return true;
+        }
+
+        \VersionManager\Core\Logger\Logger::info("安装依赖包: " . implode(' ', $packagesToInstall), "\033[33m");
+
+        $packageList = implode(' ', $packagesToInstall);
+        $command = "apt-get install -y {$packageList}";
+
+        list($output, $returnCode) = $this->executeWithPrivileges($command, $options);
+
+        // 在详细模式下显示命令输出
+        if (\VersionManager\Core\Logger\Logger::isVerbose()) {
+            \VersionManager\Core\Logger\Logger::verbose("执行命令: $command");
+            foreach ($output as $line) {
+                \VersionManager\Core\Logger\Logger::verbose("  $line");
+            }
+        }
+
+        if ($returnCode === 0) {
+            \VersionManager\Core\Logger\Logger::success("依赖包安装成功");
+            return true;
+        }
+
+        $outputStr = implode("\n", $output);
+
+        // 检查是否是权限问题
+        if (strpos($outputStr, '权限不够') !== false ||
+            strpos($outputStr, 'Permission denied') !== false) {
+            throw new \Exception("权限不足，无法安装依赖包");
+        }
+
+        // 检查是否是认证失败
+        if (strpos($outputStr, '认证失败') !== false ||
+            strpos($outputStr, 'Authentication failure') !== false) {
+            throw new \Exception("认证失败，无法安装依赖包");
+        }
+
+        throw new \Exception("安装依赖包失败: " . $outputStr);
+    }
 }

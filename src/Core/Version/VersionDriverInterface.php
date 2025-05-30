@@ -4,7 +4,7 @@ namespace VersionManager\Core\Version;
 
 /**
  * 版本安装驱动接口
- * 
+ *
  * 定义版本安装驱动需要实现的方法
  */
 interface VersionDriverInterface
@@ -22,7 +22,7 @@ interface VersionDriverInterface
      * @return array
      */
     public function getTags(): array;
-    
+
     /**
      * 获取驱动描述
      *
@@ -30,9 +30,14 @@ interface VersionDriverInterface
      */
     public function getDescription();
 
+    /**
+     * 检查版本是否支持
+     *
+     * @param string $version PHP版本
+     * @return bool 是否支持
+     */
+    public function isSupported($version);
 
-
-    
     /**
      * 安装PHP版本
      *
@@ -41,7 +46,7 @@ interface VersionDriverInterface
      * @return bool
      */
     public function install($version, array $options = []);
-    
+
     /**
      * 删除PHP版本
      *
@@ -50,7 +55,7 @@ interface VersionDriverInterface
      * @return bool
      */
     public function remove($version, array $options = []);
-    
+
     /**
      * 获取PHP版本信息
      *
@@ -60,7 +65,7 @@ interface VersionDriverInterface
     public function getInfo($version);
 
 
-    
+
     /**
      * 获取PHP版本的配置目录
      *
@@ -68,7 +73,7 @@ interface VersionDriverInterface
      * @return string
      */
     public function getConfigPath($version);
-    
+
     /**
      * 获取PHP版本的扩展目录
      *

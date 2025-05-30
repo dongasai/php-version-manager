@@ -205,4 +205,96 @@ abstract class AbstractOsDriver implements OsDriverInterface
 
         return $returnCode === 0;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function installPackages(array $packages, array $options = [])
+    {
+        // 默认实现，子类应该重写此方法
+        throw new \Exception("包安装功能未在 " . get_class($this) . " 中实现");
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function updatePackageCache(array $options = [])
+    {
+        // 默认实现，子类应该重写此方法
+        throw new \Exception("包缓存更新功能未在 " . get_class($this) . " 中实现");
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function isPackageInstalled($package)
+    {
+        // 默认实现，子类应该重写此方法
+        return false;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function hasSudoAccess()
+    {
+        // 检查是否是root用户
+        if (posix_getuid() === 0) {
+            return true;
+        }
+
+        // 检查sudo命令是否存在
+        if (!$this->commandExists('sudo')) {
+            return false;
+        }
+
+        // 尝试执行sudo -n true来检查是否有无密码sudo权限
+        $output = [];
+        $returnCode = 0;
+        exec('sudo -n true 2>/dev/null', $output, $returnCode);
+
+        return $returnCode === 0;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function executeWithPrivileges($command, array $options = [])
+    {
+        $output = [];
+        $returnCode = 0;
+
+        // 如果已经是root用户，直接执行
+        if (posix_getuid() === 0) {
+            exec($command . ' 2>&1', $output, $returnCode);
+            return [$output, $returnCode];
+        }
+
+        // 尝试使用sudo执行
+        if ($this->commandExists('sudo')) {
+            $sudoCommand = 'sudo ' . $command;
+            exec($sudoCommand . ' 2>&1', $output, $returnCode);
+            return [$output, $returnCode];
+        }
+
+        // 如果没有sudo，尝试使用su
+        if ($this->commandExists('su')) {
+            $suCommand = 'su -c "' . addslashes($command) . '"';
+            exec($suCommand . ' 2>&1', $output, $returnCode);
+            return [$output, $returnCode];
+        }
+
+        // 如果都没有，直接执行（可能会失败）
+        exec($command . ' 2>&1', $output, $returnCode);
+        return [$output, $returnCode];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getPackageManager()
+    {
+        // 默认实现，子类应该重写此方法
+        return 'unknown';
+    }
 }

@@ -371,7 +371,7 @@ class CentosDriver extends AbstractOsDriver
     /**
      * {@inheritdoc}
      */
-    protected function isPackageInstalled($package)
+    public function isPackageInstalled($package)
     {
         $command = "rpm -q {$package}";
         $output = [];
@@ -416,7 +416,7 @@ class CentosDriver extends AbstractOsDriver
     /**
      * {@inheritdoc}
      */
-    protected function installPackages(array $packages)
+    public function installPackages(array $packages, array $options = [])
     {
         if (empty($packages)) {
             return true;
@@ -457,5 +457,60 @@ class CentosDriver extends AbstractOsDriver
         }
 
         return $this->executeCommand($command);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getPackageManager()
+    {
+        // 检查CentOS版本
+        $centosVersion = (int)$this->version;
+
+        if ($centosVersion >= 8) {
+            return 'dnf';
+        } else {
+            return 'yum';
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function updatePackageCache(array $options = [])
+    {
+        echo "\033[33m更新软件包列表...\033[0m\n";
+
+        // 检查CentOS版本
+        $centosVersion = (int)$this->version;
+
+        if ($centosVersion >= 8) {
+            $command = 'dnf makecache';
+        } else {
+            $command = 'yum makecache';
+        }
+
+        list($output, $returnCode) = $this->executeWithPrivileges($command, $options);
+
+        if ($returnCode === 0) {
+            echo "\033[32m软件包列表更新成功\033[0m\n";
+            return true;
+        }
+
+        $outputStr = implode("\n", $output);
+
+        // 检查是否是权限问题
+        if (strpos($outputStr, '权限不够') !== false ||
+            strpos($outputStr, 'Permission denied') !== false) {
+            throw new \Exception("权限不足，无法更新软件包列表");
+        }
+
+        // 检查是否是认证失败
+        if (strpos($outputStr, '认证失败') !== false ||
+            strpos($outputStr, 'Authentication failure') !== false) {
+            throw new \Exception("认证失败，无法更新软件包列表");
+        }
+
+        throw new \Exception("更新软件包列表失败: " . $outputStr);
     }
 }

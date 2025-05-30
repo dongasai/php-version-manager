@@ -54,11 +54,12 @@ class Debian extends Base
     }
 
     /**
-     * 安装依赖
+     * 安装依赖（旧版本方法，已重构）
      *
+     * @param array $dependencies 依赖列表（如果为空，使用默认依赖）
      * @return bool
      */
-    protected function installDependencies()
+    protected function installDependencies(array $dependencies = [])
     {
         // 在Docker容器中测试时，跳过依赖安装
         if (getenv('DOCKER_CONTAINER') === 'true' || file_exists('/.dockerenv')) {
@@ -66,36 +67,25 @@ class Debian extends Base
             return true;
         }
 
-        // 基本依赖
-        $dependencies = [
-            'build-essential',
-            'libxml2-dev',
-            'libssl-dev',
-            'libsqlite3-dev',
-            'zlib1g-dev',
-            'libcurl4-openssl-dev',
-            'libpng-dev',
-            'libjpeg-dev',
-            'libfreetype6-dev',
-            'libwebp-dev',
-            'libxpm-dev',
-            'libmcrypt-dev',
-        ];
-
-        // 使用主类的依赖安装方法
-        $installer = new \VersionManager\Core\VersionInstaller();
-
-        // 调用installDependencies方法
-        // 使用反射调用私有方法
-        $reflection = new \ReflectionClass($installer);
-        $method = $reflection->getMethod('installDependencies');
-        $method->setAccessible(true);
-
-        try {
-            $method->invoke($installer, $dependencies);
-            return true;
-        } catch (\Exception $e) {
-            throw new \Exception("安装依赖失败: " . $e->getMessage());
+        // 如果没有提供依赖列表，使用默认的PHP 7.1依赖
+        if (empty($dependencies)) {
+            $dependencies = [
+                'build-essential',
+                'libxml2-dev',
+                'libssl-dev',
+                'libsqlite3-dev',
+                'zlib1g-dev',
+                'libcurl4-openssl-dev',
+                'libpng-dev',
+                'libjpeg-dev',
+                'libfreetype6-dev',
+                'libwebp-dev',
+                'libxpm-dev',
+                'libmcrypt-dev',
+            ];
         }
+
+        // 使用父类的新方法
+        return parent::installDependencies($dependencies);
     }
 }

@@ -76,7 +76,7 @@ try {
             $shouldFix = getenv('TEST_AUTO_FIX') ?
                 (getenv('TEST_AUTO_FIX') === '1') :
                 (strtolower($line) === 'y' || strtolower($line) === 'yes');
-            
+
             if ($shouldFix) {
                 echo "正在尝试修复环境问题...\n";
 
@@ -123,6 +123,21 @@ try {
             echo "\033[33m这些扩展不是必需的，但安装它们可能会提高PVM的功能\033[0m" . PHP_EOL . PHP_EOL;
         }
     }
+
+    // 解析日志级别参数
+    $logLevel = \VersionManager\Core\Logger\LogLevel::NORMAL;
+    foreach ($argv as $arg) {
+        if (strpos($arg, '--verbose') === 0 || strpos($arg, '-v') === 0) {
+            $logLevel = \VersionManager\Core\Logger\LogLevel::VERBOSE;
+        } elseif (strpos($arg, '--silent') === 0 || strpos($arg, '-s') === 0) {
+            $logLevel = \VersionManager\Core\Logger\LogLevel::SILENT;
+        } elseif (strpos($arg, '--debug') === 0) {
+            $logLevel = \VersionManager\Core\Logger\LogLevel::DEBUG;
+        }
+    }
+
+    // 设置日志级别
+    \VersionManager\Core\Logger\Logger::setLevel($logLevel);
 
     // 引导应用程序
     $app = new VersionManager\Console\Application();

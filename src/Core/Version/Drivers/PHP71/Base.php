@@ -407,12 +407,13 @@ class Base extends AbstractVersionDriver
     }
 
     /**
-     * 安装依赖项
+     * 安装依赖项（旧版本方法，已废弃）
      *
      * @return bool
      * @throws \Exception
+     * @deprecated 使用新的installDependencies(array $dependencies)方法
      */
-    protected function installDependencies()
+    protected function installDependenciesLegacy()
     {
         // 检测操作系统类型
         $osInfo = $this->getOsInfo();
@@ -469,7 +470,13 @@ class Base extends AbstractVersionDriver
 
         // 安装依赖项
         try {
-            $this->installDependencies();
+            // 获取PHP 7.1所需的依赖包
+            $dependencies = $this->getBaseDependencies($version);
+            // 添加PHP 7.1特有的依赖
+            $dependencies[] = 'libmcrypt-dev'; // PHP 7.1需要mcrypt
+            $dependencies[] = 'libreadline-dev'; // readline支持
+
+            $this->installDependencies($dependencies);
         } catch (\Exception $e) {
             echo "警告: " . $e->getMessage() . "\n";
             echo "将继续尝试编译PHP，但可能会失败...\n";

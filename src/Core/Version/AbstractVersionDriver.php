@@ -3,6 +3,7 @@
 namespace VersionManager\Core\Version;
 
 use VersionManager\Core\Tags\TaggableInterface;
+use VersionManager\Core\System\OsDriverFactory;
 
 /**
  * 抽象版本安装驱动基类
@@ -38,6 +39,13 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
      * @var string
      */
     protected $versionsDir;
+
+    /**
+     * 操作系统驱动
+     *
+     * @var \VersionManager\Core\System\OsDriverInterface
+     */
+    protected $osDriver;
 
     /**
      * 构造函数
@@ -89,6 +97,15 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
     {
         // 默认返回驱动名称作为标签
         return [$this->name];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function isSupported($version)
+    {
+        // 默认实现，子类应该重写此方法
+        return false;
     }
 
     /**
@@ -371,5 +388,115 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
         }
 
         return $configureOptions;
+    }
+
+    /**
+     * 获取操作系统驱动实例
+     *
+     * @return \VersionManager\Core\System\OsDriverInterface
+     */
+    protected function getOsDriver()
+    {
+        if ($this->osDriver === null) {
+            $this->osDriver = OsDriverFactory::getInstance();
+        }
+        return $this->osDriver;
+    }
+
+    /**
+     * 安装系统依赖
+     *
+     * @param array $dependencies 依赖列表
+     * @return bool 是否安装成功
+     * @throws \Exception 安装失败时抛出异常
+     */
+    protected function installDependencies(array $dependencies)
+    {
+        if (empty($dependencies)) {
+            return true;
+        }
+
+        \VersionManager\Core\Logger\Logger::info("安装系统依赖...", "\033[33m");
+
+        try {
+            $osDriver = $this->getOsDriver();
+
+            // 先更新包缓存
+            $osDriver->updatePackageCache();
+
+            // 安装依赖包
+            $osDriver->installPackages($dependencies);
+
+            \VersionManager\Core\Logger\Logger::success("系统依赖安装完成");
+            return true;
+        } catch (\Exception $e) {
+            throw new \Exception("安装系统依赖失败: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * 获取PHP编译所需的基础依赖
+     *
+     * @param string $version PHP版本
+     * @return array 依赖包列表
+     */
+    protected function getBaseDependencies($version)
+    {
+        // 根据操作系统类型返回不同的依赖包
+        $osDriver = $this->getOsDriver();
+        $packageManager = $osDriver->getPackageManager();
+
+        switch ($packageManager) {
+            case 'apt':
+                return [
+                    'build-essential',
+                    'libxml2-dev',
+                    'libssl-dev',
+                    'libsqlite3-dev',
+                    'zlib1g-dev',
+                    'libcurl4-openssl-dev',
+                    'libpng-dev',
+                    'libjpeg-dev',
+                    'libfreetype6-dev',
+                    'libwebp-dev',
+                    'libxpm-dev'
+                ];
+
+            case 'yum':
+            case 'dnf':
+                return [
+                    'gcc',
+                    'gcc-c++',
+                    'make',
+                    'libxml2-devel',
+                    'openssl-devel',
+                    'sqlite-devel',
+                    'zlib-devel',
+                    'libcurl-devel',
+                    'libpng-devel',
+                    'libjpeg-devel',
+                    'freetype-devel',
+                    'libwebp-devel',
+                    'libXpm-devel'
+                ];
+
+            case 'apk':
+                return [
+                    'build-base',
+                    'libxml2-dev',
+                    'openssl-dev',
+                    'sqlite-dev',
+                    'zlib-dev',
+                    'curl-dev',
+                    'libpng-dev',
+                    'jpeg-dev',
+                    'freetype-dev',
+                    'libwebp-dev',
+                    'libxpm-dev'
+                ];
+
+            default:
+                return [];
+        }
     }
 }

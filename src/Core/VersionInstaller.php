@@ -287,24 +287,14 @@ class VersionInstaller
             }
         }
 
-        // 检查依赖
-        $missingDependencies = $this->detector->checkDependencies($version, isset($options['skip_composer']) && $options['skip_composer']);
-        if (!empty($missingDependencies)) {
-            // 安装依赖
-            $this->installDependencies($missingDependencies);
-        }
+        // 获取适合的版本驱动
+        $driver = $this->getVersionDriver($version);
 
-        // 根据选项决定安装方式
-        if (isset($options['from_source']) && $options['from_source']) {
-            return $this->installFromSource($version, $options);
-        } else {
-            try {
-                return $this->installFromBinary($version, $options);
-            } catch (\Exception $e) {
-                // 如果二进制包安装失败，尝试从源码安装
-                echo "\033[33m二进制包安装失败，尝试从源码安装...\033[0m\n";
-                return $this->installFromSource($version, $options);
-            }
+        // 使用版本驱动进行安装
+        try {
+            return $driver->install($version, $options);
+        } catch (\Exception $e) {
+            throw new Exception("安装PHP {$version} 失败: " . $e->getMessage());
         }
     }
 
@@ -518,6 +508,120 @@ class VersionInstaller
     }
 
     /**
+     * 执行apt-get update命令，对警告信息更宽容
+     *
+     * @param string $command 要执行的命令
+     * @param int $timeout 超时时间（秒），0表示无超时
+     * @return bool 是否执行成功
+     * @throws Exception 执行失败时抛出异常
+     */
+    private function executeAptUpdate($command, $timeout = 300)
+    {
+        // 使用proc_open实现实时输出
+        $descriptorspec = [
+            0 => ["pipe", "r"],  // stdin
+            1 => ["pipe", "w"],  // stdout
+            2 => ["pipe", "w"]   // stderr
+        ];
+
+        $process = proc_open($command, $descriptorspec, $pipes);
+
+        if (is_resource($process)) {
+            // 关闭stdin
+            fclose($pipes[0]);
+
+            // 设置非阻塞模式
+            stream_set_blocking($pipes[1], 0);
+            stream_set_blocking($pipes[2], 0);
+
+            $output = '';
+            $error = '';
+            $startTime = time();
+            $lastOutputTime = $startTime;
+
+            while (true) {
+                // 读取stdout
+                $stdout = stream_get_contents($pipes[1]);
+                if ($stdout !== false && $stdout !== '') {
+                    $output .= $stdout;
+                    echo $stdout;
+                    $lastOutputTime = time();
+                }
+
+                // 读取stderr
+                $stderr = stream_get_contents($pipes[2]);
+                if ($stderr !== false && $stderr !== '') {
+                    $error .= $stderr;
+                    echo $stderr;
+                    $lastOutputTime = time();
+                }
+
+                // 检查进程状态
+                $status = proc_get_status($process);
+                if (!$status['running']) {
+                    break;
+                }
+
+                // 检查超时
+                $currentTime = time();
+                if ($timeout > 0) {
+                    // 总超时检查
+                    if (($currentTime - $startTime) > $timeout) {
+                        proc_terminate($process);
+                        throw new Exception("命令执行超时（{$timeout}秒）");
+                    }
+
+                    // 无输出超时检查（如果超过5分钟没有输出，认为可能卡死）
+                    if (($currentTime - $lastOutputTime) > 300) {
+                        proc_terminate($process);
+                        throw new Exception("命令执行无响应超时（5分钟无输出）");
+                    }
+                }
+
+                // 避免 CPU 占用过高
+                usleep(100000); // 100ms
+            }
+
+            // 关闭管道
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+
+            // 关闭进程
+            $returnCode = proc_close($process);
+
+            // 对于apt-get update，只要退出码为0就认为成功，忽略警告信息
+            if ($returnCode === 0) {
+                return true;
+            }
+
+            // 检查是否是权限问题
+            if (strpos($error, '权限不够') !== false ||
+                strpos($error, 'Permission denied') !== false ||
+                strpos($error, '无法对目录') !== false ||
+                strpos($error, '无法打开锁文件') !== false) {
+                throw new Exception("权限不足: " . trim($error));
+            }
+
+            // 检查是否是认证失败
+            if (strpos($error, '认证失败') !== false ||
+                strpos($error, 'Authentication failure') !== false ||
+                strpos($error, 'su: ') !== false) {
+                throw new Exception("认证失败: " . trim($error));
+            }
+
+            // 其他错误
+            if (!empty(trim($error))) {
+                throw new Exception($error);
+            } else {
+                throw new Exception("命令执行失败，退出码: {$returnCode}");
+            }
+
+        } else {
+            throw new Exception("无法启动进程");
+        }
+    }
+
+    /**
      * 执行APT命令安装依赖
      *
      * @param array $dependencies 依赖列表
@@ -528,6 +632,7 @@ class VersionInstaller
     {
         // 先执行 apt-get update
         echo "\033[33m更新软件包列表...\033[0m\n";
+        $updateSuccess = false;
         foreach ($sudoCommands as $sudoCmd) {
             $updateCommand = $sudoCmd . 'apt-get update';
             if ($sudoCmd === 'su -c "') {
@@ -537,14 +642,20 @@ class VersionInstaller
             echo "\033[33m尝试执行: {$updateCommand}\033[0m\n";
 
             try {
-                $this->executeCommand($updateCommand);
+                $this->executeAptUpdate($updateCommand);
                 echo "\033[32m软件包列表更新成功\033[0m\n";
+                $updateSuccess = true;
                 break;
             } catch (Exception $e) {
                 echo "\033[33m更新失败: {$e->getMessage()}\033[0m\n";
                 echo "\033[33m尝试下一种权限提升方式...\033[0m\n";
                 continue;
             }
+        }
+
+        // 如果所有权限提升方式都失败了，但这不应该阻止安装过程
+        if (!$updateSuccess) {
+            echo "\033[33m警告: 软件包列表更新失败，但将继续尝试安装依赖\033[0m\n";
         }
 
         // 再执行 apt-get install

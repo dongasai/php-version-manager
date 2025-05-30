@@ -20,3 +20,6 @@ cache/
 data/
 AI-*.md
 *pid
+./test*.php
+./*test*.php
+./*debug*.php

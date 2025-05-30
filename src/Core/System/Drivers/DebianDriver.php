@@ -332,7 +332,7 @@ class DebianDriver extends AbstractOsDriver
     /**
      * {@inheritdoc}
      */
-    protected function isPackageInstalled($package)
+    public function isPackageInstalled($package)
     {
         $command = "dpkg -l | grep -w '{$package}' | grep -v '^rc'";
         $output = [];
@@ -372,7 +372,7 @@ class DebianDriver extends AbstractOsDriver
     /**
      * {@inheritdoc}
      */
-    protected function installPackages(array $packages)
+    public function installPackages(array $packages, array $options = [])
     {
         if (empty($packages)) {
             return true;
@@ -408,5 +408,57 @@ class DebianDriver extends AbstractOsDriver
         $command = "{$sudo}apt-get update && {$sudo}apt-get install -y {$packageList}";
 
         return $this->executeCommand($command);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getPackageManager()
+    {
+        return 'apt';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function updatePackageCache(array $options = [])
+    {
+        echo "\033[33m更新软件包列表...\033[0m\n";
+
+        $command = 'apt-get update';
+        list($output, $returnCode) = $this->executeWithPrivileges($command, $options);
+
+        // 对于apt-get update，只要退出码为0就认为成功，忽略警告信息
+        if ($returnCode === 0) {
+            echo "\033[32m软件包列表更新成功\033[0m\n";
+            return true;
+        }
+
+        // 检查是否是权限问题
+        $outputStr = implode("\n", $output);
+        if (strpos($outputStr, '权限不够') !== false ||
+            strpos($outputStr, 'Permission denied') !== false ||
+            strpos($outputStr, '无法对目录') !== false ||
+            strpos($outputStr, '无法打开锁文件') !== false) {
+            throw new \Exception("权限不足，无法更新软件包列表");
+        }
+
+        // 检查是否是认证失败
+        if (strpos($outputStr, '认证失败') !== false ||
+            strpos($outputStr, 'Authentication failure') !== false) {
+            throw new \Exception("认证失败，无法更新软件包列表");
+        }
+
+        // 检查是否是网络问题（ESM源连接超时等）
+        if (strpos($outputStr, '连接超时') !== false ||
+            strpos($outputStr, 'Connection timed out') !== false ||
+            strpos($outputStr, '无法连接') !== false ||
+            strpos($outputStr, 'Could not connect') !== false) {
+            // 网络问题不应该阻止安装过程，只是警告
+            echo "\033[33m警告: 部分软件源连接失败，但主要软件源可用\033[0m\n";
+            return true;
+        }
+
+        throw new \Exception("更新软件包列表失败: " . $outputStr);
     }
 }

@@ -2,7 +2,7 @@
 
 namespace VersionManager\Core;
 
-use VersionManager\Core\Config\MirrorConfig;
+
 
 /**
  * Composer管理器类
@@ -32,12 +32,7 @@ class ComposerManager
      */
     private $versionSwitcher;
 
-    /**
-     * 镜像配置
-     *
-     * @var MirrorConfig
-     */
-    private $mirrorConfig;
+
 
     /**
      * 构造函数
@@ -46,7 +41,6 @@ class ComposerManager
     {
         $this->pvmRoot = getenv('HOME') . '/.pvm';
         $this->versionSwitcher = new VersionSwitcher();
-        $this->mirrorConfig = new MirrorConfig();
 
         // 将Composer目录设置为PHP版本目录下
         $this->composerDir = $this->pvmRoot . '/versions';
@@ -125,12 +119,8 @@ class ComposerManager
      */
     private function downloadComposerInstaller(array $options = [])
     {
-        // 获取镜像地址
-        $mirror = isset($options['mirror']) ? $options['mirror'] : null;
-        $mirrorUrl = $this->mirrorConfig->getComposerMirror($mirror);
-
-        // 下载安装程序
-        $installerUrl = $mirrorUrl . '/installer';
+        // 使用官方安装程序地址
+        $installerUrl = 'https://getcomposer.org/installer';
         $installerPath = $this->composerDir . '/installer';
 
         // 使用curl下载安装程序

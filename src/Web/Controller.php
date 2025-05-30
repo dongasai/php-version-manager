@@ -7,7 +7,7 @@ use VersionManager\Core\ExtensionManager;
 use VersionManager\Core\ComposerManager;
 use VersionManager\Core\System\MonitorManager;
 use VersionManager\Core\Config\PhpConfig;
-use VersionManager\Core\Config\MirrorConfig;
+
 use VersionManager\Core\Config\PvmMirrorConfig;
 use VersionManager\Core\VersionSwitcher;
 
@@ -60,12 +60,7 @@ class Controller
      */
     private $versionSwitcher;
 
-    /**
-     * 镜像配置
-     *
-     * @var MirrorConfig
-     */
-    private $mirrorConfig;
+
 
     /**
      * PVM镜像配置
@@ -84,7 +79,7 @@ class Controller
         $this->composerManager = new ComposerManager();
         $this->monitorManager = new MonitorManager();
         $this->versionSwitcher = new VersionSwitcher();
-        $this->mirrorConfig = new MirrorConfig();
+
         $this->pvmMirrorConfig = new PvmMirrorConfig();
         $this->view = new View();
     }
@@ -164,8 +159,7 @@ class Controller
             case 'composer':
                 return $this->showComposer();
 
-            case 'mirrors':
-                return $this->showMirrors();
+
 
             case 'pvm-mirror':
                 return $this->showPvmMirror();
@@ -191,11 +185,7 @@ class Controller
             case 'actions/install':
                 return $this->actionInstall();
 
-            case 'actions/set-mirror':
-                return $this->actionSetMirror();
 
-            case 'actions/add-mirror':
-                return $this->actionAddMirror();
 
             case 'actions/pvm-mirror-enable':
                 return $this->actionPvmMirrorEnable();

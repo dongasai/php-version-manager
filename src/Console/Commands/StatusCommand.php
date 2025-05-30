@@ -6,7 +6,7 @@ use VersionManager\Console\CommandInterface;
 use VersionManager\Core\VersionDetector;
 use VersionManager\Core\VersionSwitcher;
 use VersionManager\Core\Config\PvmMirrorConfig;
-use VersionManager\Core\Config\MirrorConfig;
+
 use VersionManager\Core\Logger\Logger;
 
 /**
@@ -37,12 +37,7 @@ class StatusCommand implements CommandInterface
      */
     private $pvmMirrorConfig;
 
-    /**
-     * 镜像配置
-     *
-     * @var MirrorConfig
-     */
-    private $mirrorConfig;
+
 
     /**
      * 构造函数
@@ -52,7 +47,6 @@ class StatusCommand implements CommandInterface
         $this->detector = new VersionDetector();
         $this->switcher = new VersionSwitcher();
         $this->pvmMirrorConfig = new PvmMirrorConfig();
-        $this->mirrorConfig = new MirrorConfig();
     }
 
     /**
@@ -200,14 +194,8 @@ class StatusCommand implements CommandInterface
             }
         }
 
-        // 传统镜像配置
-        $phpMirror = $this->mirrorConfig->getDefaultPhpMirrorName();
-        $peclMirror = $this->mirrorConfig->getDefaultPeclMirrorName();
-        $composerMirror = $this->mirrorConfig->getDefaultComposerMirrorName();
-
-        echo "  PHP下载源: {$phpMirror}\n";
-        echo "  PECL下载源: {$peclMirror}\n";
-        echo "  Composer下载源: {$composerMirror}\n";
+        // 注意：传统镜像配置功能已废弃
+        echo "  传统镜像配置: 已废弃\n";
 
         echo "\n";
     }
@@ -335,11 +323,7 @@ class StatusCommand implements CommandInterface
                 'main_url' => $pvmEnabled ? $this->pvmMirrorConfig->getMirrorUrl() : null,
                 'fallback_mirrors' => $pvmEnabled ? $this->pvmMirrorConfig->getFallbackMirrors() : []
             ],
-            'traditional_mirrors' => [
-                'php' => $this->mirrorConfig->getDefaultPhpMirrorName(),
-                'pecl' => $this->mirrorConfig->getDefaultPeclMirrorName(),
-                'composer' => $this->mirrorConfig->getDefaultComposerMirrorName()
-            ]
+            'traditional_mirrors' => 'deprecated'
         ];
 
         return $info;

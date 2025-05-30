@@ -215,8 +215,11 @@ return [
         // 官方源
         'source' => 'https://getcomposer.org/download',
 
-        // 文件名模式
+        // 文件名模式 (用于本地存储)
         'pattern' => 'composer-{version}.phar',
+
+        // URL 模式 (用于下载)
+        'url_pattern' => '{source}/{version}/composer.phar',
 
         // 版本配置文件路径
         'version_config' => 'composer/versions.php',

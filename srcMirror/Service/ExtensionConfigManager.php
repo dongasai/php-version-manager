@@ -4,7 +4,7 @@ namespace Mirror\Service;
 
 /**
  * 扩展配置管理服务
- * 
+ *
  * 负责管理分离的扩展配置文件
  */
 class ExtensionConfigManager
@@ -27,11 +27,11 @@ class ExtensionConfigManager
     public function getPhpVersions()
     {
         $configFile = $this->configDir . '/extensions/php/versions.php';
-        
+
         if (!file_exists($configFile)) {
             return [];
         }
-        
+
         $config = require $configFile;
         return $config['versions'] ?? [];
     }
@@ -44,11 +44,11 @@ class ExtensionConfigManager
     public function getComposerVersions()
     {
         $configFile = $this->configDir . '/composer/versions.php';
-        
+
         if (!file_exists($configFile)) {
             return [];
         }
-        
+
         $config = require $configFile;
         return $config['versions'] ?? [];
     }
@@ -62,11 +62,11 @@ class ExtensionConfigManager
     public function getPeclExtensionVersions($extensionName)
     {
         $configFile = $this->configDir . "/extensions/pecl/{$extensionName}.php";
-        
+
         if (!file_exists($configFile)) {
             return [];
         }
-        
+
         $config = require $configFile;
         return $config['recommended_versions'] ?? $config['all_versions'] ?? [];
     }
@@ -80,11 +80,11 @@ class ExtensionConfigManager
     public function getGithubExtensionVersions($extensionName)
     {
         $configFile = $this->configDir . "/extensions/github/{$extensionName}.php";
-        
+
         if (!file_exists($configFile)) {
             return [];
         }
-        
+
         $config = require $configFile;
         return $config['recommended_versions'] ?? $config['all_versions'] ?? [];
     }
@@ -98,11 +98,11 @@ class ExtensionConfigManager
     public function getGithubExtensionConfig($extensionName)
     {
         $configFile = $this->configDir . "/extensions/github/{$extensionName}.php";
-        
+
         if (!file_exists($configFile)) {
             return [];
         }
-        
+
         return require $configFile;
     }
 
@@ -115,18 +115,18 @@ class ExtensionConfigManager
     {
         $peclDir = $this->configDir . '/extensions/pecl';
         $extensions = [];
-        
+
         if (!is_dir($peclDir)) {
             return $extensions;
         }
-        
+
         $files = glob($peclDir . '/*.php');
         foreach ($files as $file) {
             $extensionName = basename($file, '.php');
             $config = require $file;
             $extensions[$extensionName] = $config['recommended_versions'] ?? $config['all_versions'] ?? [];
         }
-        
+
         return $extensions;
     }
 
@@ -139,37 +139,43 @@ class ExtensionConfigManager
     {
         $githubDir = $this->configDir . '/extensions/github';
         $extensions = [];
-        
+
         if (!is_dir($githubDir)) {
             return $extensions;
         }
-        
+
         $files = glob($githubDir . '/*.php');
         foreach ($files as $file) {
             $extensionName = basename($file, '.php');
             $config = require $file;
             $extensions[$extensionName] = $config['recommended_versions'] ?? $config['all_versions'] ?? [];
         }
-        
+
         return $extensions;
     }
 
     /**
      * 保存PHP版本配置
      *
-     * @param array $versions 版本配置
+     * @param array $versions 版本配置（按主版本分组）
      * @return bool 是否成功
      */
     public function savePhpVersions($versions)
     {
         $configFile = $this->configDir . '/extensions/php/versions.php';
         $config = $this->loadConfigFile($configFile);
-        
+
         $config['versions'] = $versions;
         $config['metadata']['last_updated'] = date('Y-m-d H:i:s');
         $config['metadata']['auto_updated'] = true;
-        $config['metadata']['total_versions'] = count($versions);
-        
+
+        // 计算总版本数（所有主版本的版本数之和）
+        $totalVersions = 0;
+        foreach ($versions as $versionList) {
+            $totalVersions += count($versionList);
+        }
+        $config['metadata']['total_versions'] = $totalVersions;
+
         return $this->saveConfigFile($configFile, $config);
     }
 
@@ -183,12 +189,12 @@ class ExtensionConfigManager
     {
         $configFile = $this->configDir . '/composer/versions.php';
         $config = $this->loadConfigFile($configFile);
-        
+
         $config['versions'] = $versions;
         $config['metadata']['last_updated'] = date('Y-m-d H:i:s');
         $config['metadata']['auto_updated'] = true;
         $config['metadata']['total_versions'] = count($versions);
-        
+
         return $this->saveConfigFile($configFile, $config);
     }
 
@@ -203,14 +209,14 @@ class ExtensionConfigManager
     {
         $configFile = $this->configDir . "/extensions/pecl/{$extensionName}.php";
         $config = $this->loadConfigFile($configFile);
-        
+
         $config['all_versions'] = $versions;
         $config['recommended_versions'] = $this->selectRecommendedVersions($versions);
         $config['metadata']['last_updated'] = date('Y-m-d H:i:s');
         $config['metadata']['auto_updated'] = true;
         $config['metadata']['total_discovered'] = count($versions);
         $config['metadata']['total_recommended'] = count($config['recommended_versions']);
-        
+
         return $this->saveConfigFile($configFile, $config);
     }
 
@@ -225,14 +231,14 @@ class ExtensionConfigManager
     {
         $configFile = $this->configDir . "/extensions/github/{$extensionName}.php";
         $config = $this->loadConfigFile($configFile);
-        
+
         $config['all_versions'] = $versions;
         $config['recommended_versions'] = $this->selectRecommendedVersions($versions);
         $config['metadata']['last_updated'] = date('Y-m-d H:i:s');
         $config['metadata']['auto_updated'] = true;
         $config['metadata']['total_discovered'] = count($versions);
         $config['metadata']['total_recommended'] = count($config['recommended_versions']);
-        
+
         return $this->saveConfigFile($configFile, $config);
     }
 
@@ -247,7 +253,7 @@ class ExtensionConfigManager
         if (file_exists($configFile)) {
             return require $configFile;
         }
-        
+
         return [];
     }
 
@@ -266,7 +272,7 @@ class ExtensionConfigManager
             if (!is_dir($dir)) {
                 mkdir($dir, 0755, true);
             }
-            
+
             $content = "<?php\n\n";
             $content .= "/**\n";
             $content .= " * " . ($config['name'] ?? 'Extension') . " 版本配置文件\n";
@@ -275,11 +281,11 @@ class ExtensionConfigManager
             $content .= " * 最后更新时间: " . ($config['metadata']['last_updated'] ?? date('Y-m-d H:i:s')) . "\n";
             $content .= " */\n\n";
             $content .= "return " . $this->arrayToPhpCode($config, 0) . ";\n";
-            
+
             $result = file_put_contents($configFile, $content);
-            
+
             return $result !== false;
-            
+
         } catch (\Exception $e) {
             echo "  错误: 保存配置文件失败: " . $e->getMessage() . "\n";
             return false;
@@ -298,7 +304,7 @@ class ExtensionConfigManager
         if (count($versions) <= 10) {
             return $versions;
         }
-        
+
         // 否则使用智能选择
         return $this->selectSmartVersions($versions);
     }
@@ -324,7 +330,7 @@ class ExtensionConfigManager
         }
 
         $selected = [];
-        
+
         // 对每个主版本，选择最新的几个版本
         foreach ($grouped as $major => $majorVersions) {
             usort($majorVersions, 'version_compare');
@@ -346,7 +352,7 @@ class ExtensionConfigManager
     private function arrayToPhpCode($data, $indent = 0)
     {
         $spaces = str_repeat('    ', $indent);
-        
+
         if (is_array($data)) {
             $result = "[\n";
             foreach ($data as $key => $value) {

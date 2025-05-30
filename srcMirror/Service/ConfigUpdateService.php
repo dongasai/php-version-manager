@@ -42,8 +42,18 @@ class ConfigUpdateService
 
         if ($dryRun) {
             echo "  试运行模式，将要更新的版本:\n";
-            foreach ($groupedVersions as $major => $range) {
-                echo "    '$major' => ['{$range[0]}', '{$range[1]}'],\n";
+            foreach ($groupedVersions as $major => $versionList) {
+                $count = count($versionList);
+                $first = reset($versionList);
+                $last = end($versionList);
+
+                if ($count <= 5) {
+                    // 版本数量少时显示完整列表
+                    echo "    '$major' => ['" . implode("', '", $versionList) . "'],\n";
+                } else {
+                    // 版本数量多时显示范围和数量
+                    echo "    '$major' => ['$first' ... '$last'] (共 $count 个版本),\n";
+                }
             }
             return true;
         }
@@ -182,7 +192,7 @@ class ConfigUpdateService
      * 按主版本分组版本号
      *
      * @param array $versions 版本数组
-     * @return array 分组后的版本范围
+     * @return array 分组后的完整版本列表
      */
     private function groupVersionsByMajor($versions)
     {
@@ -193,17 +203,17 @@ class ConfigUpdateService
                 $major = $matches[1];
 
                 if (!isset($grouped[$major])) {
-                    $grouped[$major] = [$version, $version];
-                } else {
-                    // 更新最小和最大版本
-                    if (version_compare($version, $grouped[$major][0], '<')) {
-                        $grouped[$major][0] = $version;
-                    }
-                    if (version_compare($version, $grouped[$major][1], '>')) {
-                        $grouped[$major][1] = $version;
-                    }
+                    $grouped[$major] = [];
                 }
+
+                $grouped[$major][] = $version;
             }
+        }
+
+        // 对每个主版本的版本列表进行排序和去重
+        foreach ($grouped as $major => $versionList) {
+            $grouped[$major] = array_unique($versionList);
+            usort($grouped[$major], 'version_compare');
         }
 
         return $grouped;

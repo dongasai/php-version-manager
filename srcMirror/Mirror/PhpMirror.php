@@ -2,7 +2,6 @@
 
 namespace Mirror\Mirror;
 
-use Mirror\Utils\FileUtils;
 use Mirror\Service\ExtensionConfigManager;
 
 /**
@@ -42,23 +41,21 @@ class PhpMirror
             return false;
         }
 
-        $success = true;
-
-        // 遍历版本
-        foreach ($versions as $majorVersion => $versionRange) {
-            list($minVersion, $maxVersion) = $versionRange;
-
-            // 获取版本列表
-            $versionList = FileUtils::getVersionRange($minVersion, $maxVersion);
-
-            foreach ($versionList as $version) {
-                if (!$this->downloadVersion($source, $pattern, $dataDir, $version)) {
-                    $success = false;
-                }
-            }
+        // === 预检查阶段 ===
+        echo "\n=== 预检查阶段 ===\n";
+        $allVersions = [];
+        foreach ($versions as $versionList) {
+            $allVersions = array_merge($allVersions, $versionList);
         }
 
-        return $success;
+        $downloadPlan = $this->collectVersionDownloadPlan($source, $pattern, $dataDir, $allVersions);
+
+        // 显示下载计划
+        $this->showAllVersionsDownloadPlan($downloadPlan);
+
+        // === 下载阶段 ===
+        echo "\n=== 下载阶段 ===\n";
+        return $this->executeVersionDownloadPlan($downloadPlan);
     }
 
     /**
@@ -85,89 +82,132 @@ class PhpMirror
             mkdir($dataDir, 0755, true);
         }
 
-        // 检查版本是否在配置中
-        if (!isset($config['versions'][$majorVersion])) {
-            echo "  错误: 版本 $majorVersion 不在配置的版本列表中\n";
-            echo "  可用版本: " . implode(', ', array_keys($config['versions'])) . "\n";
+        // 获取版本配置
+        $extensionConfigManager = new \Mirror\Service\ExtensionConfigManager();
+        $versionGroups = $extensionConfigManager->getPhpVersions();
+
+        if (empty($versionGroups)) {
+            echo "  错误: PHP 版本配置为空\n";
             return false;
         }
 
-        $versionRange = $config['versions'][$majorVersion];
-        list($minVersion, $maxVersion) = $versionRange;
-
-        // 获取版本列表
-        $versions = FileUtils::getVersionRange($minVersion, $maxVersion);
-
-        $success = true;
-        foreach ($versions as $version) {
-            if (!$this->downloadVersion($source, $pattern, $dataDir, $version)) {
-                $success = false;
-            }
+        // 检查版本是否在配置中
+        if (!isset($versionGroups[$majorVersion])) {
+            echo "  错误: 版本 $majorVersion 不在配置的版本列表中\n";
+            echo "  可用版本: " . implode(', ', array_keys($versionGroups)) . "\n";
+            return false;
         }
 
-        return $success;
+        // 获取版本列表
+        $versions = $versionGroups[$majorVersion];
+
+        // === 预检查阶段 ===
+        echo "\n=== 预检查阶段 ===\n";
+        $downloadPlan = $this->collectVersionDownloadPlan($source, $pattern, $dataDir, $versions);
+
+        // 显示下载计划
+        $this->showVersionDownloadPlan($downloadPlan, $majorVersion);
+
+        // === 下载阶段 ===
+        echo "\n=== 下载阶段 ===\n";
+        return $this->executeVersionDownloadPlan($downloadPlan);
     }
 
     /**
-     * 下载指定版本
+     * 显示所有版本下载计划
      *
-     * @param string $source 源地址
-     * @param string $pattern 文件名模式
-     * @param string $dataDir 数据目录
-     * @param string $version 版本号
-     * @return bool 是否成功
+     * @param array $downloadPlan 下载计划
      */
-    private function downloadVersion($source, $pattern, $dataDir, $version)
+    private function showAllVersionsDownloadPlan($downloadPlan)
     {
-        $filename = str_replace('{version}', $version, $pattern);
-        $sourceUrl = $source . '/' . $filename;
-        $targetFile = $dataDir . '/' . $filename;
+        $totalFiles = count($downloadPlan);
+        $existingFiles = 0;
+        $validFiles = 0;
+        $needDownload = 0;
+        $totalSize = 0;
+        $existingSize = 0;
+        $downloadSize = 0;
 
-        // 如果文件不存在，则下载
-        if (!file_exists($targetFile)) {
-            echo "  下载 PHP $version: $sourceUrl\n";
+        // 按主版本分组统计
+        $versionGroups = [];
 
-            // 设置下载选项
-            $downloadOptions = [
-                'min_size' => 1024 * 1024 * 5,  // PHP 源码包至少 5MB
-                'max_retries' => 3,
-                'timeout' => 600,               // PHP 源码包较大，增加超时时间
-                'verify_content' => true,
-                'expected_type' => 'tar.gz'
-            ];
+        foreach ($downloadPlan as $item) {
+            // 提取主版本号
+            if (preg_match('/^(\d+\.\d+)\./', $item['version'], $matches)) {
+                $majorVersion = $matches[1];
+                if (!isset($versionGroups[$majorVersion])) {
+                    $versionGroups[$majorVersion] = [
+                        'total' => 0,
+                        'existing' => 0,
+                        'valid' => 0,
+                        'need_download' => 0
+                    ];
+                }
+                $versionGroups[$majorVersion]['total']++;
+            }
 
-            try {
-                $success = FileUtils::downloadFile($sourceUrl, $targetFile, $downloadOptions);
-                if ($success) {
-                    // 额外验证 PHP 源码包
-                    if ($this->validatePhpSourcePackage($targetFile, $version)) {
-                        echo "  PHP $version 下载并验证完成\n";
-                        return true;
-                    } else {
-                        echo "  错误: PHP $version 源码包验证失败\n";
-                        if (file_exists($targetFile)) {
-                            unlink($targetFile);
-                        }
-                        return false;
+            if ($item['exists']) {
+                $existingFiles++;
+                $existingSize += $item['file_size'];
+
+                if (isset($majorVersion)) {
+                    $versionGroups[$majorVersion]['existing']++;
+                }
+
+                if ($item['is_valid']) {
+                    $validFiles++;
+                    if (isset($majorVersion)) {
+                        $versionGroups[$majorVersion]['valid']++;
                     }
                 } else {
-                    echo "  错误: PHP $version 下载失败\n";
-                    return false;
+                    $needDownload++;
+                    $downloadSize += $item['estimated_size'];
+                    if (isset($majorVersion)) {
+                        $versionGroups[$majorVersion]['need_download']++;
+                    }
                 }
-            } catch (\Exception $e) {
-                echo "  错误: PHP $version 下载失败: " . $e->getMessage() . "\n";
-                return false;
-            }
-        } else {
-            // 验证已存在的文件
-            if ($this->validateExistingFile($targetFile, $version)) {
-                echo "  PHP $version 已存在且验证通过\n";
-                return true;
             } else {
-                echo "  PHP $version 文件损坏，重新下载\n";
-                unlink($targetFile);
-                return $this->downloadVersion($source, $pattern, $dataDir, $version);
+                $needDownload++;
+                $downloadSize += $item['estimated_size'];
+                if (isset($majorVersion)) {
+                    $versionGroups[$majorVersion]['need_download']++;
+                }
             }
+
+            $totalSize += $item['exists'] ? $item['file_size'] : $item['estimated_size'];
+        }
+
+        echo "\n=== PHP 全版本下载计划摘要 ===\n";
+        echo "总文件数: {$totalFiles}\n";
+        echo "已存在文件: {$existingFiles} (有效: {$validFiles}, 无效: " . ($existingFiles - $validFiles) . ")\n";
+        echo "需要下载: {$needDownload}\n";
+
+        if ($totalSize > 0) {
+            echo "总大小: " . $this->formatSize($totalSize) . "\n";
+            echo "已存在大小: " . $this->formatSize($existingSize) . "\n";
+            echo "需要下载大小: " . $this->formatSize($downloadSize) . "\n";
+        }
+
+        // 显示各主版本统计
+        echo "\n按主版本统计:\n";
+        ksort($versionGroups);
+        foreach ($versionGroups as $major => $stats) {
+            echo "  PHP {$major}: {$stats['total']} 个文件";
+            if ($stats['existing'] > 0) {
+                echo " (已存在: {$stats['existing']}";
+                if ($stats['valid'] > 0) {
+                    echo ", 有效: {$stats['valid']}";
+                }
+                echo ")";
+            }
+            if ($stats['need_download'] > 0) {
+                echo " (需下载: {$stats['need_download']})";
+            }
+            echo "\n";
+        }
+
+        if ($needDownload == 0) {
+            echo "\n所有文件都已存在且有效，无需下载。\n";
         }
     }
 
@@ -269,6 +309,226 @@ class PhpMirror
 
 
     /**
+     * 收集版本下载计划
+     *
+     * @param string $source 源地址
+     * @param string $pattern 文件名模式
+     * @param string $dataDir 数据目录
+     * @param array $versions 版本列表
+     * @return array 下载计划
+     */
+    private function collectVersionDownloadPlan($source, $pattern, $dataDir, $versions)
+    {
+        $plan = [];
+
+        echo "检查 PHP 版本文件...\n";
+
+        foreach ($versions as $version) {
+            $filename = str_replace('{version}', $version, $pattern);
+            $sourceUrl = $source . '/' . $filename;
+            $targetFile = $dataDir . '/' . $filename;
+
+            $exists = file_exists($targetFile);
+            $fileSize = $exists ? filesize($targetFile) : 0;
+            $isValid = $exists ? $this->validateExistingFile($targetFile, $version) : false;
+
+            $plan[] = [
+                'version' => $version,
+                'filename' => $filename,
+                'source_url' => $sourceUrl,
+                'target_file' => $targetFile,
+                'exists' => $exists,
+                'is_valid' => $isValid,
+                'file_size' => $fileSize,
+                'estimated_size' => 20 * 1024 * 1024, // 估计 20MB
+                'needs_download' => !$exists || !$isValid
+            ];
+
+            if ($exists) {
+                if ($isValid) {
+                    echo "  PHP {$version}: 已存在且有效\n";
+                } else {
+                    echo "  PHP {$version}: 已存在但无效，需重新下载\n";
+                }
+            } else {
+                echo "  PHP {$version}: 需下载\n";
+            }
+        }
+
+        return $plan;
+    }
+
+    /**
+     * 显示版本下载计划
+     *
+     * @param array $downloadPlan 下载计划
+     * @param string $majorVersion 主版本号
+     */
+    private function showVersionDownloadPlan($downloadPlan, $majorVersion)
+    {
+        $totalFiles = count($downloadPlan);
+        $existingFiles = 0;
+        $validFiles = 0;
+        $needDownload = 0;
+        $totalSize = 0;
+        $existingSize = 0;
+        $downloadSize = 0;
+
+        foreach ($downloadPlan as $item) {
+            if ($item['exists']) {
+                $existingFiles++;
+                $existingSize += $item['file_size'];
+
+                if ($item['is_valid']) {
+                    $validFiles++;
+                } else {
+                    $needDownload++;
+                    $downloadSize += $item['estimated_size'];
+                }
+            } else {
+                $needDownload++;
+                $downloadSize += $item['estimated_size'];
+            }
+
+            $totalSize += $item['exists'] ? $item['file_size'] : $item['estimated_size'];
+        }
+
+        echo "\n=== PHP {$majorVersion} 下载计划摘要 ===\n";
+        echo "总文件数: {$totalFiles}\n";
+        echo "已存在文件: {$existingFiles} (有效: {$validFiles}, 无效: " . ($existingFiles - $validFiles) . ")\n";
+        echo "需要下载: {$needDownload}\n";
+
+        if ($totalSize > 0) {
+            echo "总大小: " . $this->formatSize($totalSize) . "\n";
+            echo "已存在大小: " . $this->formatSize($existingSize) . "\n";
+            echo "需要下载大小: " . $this->formatSize($downloadSize) . "\n";
+        }
+
+        if ($needDownload == 0) {
+            echo "\n所有文件都已存在且有效，无需下载。\n";
+        } else {
+            echo "\n将要下载的版本:\n";
+            foreach ($downloadPlan as $item) {
+                if ($item['needs_download']) {
+                    $reason = $item['exists'] ? '(文件无效)' : '(文件不存在)';
+                    echo "  - PHP {$item['version']} {$reason}\n";
+                }
+            }
+        }
+    }
+
+    /**
+     * 执行版本下载计划
+     *
+     * @param array $downloadPlan 下载计划
+     * @return bool 是否成功
+     */
+    private function executeVersionDownloadPlan($downloadPlan)
+    {
+        $needDownload = array_filter($downloadPlan, function($item) {
+            return $item['needs_download'];
+        });
+
+        if (empty($needDownload)) {
+            echo "无需下载任何文件。\n";
+            return true;
+        }
+
+        $totalDownloads = count($needDownload);
+        $currentDownload = 0;
+        $success = true;
+
+        echo "开始下载 {$totalDownloads} 个文件...\n\n";
+
+        foreach ($needDownload as $item) {
+            $currentDownload++;
+            echo "[{$currentDownload}/{$totalDownloads}] ";
+
+            if (!$this->downloadSingleVersion($item)) {
+                $success = false;
+            }
+
+            echo "\n";
+        }
+
+        echo "下载阶段完成。\n";
+        return $success;
+    }
+
+    /**
+     * 下载单个版本
+     *
+     * @param array $item 版本信息
+     * @return bool 是否成功
+     */
+    private function downloadSingleVersion($item)
+    {
+        echo "下载 PHP {$item['version']}: {$item['source_url']}\n";
+
+        // 如果文件存在但无效，先删除
+        if ($item['exists'] && !$item['is_valid']) {
+            echo "  删除无效文件...\n";
+            unlink($item['target_file']);
+        }
+
+        // 设置下载选项
+        $downloadOptions = [
+            'min_size' => 1024 * 1024 * 5,  // PHP 源码包至少 5MB
+            'max_retries' => 3,
+            'timeout' => 600,               // PHP 源码包较大，增加超时时间
+            'verify_content' => true,
+            'expected_type' => 'tar.gz'
+        ];
+
+        try {
+            $success = \Mirror\Utils\FileUtils::downloadFile(
+                $item['source_url'],
+                $item['target_file'],
+                $downloadOptions
+            );
+
+            if ($success) {
+                // 额外验证 PHP 源码包
+                if ($this->validatePhpSourcePackage($item['target_file'], $item['version'])) {
+                    echo "  PHP {$item['version']} 下载并验证完成\n";
+                    return true;
+                } else {
+                    echo "  错误: PHP {$item['version']} 源码包验证失败\n";
+                    if (file_exists($item['target_file'])) {
+                        unlink($item['target_file']);
+                    }
+                    return false;
+                }
+            } else {
+                echo "  错误: PHP {$item['version']} 下载失败\n";
+                return false;
+            }
+        } catch (\Exception $e) {
+            echo "  错误: PHP {$item['version']} 下载失败: " . $e->getMessage() . "\n";
+            return false;
+        }
+    }
+
+    /**
+     * 格式化文件大小
+     *
+     * @param int $size 文件大小（字节）
+     * @return string 格式化后的大小
+     */
+    private function formatSize($size)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $i = 0;
+
+        while ($size >= 1024 && $i < count($units) - 1) {
+            $size /= 1024;
+            $i++;
+        }
+
+        return round($size, 2) . ' ' . $units[$i];
+    }
+
+    /**
      * 清理PHP源码包
      *
      * @param array $config 配置
@@ -278,8 +538,12 @@ class PhpMirror
     {
         echo "清理 PHP 源码包...\n";
 
-        // 实现清理逻辑
-        // ...
+        // 避免未使用变量警告
+        if (empty($config)) {
+            echo "  配置为空，跳过清理\n";
+        } else {
+            echo "  清理功能待实现\n";
+        }
 
         return true;
     }

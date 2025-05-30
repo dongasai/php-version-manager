@@ -110,6 +110,18 @@ class VersionDetector
             if ($this->supportedVersions->isRecommended($version)) {
                 // 添加最新的补丁版本
                 switch ($version) {
+                    case '5.4':
+                        $recommendedVersions[] = '5.4.45';
+                        break;
+                    case '5.5':
+                        $recommendedVersions[] = '5.5.38';
+                        break;
+                    case '5.6':
+                        $recommendedVersions[] = '5.6.40';
+                        break;
+                    case '7.0':
+                        $recommendedVersions[] = '7.0.33';
+                        break;
                     case '7.1':
                         $recommendedVersions[] = '7.1.33';
                         break;
@@ -141,6 +153,10 @@ class VersionDetector
         // 如果没有推荐的版本，返回默认版本
         if (empty($recommendedVersions)) {
             return [
+                '5.4.45', // PHP 5.4系列最新版本
+                '5.5.38', // PHP 5.5系列最新版本
+                '5.6.40', // PHP 5.6系列最新版本
+                '7.0.33', // PHP 7.0系列最新版本
                 '7.1.33', // PHP 7.1系列最新版本
                 '7.2.34', // PHP 7.2系列最新版本
                 '7.3.33', // PHP 7.3系列最新版本

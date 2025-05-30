@@ -416,58 +416,22 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
             return true;
         }
 
-        \VersionManager\Core\Logger\Logger::info("检查系统依赖...", "\033[33m");
+        \VersionManager\Core\Logger\Logger::info("安装系统依赖...", "\033[33m");
 
         try {
             $osDriver = $this->getOsDriver();
 
-            // 先检查哪些依赖需要安装
-            $missingPackages = $this->checkMissingPackages($dependencies, $osDriver);
-
-            if (empty($missingPackages)) {
-                \VersionManager\Core\Logger\Logger::success("所有系统依赖已安装");
-                return true;
-            }
-
-            // 显示需要安装的依赖
-            if (\VersionManager\Core\Logger\Logger::isVerbose()) {
-                \VersionManager\Core\Logger\Logger::verbose("需要安装的依赖: " . implode(', ', $missingPackages));
-                \VersionManager\Core\Logger\Logger::verbose("已安装的依赖: " . implode(', ', array_diff($dependencies, $missingPackages)));
-            } else {
-                \VersionManager\Core\Logger\Logger::info("需要安装 " . count($missingPackages) . " 个依赖包", "\033[33m");
-            }
-
-            // 只有在需要安装依赖时才更新包缓存
+            // 先更新包缓存
             $osDriver->updatePackageCache();
 
-            // 安装缺失的依赖包
-            $osDriver->installPackages($missingPackages);
+            // 安装依赖包
+            $osDriver->installPackages($dependencies);
 
             \VersionManager\Core\Logger\Logger::success("系统依赖安装完成");
             return true;
         } catch (\Exception $e) {
             throw new \Exception("安装系统依赖失败: " . $e->getMessage());
         }
-    }
-
-    /**
-     * 检查缺失的依赖包
-     *
-     * @param array $dependencies 所有依赖列表
-     * @param \VersionManager\Core\System\OsDriverInterface $osDriver 操作系统驱动
-     * @return array 缺失的依赖包列表
-     */
-    protected function checkMissingPackages(array $dependencies, $osDriver)
-    {
-        $missingPackages = [];
-
-        foreach ($dependencies as $package) {
-            if (!$osDriver->isPackageInstalled($package)) {
-                $missingPackages[] = $package;
-            }
-        }
-
-        return $missingPackages;
     }
 
     /**

@@ -333,39 +333,7 @@ class Controller
         ]);
     }
 
-    /**
-     * 显示镜像管理页面
-     *
-     * @return string 响应内容
-     */
-    private function showMirrors()
-    {
-        // 获取当前PHP版本
-        $currentVersion = $this->versionManager->getCurrentVersion();
 
-        // 获取所有镜像配置
-        $phpMirrors = $this->mirrorConfig->getAllPhpMirrors();
-        $peclMirrors = $this->mirrorConfig->getAllPeclMirrors();
-        $composerMirrors = $this->mirrorConfig->getAllComposerMirrors();
-
-        // 获取当前默认镜像
-        $currentPhpMirror = $this->mirrorConfig->getPhpMirror();
-        $currentPeclMirror = $this->mirrorConfig->getPeclMirror();
-        $currentComposerMirror = $this->mirrorConfig->getComposerMirror();
-
-        // 渲染视图
-        return $this->view->render('mirrors', [
-            'title' => 'PVM 管理面板 - 镜像管理',
-            'currentVersion' => $currentVersion,
-            'phpMirrors' => $phpMirrors,
-            'peclMirrors' => $peclMirrors,
-            'composerMirrors' => $composerMirrors,
-            'currentPhpMirror' => $currentPhpMirror,
-            'currentPeclMirror' => $currentPeclMirror,
-            'currentComposerMirror' => $currentComposerMirror,
-            'privilegeStatus' => $this->getPrivilegeStatus(),
-        ]);
-    }
 
     /**
      * 显示PVM镜像源管理页面
@@ -1133,108 +1101,9 @@ class Controller
         }
     }
 
-    /**
-     * 处理设置镜像操作
-     */
-    public function actionSetMirror()
-    {
-        $type = $_POST['type'] ?? '';
-        $mirror = $_POST['mirror'] ?? '';
 
-        if (empty($type) || empty($mirror)) {
-            header('Location: /mirrors?message=' . urlencode('参数缺失') . '&type=error');
-            exit;
-        }
 
-        try {
-            $success = false;
-            $message = '';
 
-            switch ($type) {
-                case 'php':
-                    $success = $this->mirrorConfig->setDefaultPhpMirror($mirror);
-                    $message = $success ? "PHP镜像已设置为: {$mirror}" : "设置PHP镜像失败";
-                    break;
-
-                case 'pecl':
-                    $success = $this->mirrorConfig->setDefaultPeclMirror($mirror);
-                    $message = $success ? "PECL镜像已设置为: {$mirror}" : "设置PECL镜像失败";
-                    break;
-
-                case 'composer':
-                    $success = $this->mirrorConfig->setDefaultComposerMirror($mirror);
-                    $message = $success ? "Composer镜像已设置为: {$mirror}" : "设置Composer镜像失败";
-                    break;
-
-                default:
-                    $message = '不支持的镜像类型';
-                    break;
-            }
-
-            $messageType = $success ? 'success' : 'error';
-        } catch (\Exception $e) {
-            $message = '设置镜像失败: ' . $e->getMessage();
-            $messageType = 'error';
-        }
-
-        header('Location: /mirrors?message=' . urlencode($message) . '&type=' . $messageType);
-        exit;
-    }
-
-    /**
-     * 处理添加镜像操作
-     */
-    public function actionAddMirror()
-    {
-        $type = $_POST['type'] ?? '';
-        $name = $_POST['name'] ?? '';
-        $url = $_POST['url'] ?? '';
-
-        if (empty($type) || empty($name) || empty($url)) {
-            header('Location: /mirrors?message=' . urlencode('参数缺失') . '&type=error');
-            exit;
-        }
-
-        // 验证URL格式
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            header('Location: /mirrors?message=' . urlencode('无效的URL格式') . '&type=error');
-            exit;
-        }
-
-        try {
-            $success = false;
-            $message = '';
-
-            switch ($type) {
-                case 'php':
-                    $success = $this->mirrorConfig->addPhpMirror($name, $url);
-                    $message = $success ? "PHP镜像 {$name} 添加成功" : "添加PHP镜像失败";
-                    break;
-
-                case 'pecl':
-                    $success = $this->mirrorConfig->addPeclMirror($name, $url);
-                    $message = $success ? "PECL镜像 {$name} 添加成功" : "添加PECL镜像失败";
-                    break;
-
-                case 'composer':
-                    $success = $this->mirrorConfig->addComposerMirror($name, $url);
-                    $message = $success ? "Composer镜像 {$name} 添加成功" : "添加Composer镜像失败";
-                    break;
-
-                default:
-                    $message = '不支持的镜像类型';
-                    break;
-            }
-
-            $messageType = $success ? 'success' : 'error';
-        } catch (\Exception $e) {
-            $message = '添加镜像失败: ' . $e->getMessage();
-            $messageType = 'error';
-        }
-
-        header('Location: /mirrors?message=' . urlencode($message) . '&type=' . $messageType);
-        exit;
-    }
 
     /**
      * 处理启用PVM镜像源操作

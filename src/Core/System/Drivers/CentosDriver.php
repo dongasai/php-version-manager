@@ -422,20 +422,11 @@ class CentosDriver extends AbstractOsDriver
             return true;
         }
 
-        // 过滤掉已安装的包
-        $packagesToInstall = [];
+        // 注意：依赖检查已在上层AbstractVersionDriver中完成
+        // 这里传入的packages应该都是需要安装的包
+        \VersionManager\Core\Logger\Logger::info("安装依赖包: " . implode(' ', $packages), "\033[33m");
 
-        foreach ($packages as $package) {
-            if (!$this->isPackageInstalled($package)) {
-                $packagesToInstall[] = $package;
-            }
-        }
-
-        if (empty($packagesToInstall)) {
-            return true;
-        }
-
-        $packageList = implode(' ', $packagesToInstall);
+        $packageList = implode(' ', $packages);
 
         // 检查CentOS版本
         $centosVersion = (int)$this->version;
@@ -446,17 +437,36 @@ class CentosDriver extends AbstractOsDriver
             $command = "yum install -y {$packageList}";
         }
 
-        // 检查是否有sudo权限
-        if (posix_getuid() !== 0) {
-            // 检查sudo命令是否存在
-            if ($this->commandExists('sudo')) {
-                $command = "sudo {$command}";
-            } else {
-                throw new \Exception("需要root权限安装依赖");
+        list($output, $returnCode) = $this->executeWithPrivileges($command, $options);
+
+        // 在详细模式下显示命令输出
+        if (\VersionManager\Core\Logger\Logger::isVerbose()) {
+            \VersionManager\Core\Logger\Logger::verbose("执行命令: $command");
+            foreach ($output as $line) {
+                \VersionManager\Core\Logger\Logger::verbose("  $line");
             }
         }
 
-        return $this->executeCommand($command);
+        if ($returnCode === 0) {
+            \VersionManager\Core\Logger\Logger::success("依赖包安装成功");
+            return true;
+        }
+
+        $outputStr = implode("\n", $output);
+
+        // 检查是否是权限问题
+        if (strpos($outputStr, '权限不够') !== false ||
+            strpos($outputStr, 'Permission denied') !== false) {
+            throw new \Exception("权限不足，无法安装依赖包");
+        }
+
+        // 检查是否是认证失败
+        if (strpos($outputStr, '认证失败') !== false ||
+            strpos($outputStr, 'Authentication failure') !== false) {
+            throw new \Exception("认证失败，无法安装依赖包");
+        }
+
+        throw new \Exception("安装依赖包失败: " . $outputStr);
     }
 
     /**
@@ -479,7 +489,7 @@ class CentosDriver extends AbstractOsDriver
      */
     public function updatePackageCache(array $options = [])
     {
-        echo "\033[33m更新软件包列表...\033[0m\n";
+        \VersionManager\Core\Logger\Logger::info("更新软件包列表...", "\033[33m");
 
         // 检查CentOS版本
         $centosVersion = (int)$this->version;
@@ -492,8 +502,16 @@ class CentosDriver extends AbstractOsDriver
 
         list($output, $returnCode) = $this->executeWithPrivileges($command, $options);
 
+        // 在详细模式下显示命令输出
+        if (\VersionManager\Core\Logger\Logger::isVerbose()) {
+            \VersionManager\Core\Logger\Logger::verbose("执行命令: $command");
+            foreach ($output as $line) {
+                \VersionManager\Core\Logger\Logger::verbose("  $line");
+            }
+        }
+
         if ($returnCode === 0) {
-            echo "\033[32m软件包列表更新成功\033[0m\n";
+            \VersionManager\Core\Logger\Logger::success("软件包列表更新成功");
             return true;
         }
 

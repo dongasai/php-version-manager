@@ -153,22 +153,11 @@ class UbuntuDriver extends AbstractOsDriver
             return true;
         }
 
-        // 过滤掉已安装的包
-        $packagesToInstall = [];
-        foreach ($packages as $package) {
-            if (!$this->isPackageInstalled($package)) {
-                $packagesToInstall[] = $package;
-            }
-        }
+        // 注意：依赖检查已在上层AbstractVersionDriver中完成
+        // 这里传入的packages应该都是需要安装的包
+        \VersionManager\Core\Logger\Logger::info("安装依赖包: " . implode(' ', $packages), "\033[33m");
 
-        if (empty($packagesToInstall)) {
-            \VersionManager\Core\Logger\Logger::info("所有依赖包已安装", "\033[32m");
-            return true;
-        }
-
-        \VersionManager\Core\Logger\Logger::info("安装依赖包: " . implode(' ', $packagesToInstall), "\033[33m");
-
-        $packageList = implode(' ', $packagesToInstall);
+        $packageList = implode(' ', $packages);
         $command = "apt-get install -y {$packageList}";
 
         list($output, $returnCode) = $this->executeWithPrivileges($command, $options);

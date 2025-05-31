@@ -37,13 +37,18 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <?php foreach ($config['php']['versions'] as $majorVersion => $versionRange): ?>
+            <?php
+            $phpVersions = isset($config['php']['versions']) ? $config['php']['versions'] : [];
+            if (is_array($phpVersions)):
+                foreach ($phpVersions as $majorVersion => $versionRange): ?>
                 <div class="col-md-2 col-sm-4 col-6 mb-3">
-                    <a href="/php/?version=<?= $majorVersion ?>" class="btn btn-outline-primary btn-block">
-                        PHP <?= $majorVersion ?>
+                    <a href="/php/?version=<?= htmlspecialchars($majorVersion) ?>" class="btn btn-outline-primary btn-block">
+                        PHP <?= htmlspecialchars($majorVersion) ?>
                     </a>
                 </div>
-            <?php endforeach; ?>
+            <?php
+                endforeach;
+            endif; ?>
         </div>
         <a href="/php/" class="btn btn-sm btn-info mt-2">
             <i class="fas fa-list"></i> 浏览所有 PHP 源码包
@@ -59,21 +64,24 @@
     <div class="card-body">
         <div class="row">
             <?php
-            $count = 0;
-            foreach ($config['pecl']['extensions'] as $extension => $versionRange):
-                if ($count++ < 12): // 只显示前12个扩展
+            $peclExtensions = isset($config['pecl']['extensions']) ? $config['pecl']['extensions'] : [];
+            if (is_array($peclExtensions)):
+                $count = 0;
+                foreach ($peclExtensions as $extension => $versionRange):
+                    if ($count++ < 12): // 只显示前12个扩展
             ?>
                 <div class="col-md-2 col-sm-4 col-6 mb-3">
-                    <a href="/pecl/?extension=<?= $extension ?>" class="btn btn-outline-success btn-block">
-                        <?= $extension ?>
+                    <a href="/pecl/?extension=<?= htmlspecialchars($extension) ?>" class="btn btn-outline-success btn-block">
+                        <?= htmlspecialchars($extension) ?>
                     </a>
                 </div>
             <?php
-                endif;
-            endforeach;
+                    endif;
+                endforeach;
+            endif;
             ?>
         </div>
-        <?php if (count($config['pecl']['extensions']) > 12): ?>
+        <?php if (is_array($peclExtensions) && count($peclExtensions) > 12): ?>
             <button class="btn btn-sm btn-secondary mt-2" id="showMorePecl">
                 <i class="fas fa-plus"></i> 显示更多
             </button>
@@ -91,13 +99,18 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <?php foreach ($config['extensions'] as $extension => $extConfig): ?>
+            <?php
+            $extensions = isset($config['extensions']) ? $config['extensions'] : [];
+            if (is_array($extensions)):
+                foreach ($extensions as $extension => $extConfig): ?>
                 <div class="col-md-2 col-sm-4 col-6 mb-3">
-                    <a href="/extensions/<?= $extension ?>/" class="btn btn-outline-danger btn-block">
-                        <?= $extension ?>
+                    <a href="/extensions/<?= htmlspecialchars($extension) ?>/" class="btn btn-outline-danger btn-block">
+                        <?= htmlspecialchars($extension) ?>
                     </a>
                 </div>
-            <?php endforeach; ?>
+            <?php
+                endforeach;
+            endif; ?>
         </div>
         <a href="/extensions/" class="btn btn-sm btn-info mt-2">
             <i class="fas fa-list"></i> 浏览所有特定扩展源码
@@ -112,13 +125,18 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <?php foreach ($config['composer']['versions'] as $version): ?>
+            <?php
+            $composerVersions = isset($config['composer']['versions']) ? $config['composer']['versions'] : [];
+            if (is_array($composerVersions)):
+                foreach ($composerVersions as $version): ?>
                 <div class="col-md-2 col-sm-4 col-6 mb-3">
-                    <a href="/composer/composer-<?= $version ?>.phar" class="btn btn-outline-dark btn-block">
-                        <?= $version ?>
+                    <a href="/composer/composer-<?= htmlspecialchars($version) ?>.phar" class="btn btn-outline-dark btn-block">
+                        <?= htmlspecialchars($version) ?>
                     </a>
                 </div>
-            <?php endforeach; ?>
+            <?php
+                endforeach;
+            endif; ?>
         </div>
         <a href="/composer/" class="btn btn-sm btn-info mt-2">
             <i class="fas fa-list"></i> 浏览所有 Composer 包
@@ -169,7 +187,7 @@ return [
     'php' => [
         'official' => 'https://www.php.net/distributions',
         'mirrors' => [
-            'local' => '<?= $config['server']['public_url'] ?>/php',
+            'local' => '<?= htmlspecialchars(isset($config['server']['public_url']) ? $config['server']['public_url'] : 'http://localhost:34403') ?>/php',
         ],
         'default' => 'local',
     ],

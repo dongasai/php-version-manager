@@ -77,7 +77,7 @@ class Controller
     public function handleRequest($requestPath)
     {
         // 获取请求方法
-        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';
 
         // 获取客户端IP
         $clientIp = $this->getClientIp();
@@ -128,7 +128,11 @@ class Controller
         $status = $this->status->getStatus();
 
         // 获取配置
-        $config = $this->config->getConfig();
+        $mirrorConfig = $this->config->getConfig();
+        $serverConfig = $this->configManager->getServerConfig();
+
+        // 构建模板需要的配置数据结构
+        $config = $this->buildTemplateConfig($mirrorConfig, $serverConfig);
 
         // 渲染首页模板
         $view = new View();
@@ -358,18 +362,22 @@ class Controller
 
         // 解析 API 路径
         $apiPath = substr($path, 4); // 移除 'api/'
-        $apiPath = rtrim($apiPath, '.json');
+
+        // 移除 .json 后缀（如果存在）
+        if (substr($apiPath, -5) === '.json') {
+            $apiPath = substr($apiPath, 0, -5);
+        }
 
         // 获取缓存配置
         $cacheConfig = $this->configManager->getCacheConfig();
-        $cacheTags = $cacheConfig['cache_tags'] ?? [];
-        $defaultTtl = $cacheConfig['default_ttl'] ?? 3600;
+        $cacheTags = isset($cacheConfig['cache_tags']) ? $cacheConfig['cache_tags'] : [];
+        $defaultTtl = isset($cacheConfig['default_ttl']) ? $cacheConfig['default_ttl'] : 3600;
 
         // 根据 API 路径返回不同的数据
         switch ($apiPath) {
             case 'status':
                 // 检查是否启用状态缓存
-                if ($this->cacheManager->isEnabled() && ($cacheTags['status'] ?? false)) {
+                if ($this->cacheManager->isEnabled() && (isset($cacheTags['status']) ? $cacheTags['status'] : false)) {
                     $cacheKey = 'api_status';
                     $data = $this->cacheManager->get($cacheKey);
                     if ($data === null) {
@@ -384,7 +392,7 @@ class Controller
 
             case 'php':
                 // 检查是否启用PHP缓存
-                if ($this->cacheManager->isEnabled() && ($cacheTags['php'] ?? false)) {
+                if ($this->cacheManager->isEnabled() && (isset($cacheTags['php']) ? $cacheTags['php'] : false)) {
                     $cacheKey = 'api_php';
                     $data = $this->cacheManager->get($cacheKey);
                     if ($data === null) {
@@ -399,7 +407,7 @@ class Controller
 
             case 'pecl':
                 // 检查是否启用PECL缓存
-                if ($this->cacheManager->isEnabled() && ($cacheTags['pecl'] ?? false)) {
+                if ($this->cacheManager->isEnabled() && (isset($cacheTags['pecl']) ? $cacheTags['pecl'] : false)) {
                     $cacheKey = 'api_pecl';
                     $data = $this->cacheManager->get($cacheKey);
                     if ($data === null) {
@@ -414,7 +422,7 @@ class Controller
 
             case 'extensions':
                 // 检查是否启用扩展缓存
-                if ($this->cacheManager->isEnabled() && ($cacheTags['extensions'] ?? false)) {
+                if ($this->cacheManager->isEnabled() && (isset($cacheTags['extensions']) ? $cacheTags['extensions'] : false)) {
                     $cacheKey = 'api_extensions';
                     $data = $this->cacheManager->get($cacheKey);
                     if ($data === null) {
@@ -429,7 +437,7 @@ class Controller
 
             case 'composer':
                 // 检查是否启用Composer缓存
-                if ($this->cacheManager->isEnabled() && ($cacheTags['composer'] ?? false)) {
+                if ($this->cacheManager->isEnabled() && (isset($cacheTags['composer']) ? $cacheTags['composer'] : false)) {
                     $cacheKey = 'api_composer';
                     $data = $this->cacheManager->get($cacheKey);
                     if ($data === null) {
@@ -456,15 +464,15 @@ class Controller
     {
         // 获取缓存配置
         $cacheConfig = $this->configManager->getCacheConfig();
-        $cacheTags = $cacheConfig['cache_tags'] ?? [];
-        $defaultTtl = $cacheConfig['default_ttl'] ?? 3600;
+        $cacheTags = isset($cacheConfig['cache_tags']) ? $cacheConfig['cache_tags'] : [];
+        $defaultTtl = isset($cacheConfig['default_ttl']) ? $cacheConfig['default_ttl'] : 3600;
 
         // 检查是否启用状态缓存
         $cacheKey = 'status_page';
         $statusData = null;
         $systemData = null;
 
-        if ($this->cacheManager->isEnabled() && ($cacheTags['status'] ?? false)) {
+        if ($this->cacheManager->isEnabled() && (isset($cacheTags['status']) ? $cacheTags['status'] : false)) {
             $statusData = $this->cacheManager->get($cacheKey . '_status');
             $systemData = $this->cacheManager->get($cacheKey . '_system');
         }
@@ -489,7 +497,7 @@ class Controller
             $statusData = $status;
 
             // 缓存状态数据
-            if ($this->cacheManager->isEnabled() && ($cacheTags['status'] ?? false)) {
+            if ($this->cacheManager->isEnabled() && (isset($cacheTags['status']) ? $cacheTags['status'] : false)) {
                 $this->cacheManager->set($cacheKey . '_status', $statusData, $defaultTtl);
             }
         }
@@ -502,7 +510,7 @@ class Controller
                 'os' => php_uname('s') . ' ' . php_uname('r'),
                 'kernel' => php_uname('v'),
                 'php_version' => PHP_VERSION,
-                'web_server' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+                'web_server' => isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : 'Unknown',
                 'uptime' => $this->getSystemUptime(),
                 'load' => $this->getSystemLoad(),
                 'cpu_usage' => rand(10, 90), // 模拟数据
@@ -513,7 +521,7 @@ class Controller
             $systemData = $system;
 
             // 缓存系统数据（较短时间）
-            if ($this->cacheManager->isEnabled() && ($cacheTags['status'] ?? false)) {
+            if ($this->cacheManager->isEnabled() && (isset($cacheTags['status']) ? $cacheTags['status'] : false)) {
                 $this->cacheManager->set($cacheKey . '_system', $systemData, 60); // 只缓存1分钟
             }
         }
@@ -781,5 +789,72 @@ class Controller
 
         // 关闭文件
         fclose($handle);
+    }
+
+    /**
+     * 构建模板需要的配置数据结构
+     *
+     * @param array $mirrorConfig 镜像配置
+     * @param array $serverConfig 服务器配置
+     * @return array
+     */
+    private function buildTemplateConfig($mirrorConfig, $serverConfig)
+    {
+        // 构建PHP版本配置
+        $phpVersions = [];
+        if (isset($mirrorConfig['php']) && isset($mirrorConfig['php']['enabled']) && $mirrorConfig['php']['enabled']) {
+            // 从实际文件中获取PHP版本
+            $phpList = $this->status->getPhpList();
+            foreach ($phpList as $majorVersion => $versions) {
+                $phpVersions[$majorVersion] = $majorVersion;
+            }
+        }
+
+        // 构建PECL扩展配置
+        $peclExtensions = [];
+        if (isset($mirrorConfig['pecl']) && isset($mirrorConfig['pecl']['enabled']) && $mirrorConfig['pecl']['enabled']) {
+            $peclExtensionsList = isset($mirrorConfig['pecl']['extensions']) ? $mirrorConfig['pecl']['extensions'] : [];
+            // 将索引数组转换为关联数组，扩展名作为键
+            foreach ($peclExtensionsList as $extension) {
+                $peclExtensions[$extension] = $extension; // 简单的键值对
+            }
+        }
+
+        // 构建GitHub扩展配置
+        $githubExtensions = [];
+        if (isset($mirrorConfig['extensions']) && isset($mirrorConfig['extensions']['enabled']) && $mirrorConfig['extensions']['enabled']) {
+            $githubExtensionsList = isset($mirrorConfig['extensions']['extensions']) ? $mirrorConfig['extensions']['extensions'] : [];
+            // 将索引数组转换为关联数组，扩展名作为键
+            foreach ($githubExtensionsList as $extension) {
+                $githubExtensions[$extension] = $extension; // 简单的键值对
+            }
+        }
+
+        // 构建Composer版本配置
+        $composerVersions = [];
+        if (isset($mirrorConfig['composer']) && isset($mirrorConfig['composer']['enabled']) && $mirrorConfig['composer']['enabled']) {
+            // 从实际文件中获取Composer版本
+            $composerList = $this->status->getComposerList();
+            foreach ($composerList as $item) {
+                $composerVersions[] = $item['version'];
+            }
+        }
+
+        return [
+            'php' => [
+                'enabled' => isset($mirrorConfig['php']['enabled']) ? $mirrorConfig['php']['enabled'] : false,
+                'versions' => $phpVersions,
+            ],
+            'pecl' => [
+                'enabled' => isset($mirrorConfig['pecl']['enabled']) ? $mirrorConfig['pecl']['enabled'] : false,
+                'extensions' => $peclExtensions,
+            ],
+            'extensions' => $githubExtensions,
+            'composer' => [
+                'enabled' => isset($mirrorConfig['composer']['enabled']) ? $mirrorConfig['composer']['enabled'] : false,
+                'versions' => $composerVersions,
+            ],
+            'server' => $serverConfig,
+        ];
     }
 }

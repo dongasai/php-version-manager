@@ -68,10 +68,11 @@ class ServerManager
             // 检查是否需要自动同步
             $this->checkAutoSync();
 
-            // 直接在前台运行PHP内置服务器
+            // 直接在前台运行PHP内置服务器，使用路由文件
             $command = sprintf(
-                'php -S 0.0.0.0:%d -t %s/public/',
+                'php -S 0.0.0.0:%d -t %s/public/ %s/public/router.php',
                 $port,
+                ROOT_DIR,
                 ROOT_DIR
             );
 
@@ -82,10 +83,11 @@ class ServerManager
         }
 
         // 后台运行
-        // 构建命令
+        // 构建命令，使用路由文件
         $command = sprintf(
-            'nohup php -S 0.0.0.0:%d -t %s/public/ > %s 2>&1 & echo $!',
+            'nohup php -S 0.0.0.0:%d -t %s/public/ %s/public/router.php > %s 2>&1 & echo $!',
             $port,
+            ROOT_DIR,
             ROOT_DIR,
             $this->logFile
         );

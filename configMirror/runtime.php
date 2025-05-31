@@ -61,7 +61,7 @@ return [
         'max_parallel_downloads' => 1,
 
         // 是否在启动时自动同步
-        'auto_sync_on_start' => true,
+        'auto_sync_on_start' => false,
 
         // 是否使用代理
         'use_proxy' => false,

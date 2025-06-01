@@ -159,11 +159,26 @@ try {
     // 设置日志级别
     \VersionManager\Core\Logger\Logger::setLevel($logLevel);
 
+    // 初始化文件日志系统
+    $command = isset($argv[1]) ? $argv[1] : 'help';
+    $commandArgs = array_slice($argv, 2);
+    \VersionManager\Core\Logger\FileLogger::init($command, $commandArgs);
+
     // 引导应用程序
     $app = new VersionManager\Console\Application();
     $exitCode = $app->run($argv);
+
+    // 记录命令结束
+    \VersionManager\Core\Logger\FileLogger::logCommandEnd($exitCode);
+
     exit($exitCode);
 } catch (Exception $e) {
     echo "\033[31m错误: " . $e->getMessage() . "\033[0m" . PHP_EOL;
+
+    // 记录异常到日志
+    \VersionManager\Core\Logger\FileLogger::error("未捕获的异常: " . $e->getMessage());
+    \VersionManager\Core\Logger\FileLogger::error("异常堆栈: " . $e->getTraceAsString());
+    \VersionManager\Core\Logger\FileLogger::logCommandEnd(1);
+
     exit(1);
 }

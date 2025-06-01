@@ -518,7 +518,7 @@ class InitCommand implements CommandInterface
             $pvmDir . '/tmp',
             $pvmDir . '/cache',
             $pvmDir . '/config',
-            $pvmDir . '/logs',
+            $pvmDir . '/log',
             $pvmDir . '/bin'
         ];
 

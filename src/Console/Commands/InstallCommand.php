@@ -54,6 +54,9 @@ class InstallCommand implements CommandInterface
         // 先解析所有选项，包括第一个参数
         $options = $this->parseOptions($args);
 
+        // 声明已启用的参数
+        $this->announceEnabledOptions($options);
+
         // 提取非选项参数作为版本
         $version = null;
         foreach ($args as $arg) {
@@ -72,30 +75,37 @@ class InstallCommand implements CommandInterface
         }
 
         // 检查版本是否有效
+        \VersionManager\Core\Logger\FileLogger::info("开始检查PHP版本有效性: {$version}");
         $availableVersions = $this->detector->getAvailableVersions();
 
         // 如果版本只指定了主版本和次版本，如"7.1"，则自动匹配到最新的修订版
         if (!in_array($version, $availableVersions)) {
+            \VersionManager\Core\Logger\FileLogger::info("尝试自动匹配版本: {$version}");
             // 尝试匹配到最新的修订版
             $matchedVersion = $this->matchLatestPatchVersion($version, $availableVersions);
 
             if ($matchedVersion) {
                 echo "自动匹配到PHP版本 {$matchedVersion}" . PHP_EOL;
+                \VersionManager\Core\Logger\FileLogger::info("成功匹配到版本: {$matchedVersion}");
                 $version = $matchedVersion;
             } else {
                 echo "错误: 无效的PHP版本 {$version}" . PHP_EOL;
                 echo "可用的PHP版本: " . implode(', ', $availableVersions) . PHP_EOL;
+                \VersionManager\Core\Logger\FileLogger::error("无效的PHP版本: {$version}");
                 return 1;
             }
         }
 
         // 检查版本是否已安装
+        \VersionManager\Core\Logger\FileLogger::info("检查版本是否已安装: {$version}");
         if ($this->installer->isVersionInstalled($version)) {
             echo "PHP版本 {$version} 已安装" . PHP_EOL;
+            \VersionManager\Core\Logger\FileLogger::info("版本已安装，跳过安装: {$version}");
             return 0;
         }
 
         // 检查环境
+        \VersionManager\Core\Logger\FileLogger::info("开始检查运行环境");
         $environmentChecker = new \VersionManager\Core\System\EnvironmentChecker();
         $checkResult = $environmentChecker->check(false, isset($options['skip_composer']) && $options['skip_composer']);
 
@@ -145,11 +155,16 @@ class InstallCommand implements CommandInterface
 
         try {
             // 安装PHP版本
+            \VersionManager\Core\Logger\FileLogger::info("开始安装PHP版本: {$version}");
+            \VersionManager\Core\Logger\FileLogger::info("安装选项: " . json_encode($options));
             $this->installer->install($version, $options);
             echo "PHP版本 {$version} 安装成功" . PHP_EOL;
+            \VersionManager\Core\Logger\FileLogger::info("PHP版本安装成功: {$version}");
             return 0;
         } catch (Exception $e) {
             echo "错误: " . $e->getMessage() . PHP_EOL;
+            \VersionManager\Core\Logger\FileLogger::error("PHP版本安装失败: {$version}, 错误: " . $e->getMessage());
+            \VersionManager\Core\Logger\FileLogger::error("异常堆栈: " . $e->getTraceAsString());
             return 1;
         }
     }
@@ -353,5 +368,79 @@ class InstallCommand implements CommandInterface
   pvm install 7.1 -y
   pvm install 7.1 --skip-composer
 USAGE;
+    }
+
+    /**
+     * 声明已启用的参数选项
+     *
+     * @param array $options 解析后的选项数组
+     */
+    private function announceEnabledOptions(array $options)
+    {
+        $announcements = [];
+
+        // 检查详细输出选项
+        if (\VersionManager\Core\Logger\Logger::getLevel() >= \VersionManager\Core\Logger\LogLevel::VERBOSE) {
+            $announcements[] = "\033[36m您已开启详细输出\033[0m";
+        }
+
+        // 检查自动确认选项
+        if (isset($options['yes']) && $options['yes']) {
+            $announcements[] = "\033[36m您已开启自动确认\033[0m";
+        }
+
+        // 检查从源码编译选项
+        if (isset($options['from_source']) && $options['from_source']) {
+            $announcements[] = "\033[36m您已开启从源码编译\033[0m";
+        }
+
+        // 检查保留源码选项
+        if (isset($options['keep_source']) && $options['keep_source']) {
+            $announcements[] = "\033[36m您已开启保留源码\033[0m";
+        }
+
+        // 检查保留二进制包选项
+        if (isset($options['keep_binary']) && $options['keep_binary']) {
+            $announcements[] = "\033[36m您已开启保留二进制包\033[0m";
+        }
+
+        // 检查不使用缓存选项
+        if (isset($options['use_cache']) && !$options['use_cache']) {
+            $announcements[] = "\033[36m您已禁用缓存\033[0m";
+        }
+
+        // 检查不使用多线程选项
+        if (isset($options['use_multi_thread']) && !$options['use_multi_thread']) {
+            $announcements[] = "\033[36m您已禁用多线程下载\033[0m";
+        }
+
+        // 检查不验证签名选项
+        if (isset($options['verify_signature']) && !$options['verify_signature']) {
+            $announcements[] = "\033[36m您已禁用签名验证\033[0m";
+        }
+
+        // 检查跳过Composer选项
+        if (isset($options['skip_composer']) && $options['skip_composer']) {
+            $announcements[] = "\033[36m您已开启跳过Composer检查\033[0m";
+        }
+
+        // 检查自定义线程数
+        if (isset($options['thread_count']) && $options['thread_count'] != 4) {
+            $announcements[] = "\033[36m您已设置下载线程数为 {$options['thread_count']}\033[0m";
+        }
+
+        // 检查configure选项
+        if (isset($options['configure_options']) && !empty($options['configure_options'])) {
+            $configureOptionsStr = implode(' ', $options['configure_options']);
+            $announcements[] = "\033[36m您已设置编译选项: {$configureOptionsStr}\033[0m";
+        }
+
+        // 输出所有声明
+        if (!empty($announcements)) {
+            foreach ($announcements as $announcement) {
+                echo $announcement . PHP_EOL;
+            }
+            echo PHP_EOL; // 添加一个空行分隔
+        }
     }
 }

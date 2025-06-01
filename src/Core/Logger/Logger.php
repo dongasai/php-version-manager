@@ -13,6 +13,13 @@ class Logger
      * @var int
      */
     private static $level = LogLevel::NORMAL;
+
+    /**
+     * 是否启用文件日志
+     *
+     * @var bool
+     */
+    private static $fileLoggingEnabled = true;
     
     /**
      * 设置日志级别
@@ -22,6 +29,27 @@ class Logger
     public static function setLevel($level)
     {
         self::$level = $level;
+    }
+
+    /**
+     * 启用或禁用文件日志
+     *
+     * @param bool $enabled 是否启用文件日志
+     */
+    public static function setFileLoggingEnabled($enabled)
+    {
+        self::$fileLoggingEnabled = $enabled;
+        FileLogger::setEnabled($enabled);
+    }
+
+    /**
+     * 检查文件日志是否启用
+     *
+     * @return bool
+     */
+    public static function isFileLoggingEnabled()
+    {
+        return self::$fileLoggingEnabled;
     }
     
     /**
@@ -58,6 +86,11 @@ class Logger
         if (self::$level >= LogLevel::NORMAL) {
             self::output($message, $color);
         }
+
+        // 写入文件日志
+        if (self::$fileLoggingEnabled) {
+            FileLogger::info($message);
+        }
     }
     
     /**
@@ -70,6 +103,11 @@ class Logger
     {
         if (self::$level >= LogLevel::VERBOSE) {
             self::output($message, $color);
+        }
+
+        // 写入文件日志
+        if (self::$fileLoggingEnabled) {
+            FileLogger::debug($message, 'VERBOSE');
         }
     }
     
@@ -84,8 +122,13 @@ class Logger
         if (self::$level >= LogLevel::DEBUG) {
             self::output($message, $color);
         }
+
+        // 写入文件日志
+        if (self::$fileLoggingEnabled) {
+            FileLogger::debug($message);
+        }
     }
-    
+
     /**
      * 成功消息（总是显示）
      *
@@ -94,8 +137,13 @@ class Logger
     public static function success($message)
     {
         self::output($message, "\033[32m");
+
+        // 写入文件日志
+        if (self::$fileLoggingEnabled) {
+            FileLogger::info($message, 'SUCCESS');
+        }
     }
-    
+
     /**
      * 警告消息（总是显示）
      *
@@ -104,8 +152,13 @@ class Logger
     public static function warning($message)
     {
         self::output($message, "\033[33m");
+
+        // 写入文件日志
+        if (self::$fileLoggingEnabled) {
+            FileLogger::warning($message);
+        }
     }
-    
+
     /**
      * 错误消息（总是显示）
      *
@@ -114,6 +167,11 @@ class Logger
     public static function error($message)
     {
         self::output($message, "\033[31m");
+
+        // 写入文件日志
+        if (self::$fileLoggingEnabled) {
+            FileLogger::error($message);
+        }
     }
     
     /**

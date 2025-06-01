@@ -37,6 +37,7 @@ class HelpCommand implements CommandInterface
         'web' => '启动Web管理界面',
         'mirror' => '管理下载源配置（已废弃）',
         'pvm-mirror' => '管理PVM镜像源',
+        'log' => '管理和查看PVM日志文件',
         'help' => '显示帮助信息',
         'version' => '显示版本信息',
         'supported' => '显示支持的PHP版本列表',

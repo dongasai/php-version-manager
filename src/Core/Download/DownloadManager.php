@@ -5,6 +5,8 @@ namespace VersionManager\Core\Download;
 use VersionManager\Core\Cache\CacheManager;
 use VersionManager\Core\Security\SignatureVerifier;
 use VersionManager\Core\Security\PermissionManager;
+use VersionManager\Core\Download\IntegrityVerifier;
+use VersionManager\Core\Logger\FileLogger;
 
 /**
  * 下载管理类
@@ -151,6 +153,8 @@ class DownloadManager
      */
     public function download($url, $destination, array $options = [])
     {
+        $startTime = microtime(true);
+
         // 检查用户权限
         $this->permissionManager->checkUserPermission();
 
@@ -159,12 +163,19 @@ class DownloadManager
             return $this->downloadWithFallback($url, $destination, $options);
         }
 
+        // 记录下载开始
+        $fileSize = $this->getFileSize($url);
+        FileLogger::logDownloadStart($url, $destination, $fileSize ?: 0);
+
         // 检查缓存
         if ($this->useCache) {
-            $cacheFile = $this->cacheManager->getDownloadCache($url);
+            $cacheFile = $this->cacheManager->getDownloadCache($url, true);
             if ($cacheFile !== null) {
                 // 从缓存复制文件
                 if (copy($cacheFile, $destination)) {
+                    $duration = microtime(true) - $startTime;
+                    $actualSize = filesize($destination);
+
                     if ($this->showProgress) {
                         echo "从缓存获取文件: " . basename($url) . PHP_EOL;
                     }
@@ -177,30 +188,52 @@ class DownloadManager
                         $this->verifyFileSignature($destination, $options['verify_type'], $options['verify_version']);
                     }
 
+                    // 记录下载完成（来自缓存）
+                    FileLogger::logDownloadComplete($url, $destination, $actualSize, $duration, true);
+
                     return true;
                 }
             }
         }
 
-        // 如果不使用多线程下载或者不支持多线程下载，则使用单线程下载
-        if (!$this->useMultiThread || !$this->isMultiThreadSupported()) {
-            $success = $this->downloadSingleThread($url, $destination);
-        } else {
-            // 使用多线程下载
-            $success = $this->downloadMultiThread($url, $destination);
-        }
-
-        if ($success) {
-            // 设置文件权限
-            $this->permissionManager->setSecureFilePermission($destination);
-
-            // 验证签名
-            if ($this->verifySignature && isset($options['verify_type']) && isset($options['verify_version'])) {
-                $this->verifyFileSignature($destination, $options['verify_type'], $options['verify_version']);
+        try {
+            // 如果不使用多线程下载或者不支持多线程下载，则使用单线程下载
+            if (!$this->useMultiThread || !$this->isMultiThreadSupported()) {
+                $success = $this->downloadSingleThread($url, $destination, $options);
+            } else {
+                // 使用多线程下载
+                $success = $this->downloadMultiThread($url, $destination, $options);
             }
-        }
 
-        return $success;
+            if ($success) {
+                $duration = microtime(true) - $startTime;
+                $actualSize = filesize($destination);
+
+                // 设置文件权限
+                $this->permissionManager->setSecureFilePermission($destination);
+
+                // 验证文件完整性（如果提供了校验和）
+                if (isset($options['checksums']) && !empty($options['checksums'])) {
+                    if (!IntegrityVerifier::verifyDownloadedFile($destination, $options['checksums'])) {
+                        throw new \Exception("文件完整性校验失败");
+                    }
+                }
+
+                // 验证签名
+                if ($this->verifySignature && isset($options['verify_type']) && isset($options['verify_version'])) {
+                    $this->verifyFileSignature($destination, $options['verify_type'], $options['verify_version']);
+                }
+
+                // 记录下载完成（来自网络）
+                FileLogger::logDownloadComplete($url, $destination, $actualSize, $duration, false);
+            }
+
+            return $success;
+
+        } catch (\Exception $e) {
+            FileLogger::logDownloadError($url, $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
@@ -239,6 +272,9 @@ class DownloadManager
                 }
             } catch (\Exception $e) {
                 $lastException = $e;
+
+                // 记录下载失败
+                FileLogger::logDownloadError($url, $e->getMessage(), $attemptCount);
 
                 if ($this->showProgress) {
                     echo "\033[1;33m下载失败: " . $e->getMessage() . "\033[0m" . PHP_EOL;
@@ -299,10 +335,11 @@ class DownloadManager
      *
      * @param string $url 文件URL
      * @param string $destination 目标路径
+     * @param array $options 下载选项
      * @return bool 是否下载成功
      * @throws \Exception 下载失败时抛出异常
      */
-    private function downloadSingleThread($url, $destination)
+    private function downloadSingleThread($url, $destination, array $options = [])
     {
         if ($this->showProgress) {
             echo "\033[1;34m下载文件: " . basename($url) . "\033[0m" . PHP_EOL;
@@ -374,9 +411,18 @@ class DownloadManager
             throw new \Exception("文件下载失败: " . $error);
         }
 
+        // 验证下载的文件
+        if (!IntegrityVerifier::isFileValid($destination)) {
+            throw new \Exception("下载的文件无效或损坏");
+        }
+
         // 添加到缓存
         if ($this->useCache) {
-            $this->cacheManager->setDownloadCache($url, $destination);
+            $cacheOptions = [];
+            if (isset($options['checksums'])) {
+                $cacheOptions['checksums'] = $options['checksums'];
+            }
+            $this->cacheManager->setDownloadCache($url, $destination, $cacheOptions);
         }
 
         if ($this->showProgress) {
@@ -394,10 +440,11 @@ class DownloadManager
      *
      * @param string $url 文件URL
      * @param string $destination 目标路径
+     * @param array $options 下载选项
      * @return bool 是否下载成功
      * @throws \Exception 下载失败时抛出异常
      */
-    private function downloadMultiThread($url, $destination)
+    private function downloadMultiThread($url, $destination, array $options = [])
     {
         // 获取文件大小
         $fileSize = $this->getFileSize($url);
@@ -460,9 +507,18 @@ class DownloadManager
         // 清理临时目录
         rmdir($tempDir);
 
+        // 验证下载的文件
+        if (!IntegrityVerifier::isFileValid($destination)) {
+            throw new \Exception("下载的文件无效或损坏");
+        }
+
         // 添加到缓存
         if ($this->useCache) {
-            $this->cacheManager->setDownloadCache($url, $destination);
+            $cacheOptions = [];
+            if (isset($options['checksums'])) {
+                $cacheOptions['checksums'] = $options['checksums'];
+            }
+            $this->cacheManager->setDownloadCache($url, $destination, $cacheOptions);
         }
 
         if ($this->showProgress) {

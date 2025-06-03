@@ -82,6 +82,16 @@ class InstallWizardCommand implements CommandInterface
     {
         return '交互式安装向导';
     }
+
+    /**
+     * 获取命令用法
+     *
+     * @return string
+     */
+    public function getUsage()
+    {
+        return 'pvm install-wizard';
+    }
     
     /**
      * 执行命令

@@ -54,6 +54,16 @@ class ComposerMenuCommand extends AbstractMenuCommand
     {
         return 'Composer管理';
     }
+
+    /**
+     * 获取命令用法
+     *
+     * @return string
+     */
+    public function getUsage()
+    {
+        return 'pvm composer-menu';
+    }
     
     /**
      * 初始化菜单选项

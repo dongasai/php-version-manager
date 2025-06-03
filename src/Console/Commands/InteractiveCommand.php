@@ -77,6 +77,16 @@ class InteractiveCommand extends AbstractMenuCommand
     {
         return 'PVM 交互式管理界面';
     }
+
+    /**
+     * 获取命令用法
+     *
+     * @return string
+     */
+    public function getUsage()
+    {
+        return 'pvm interactive';
+    }
     
     /**
      * 初始化菜单选项

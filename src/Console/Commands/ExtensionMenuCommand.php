@@ -54,6 +54,16 @@ class ExtensionMenuCommand extends AbstractMenuCommand
     {
         return 'PHP扩展管理';
     }
+
+    /**
+     * 获取命令用法
+     *
+     * @return string
+     */
+    public function getUsage()
+    {
+        return 'pvm extension-menu';
+    }
     
     /**
      * 初始化菜单选项

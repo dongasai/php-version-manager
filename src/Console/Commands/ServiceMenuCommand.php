@@ -45,6 +45,16 @@ class ServiceMenuCommand extends AbstractMenuCommand
     {
         return '服务管理';
     }
+
+    /**
+     * 获取命令用法
+     *
+     * @return string
+     */
+    public function getUsage()
+    {
+        return 'pvm service-menu';
+    }
     
     /**
      * 初始化菜单选项

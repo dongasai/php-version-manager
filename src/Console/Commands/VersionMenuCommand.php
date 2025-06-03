@@ -63,6 +63,16 @@ class VersionMenuCommand extends AbstractMenuCommand
     {
         return 'PHP版本管理';
     }
+
+    /**
+     * 获取命令用法
+     *
+     * @return string
+     */
+    public function getUsage()
+    {
+        return 'pvm version-menu';
+    }
     
     /**
      * 初始化菜单选项

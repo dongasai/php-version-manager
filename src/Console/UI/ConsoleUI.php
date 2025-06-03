@@ -433,6 +433,179 @@ class ConsoleUI
     }
 
     /**
+     * 提示用户输入密码（隐藏输入）
+     *
+     * @param string $prompt 提示信息
+     * @return string 用户输入的密码
+     */
+    public function password($prompt = '请输入密码: ')
+    {
+        echo $prompt;
+
+        // 尝试使用stty隐藏输入
+        if (function_exists('system')) {
+            system('stty -echo');
+            $password = trim(fgets(STDIN));
+            system('stty echo');
+            echo PHP_EOL;
+        } else {
+            // 如果stty不可用，则正常输入
+            $password = trim(fgets(STDIN));
+        }
+
+        return $password;
+    }
+
+    /**
+     * 显示选择列表（带搜索功能）
+     *
+     * @param array $items 选项列表
+     * @param string $prompt 提示信息
+     * @param bool $allowSearch 是否允许搜索
+     * @return mixed 选择的项目
+     */
+    public function select(array $items, $prompt = '请选择:', $allowSearch = true)
+    {
+        if (empty($items)) {
+            $this->error('没有可选择的项目');
+            return null;
+        }
+
+        $filteredItems = $items;
+        $searchTerm = '';
+
+        while (true) {
+            // 清屏（如果支持）
+            if (function_exists('system')) {
+                system('clear 2>/dev/null || cls 2>/dev/null');
+            }
+
+            echo $prompt . PHP_EOL;
+
+            if ($allowSearch && !empty($searchTerm)) {
+                echo "搜索: {$searchTerm}" . PHP_EOL;
+                echo str_repeat('-', 30) . PHP_EOL;
+            }
+
+            // 显示选项
+            $i = 1;
+            $indexedItems = [];
+
+            foreach ($filteredItems as $key => $item) {
+                $indexedItems[$i] = [
+                    'key' => $key,
+                    'value' => $item
+                ];
+
+                echo $this->colorize(" {$i})", self::COLOR_YELLOW) . " {$item}" . PHP_EOL;
+                $i++;
+            }
+
+            if ($allowSearch) {
+                echo $this->colorize(" s)", self::COLOR_CYAN) . " 搜索" . PHP_EOL;
+                echo $this->colorize(" c)", self::COLOR_CYAN) . " 清除搜索" . PHP_EOL;
+            }
+            echo $this->colorize(" q)", self::COLOR_RED) . " 退出" . PHP_EOL;
+
+            $input = $this->prompt('> ');
+
+            if (strtolower($input) === 'q') {
+                return null;
+            }
+
+            if ($allowSearch && strtolower($input) === 's') {
+                $searchTerm = $this->prompt('请输入搜索关键词: ');
+                $filteredItems = $this->filterItems($items, $searchTerm);
+                continue;
+            }
+
+            if ($allowSearch && strtolower($input) === 'c') {
+                $searchTerm = '';
+                $filteredItems = $items;
+                continue;
+            }
+
+            if (is_numeric($input) && isset($indexedItems[(int) $input])) {
+                return $indexedItems[(int) $input]['key'];
+            }
+
+            $this->error('无效的选择，请重试');
+            sleep(1);
+        }
+    }
+
+    /**
+     * 过滤项目
+     *
+     * @param array $items 原始项目列表
+     * @param string $searchTerm 搜索关键词
+     * @return array 过滤后的项目列表
+     */
+    private function filterItems(array $items, $searchTerm)
+    {
+        if (empty($searchTerm)) {
+            return $items;
+        }
+
+        $filtered = [];
+        $searchTerm = strtolower($searchTerm);
+
+        foreach ($items as $key => $item) {
+            if (strpos(strtolower($item), $searchTerm) !== false ||
+                strpos(strtolower($key), $searchTerm) !== false) {
+                $filtered[$key] = $item;
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * 显示加载动画
+     *
+     * @param callable $callback 要执行的回调函数
+     * @param string $message 加载消息
+     * @return mixed 回调函数的返回值
+     */
+    public function loading(callable $callback, $message = '正在处理...')
+    {
+        $spinners = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+        $spinnerIndex = 0;
+        $result = null;
+        $finished = false;
+
+        // 启动子进程执行回调
+        $pid = pcntl_fork();
+
+        if ($pid == -1) {
+            // fork失败，直接执行
+            return $callback();
+        } elseif ($pid == 0) {
+            // 子进程
+            $result = $callback();
+            exit(0);
+        } else {
+            // 父进程，显示加载动画
+            while (!$finished) {
+                $spinner = $spinners[$spinnerIndex % count($spinners)];
+                echo "\r{$spinner} {$message}";
+
+                $spinnerIndex++;
+                usleep(100000); // 100ms
+
+                // 检查子进程是否完成
+                $status = pcntl_waitpid($pid, $status, WNOHANG);
+                if ($status > 0) {
+                    $finished = true;
+                }
+            }
+
+            echo "\r" . str_repeat(' ', strlen($message) + 2) . "\r";
+            return $result;
+        }
+    }
+
+    /**
      * 清除当前行
      */
     public function clearLine()

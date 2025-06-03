@@ -57,6 +57,14 @@ class Application
             'pvm-mirror' => Commands\PvmMirrorCommand::class, // PVM镜像源管理命令
             'log' => Commands\LogCommand::class, // 日志管理命令
 
+            // 新增交互式菜单命令
+            'interactive' => Commands\InteractiveCommand::class, // 主交互式菜单
+            'install-wizard' => Commands\InstallWizardCommand::class, // 安装向导
+            'version-menu' => Commands\VersionMenuCommand::class, // 版本管理菜单
+            'extension-menu' => Commands\ExtensionMenuCommand::class, // 扩展管理菜单
+            'composer-menu' => Commands\ComposerMenuCommand::class, // Composer管理菜单
+            'service-menu' => Commands\ServiceMenuCommand::class, // 服务管理菜单
+
             // 保留旧的Composer命令，以保持向后兼容性
             'composer-install' => Commands\ComposerInstallCommand::class,
             'composer-remove' => Commands\ComposerRemoveCommand::class,

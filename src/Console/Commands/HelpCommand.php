@@ -41,6 +41,14 @@ class HelpCommand implements CommandInterface
         'help' => '显示帮助信息',
         'version' => '显示版本信息',
         'supported' => '显示支持的PHP版本列表',
+
+        // 交互式命令
+        'interactive' => '启动主交互式菜单',
+        'install-wizard' => '启动安装向导，提供引导式安装',
+        'version-menu' => 'PHP版本管理交互式菜单',
+        'extension-menu' => 'PHP扩展管理交互式菜单',
+        'composer-menu' => 'Composer管理交互式菜单',
+        'service-menu' => '服务管理交互式菜单',
     ];
 
     /**

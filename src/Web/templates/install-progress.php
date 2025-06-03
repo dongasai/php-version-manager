@@ -186,21 +186,139 @@ class InstallProgressMonitor {
             this.statusMessage.textContent = data.message;
             this.completeBtn.style.display = 'inline-block';
 
-            // 显示成功消息
+            // 显示成功动画
+            this.showSuccessAnimation();
+
+            // 显示成功消息和后续操作选项
             setTimeout(() => {
-                if (confirm('PHP版本安装成功！是否返回版本管理页面？')) {
-                    window.location.href = '/versions';
-                }
+                this.showCompletionOptions();
             }, 2000);
         } else if (data.status === 'failed') {
             this.progressBar.className = 'progress-bar bg-danger';
             this.statusMessage.textContent = data.message;
             this.retryBtn.style.display = 'inline-block';
 
+            // 显示失败动画
+            this.showFailureAnimation();
+
             if (data.error) {
                 this.showError(data.error);
             }
         }
+    }
+
+    showSuccessAnimation() {
+        // 添加成功动画效果
+        const successIcon = document.createElement('div');
+        successIcon.innerHTML = '✅';
+        successIcon.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            z-index: 1000;
+            animation: successPulse 1s ease-in-out;
+        `;
+
+        // 添加CSS动画
+        if (!document.getElementById('success-animation-style')) {
+            const style = document.createElement('style');
+            style.id = 'success-animation-style';
+            style.textContent = `
+                @keyframes successPulse {
+                    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+                    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+                    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(successIcon);
+
+        setTimeout(() => {
+            successIcon.remove();
+        }, 2000);
+    }
+
+    showFailureAnimation() {
+        // 添加失败动画效果
+        const failureIcon = document.createElement('div');
+        failureIcon.innerHTML = '❌';
+        failureIcon.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            z-index: 1000;
+            animation: failureShake 0.5s ease-in-out;
+        `;
+
+        // 添加CSS动画
+        if (!document.getElementById('failure-animation-style')) {
+            const style = document.createElement('style');
+            style.id = 'failure-animation-style';
+            style.textContent = `
+                @keyframes failureShake {
+                    0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+                    25% { transform: translate(-50%, -50%) translateX(-10px); }
+                    75% { transform: translate(-50%, -50%) translateX(10px); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(failureIcon);
+
+        setTimeout(() => {
+            failureIcon.remove();
+        }, 1000);
+    }
+
+    showCompletionOptions() {
+        // 创建完成选项对话框
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">🎉 安装成功！</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>PHP ${this.version} 已成功安装！</p>
+                        <p>您现在可以：</p>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary" onclick="window.location.href='/versions'">
+                                📋 查看所有版本
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="window.location.href='/extensions'">
+                                🧩 管理扩展
+                            </button>
+                            <button type="button" class="btn btn-warning" onclick="window.location.href='/composer'">
+                                📦 安装 Composer
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">
+                                🏠 返回首页
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // 显示模态框
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+
+        // 自动清理
+        modal.addEventListener('hidden.bs.modal', () => {
+            modal.remove();
+        });
     }
 
     showError(error) {

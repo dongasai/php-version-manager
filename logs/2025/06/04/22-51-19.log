@@ -1,0 +1,55 @@
+=== 命令开始 ===
+命令: install
+参数: -y 7.1
+开始时间: 2025-06-04 22:51:19
+PID: 1668723
+用户: dongasai
+工作目录: /data/wwwroot/php/pvm
+
+[2025-06-04 22:51:19] [INFO] [INFO] 开始检查PHP版本有效性: 7.1
+[2025-06-04 22:51:19] [INFO] [INFO] 尝试自动匹配版本: 7.1
+[2025-06-04 22:51:19] [INFO] [INFO] 成功匹配到版本: 7.1.33
+[2025-06-04 22:51:19] [INFO] [INFO] 检查版本是否已安装: 7.1.33
+[2025-06-04 22:51:19] [INFO] [INFO] 开始检查运行环境
+[2025-06-04 22:51:19] [INFO] [INFO] 开始安装PHP版本: 7.1.33
+[2025-06-04 22:51:19] [INFO] [INFO] 安装选项: {"from_source":false,"keep_source":false,"keep_binary":false,"use_cache":true,"use_multi_thread":true,"thread_count":4,"verify_signature":true,"yes":true,"configure_options":[],"skip_composer":false}
+[2025-06-04 22:51:23] [INFO] [INFO] 安装系统依赖...
+[2025-06-04 22:51:23] [INFO] [INFO] 更新软件包列表...
+[2025-06-04 22:51:38] [INFO] [SUCCESS] 软件包列表更新成功
+[2025-06-04 22:51:39] [INFO] [INFO] 所有依赖包已安装
+[2025-06-04 22:51:39] [INFO] [SUCCESS] 系统依赖安装完成
+[2025-06-04 22:51:39] [INFO] [INFO] 安装系统依赖...
+[2025-06-04 22:51:39] [INFO] [INFO] 更新软件包列表...
+[2025-06-04 22:51:42] [INFO] [SUCCESS] 软件包列表更新成功
+[2025-06-04 22:51:42] [INFO] [INFO] 所有依赖包已安装
+[2025-06-04 22:51:42] [INFO] [SUCCESS] 系统依赖安装完成
+[2025-06-04 22:51:43] [INFO] [DOWNLOAD] 开始下载文件
+[2025-06-04 22:51:43] [INFO] [DOWNLOAD] URL: http://pvm.2sxo.com/php/php-7.1.33.tar.gz
+[2025-06-04 22:51:43] [INFO] [DOWNLOAD] 目标路径: /tmp/pvm_php_7.1.33_1749048702/php-7.1.33.tar.gz
+[2025-06-04 22:51:43] [INFO] [DOWNLOAD] 文件大小: 150 B
+[2025-06-04 22:51:43] [DEBUG] [CACHE] 缓存操作: MISS
+[2025-06-04 22:51:43] [DEBUG] [CACHE] 键: 4ecea9dce36f77eb3682353433c95ce5
+[2025-06-04 22:51:43] [DEBUG] [CACHE] 详情: 缓存过期: http://pvm.2sxo.com/php/php-7.1.33.tar.gz
+[2025-06-04 22:51:43] [DEBUG] [CACHE] 缓存操作: DELETE
+[2025-06-04 22:51:43] [DEBUG] [CACHE] 键: 4ecea9dce36f77eb3682353433c95ce5
+[2025-06-04 22:51:43] [DEBUG] [CACHE] 详情: 删除: 缓存文件, 元数据文件 - http://pvm.2sxo.com/php/php-7.1.33.tar.gz
+[2025-06-04 22:51:43] [DEBUG] [CACHE] 缓存操作: SET
+[2025-06-04 22:51:43] [DEBUG] [CACHE] 键: 4ecea9dce36f77eb3682353433c95ce5
+[2025-06-04 22:51:43] [DEBUG] [CACHE] 详情: 缓存文件: http://pvm.2sxo.com/php/php-7.1.33.tar.gz
+[2025-06-04 22:51:43] [INFO] [DOWNLOAD] 下载完成 (来源: 网络)
+[2025-06-04 22:51:43] [INFO] [DOWNLOAD] URL: http://pvm.2sxo.com/php/php-7.1.33.tar.gz
+[2025-06-04 22:51:43] [INFO] [DOWNLOAD] 目标路径: /tmp/pvm_php_7.1.33_1749048702/php-7.1.33.tar.gz
+[2025-06-04 22:51:43] [INFO] [DOWNLOAD] 文件大小: 150 B
+[2025-06-04 22:51:43] [INFO] [DOWNLOAD] 耗时: 371ms
+[2025-06-04 22:51:43] [INFO] [DOWNLOAD] 平均速度: 404.74 B/s
+[2025-06-04 22:51:43] [ERROR] [ERROR] PHP版本安装失败: 7.1.33, 错误: 安装PHP 7.1.33 失败: 解压文件失败，返回代码: 2
+[2025-06-04 22:51:43] [ERROR] [ERROR] 异常堆栈: #0 /data/wwwroot/php/pvm/src/Console/Commands/InstallCommand.php(160): VersionManager\Core\VersionInstaller->install()
+#1 /data/wwwroot/php/pvm/src/Console/Application.php(116): VersionManager\Console\Commands\InstallCommand->execute()
+#2 /data/wwwroot/php/pvm/bin/pvm(169): VersionManager\Console\Application->run()
+#3 {main}
+
+=== 命令结束 ===
+结束时间: 2025-06-04 22:51:43
+执行时长: 24秒
+退出代码: 1
+状态: 失败

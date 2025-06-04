@@ -106,11 +106,29 @@ class Application
             return $this->getCommand('help')->execute([]);
         }
 
-        // 获取命令名称
-        $commandName = $args[1];
+        // 过滤掉日志级别参数，找到真正的命令名称
+        $cleanArgs = [];
+        $commandName = null;
 
-        // 获取命令参数
-        $commandArgs = array_slice($args, 2);
+        for ($i = 1; $i < count($args); $i++) {
+            $arg = $args[$i];
+            // 跳过日志级别参数
+            if (in_array($arg, ['-v', '--verbose', '-d', '--debug', '-q', '--quiet'])) {
+                continue;
+            }
+
+            // 第一个非日志级别参数就是命令名称
+            if ($commandName === null) {
+                $commandName = $arg;
+            } else {
+                $cleanArgs[] = $arg;
+            }
+        }
+
+        // 如果没有找到命令名称，显示帮助信息
+        if ($commandName === null) {
+            return $this->getCommand('help')->execute([]);
+        }
 
         // 获取命令
         $command = $this->getCommand($commandName);
@@ -122,6 +140,6 @@ class Application
         }
 
         // 执行命令
-        return $command->execute($commandArgs);
+        return $command->execute($cleanArgs);
     }
 }

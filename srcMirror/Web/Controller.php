@@ -185,6 +185,12 @@ class Controller
             return;
         }
 
+        // 验证文件完整性
+        if (!$this->validateFileIntegrity($filePath)) {
+            $this->handleCorruptedFile($filePath);
+            return;
+        }
+
         // 检查是否可以开始新的下载
         if (!$this->resourceManager->canStartDownload()) {
             $this->handleDownloadLimitExceeded();
@@ -856,5 +862,227 @@ class Controller
             ],
             'server' => $serverConfig,
         ];
+    }
+
+    /**
+     * 验证文件完整性
+     *
+     * @param string $filePath 文件路径
+     * @return bool 是否完整
+     */
+    private function validateFileIntegrity($filePath)
+    {
+        // 获取文件扩展名
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+
+        // 检查文件大小
+        $fileSize = filesize($filePath);
+        if ($fileSize === 0) {
+            return false;
+        }
+
+        // 根据文件类型进行验证
+        switch ($extension) {
+            case 'gz':
+            case 'tgz':
+                return $this->validateGzipFile($filePath);
+            case 'tar':
+                return $this->validateTarFile($filePath);
+            case 'zip':
+                return $this->validateZipFile($filePath);
+            case 'phar':
+                return $this->validatePharFile($filePath);
+            default:
+                // 对于其他文件类型，只检查基本完整性
+                return $this->validateGenericFile($filePath);
+        }
+    }
+
+    /**
+     * 验证 Gzip 文件完整性
+     *
+     * @param string $filePath 文件路径
+     * @return bool 是否完整
+     */
+    private function validateGzipFile($filePath)
+    {
+        // 检查文件大小，PHP 源码包应该至少有几MB
+        $fileSize = filesize($filePath);
+        if ($fileSize < 1024 * 1024) { // 小于1MB的文件很可能是损坏的
+            return false;
+        }
+
+        // 检查文件头
+        $handle = fopen($filePath, 'rb');
+        if (!$handle) {
+            return false;
+        }
+
+        $header = fread($handle, 2);
+        fclose($handle);
+
+        // 检查 gzip 魔数
+        if ($header !== "\x1f\x8b") {
+            return false;
+        }
+
+        // 使用 gzfile 来验证整个文件的完整性
+        // 这比 gzread 更严格，会检查整个文件的完整性
+        $lines = @gzfile($filePath);
+        if ($lines === false) {
+            return false;
+        }
+
+        // 检查解压后的内容是否合理
+        $totalContent = implode('', $lines);
+        if (strlen($totalContent) < 1024 * 100) { // 解压后应该至少有100KB
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 验证 Tar 文件完整性
+     *
+     * @param string $filePath 文件路径
+     * @return bool 是否完整
+     */
+    private function validateTarFile($filePath)
+    {
+        $handle = fopen($filePath, 'rb');
+        if (!$handle) {
+            return false;
+        }
+
+        // 检查 tar 文件标识
+        fseek($handle, 257);
+        $ustar = fread($handle, 5);
+        fclose($handle);
+
+        return $ustar === 'ustar';
+    }
+
+    /**
+     * 验证 ZIP 文件完整性
+     *
+     * @param string $filePath 文件路径
+     * @return bool 是否完整
+     */
+    private function validateZipFile($filePath)
+    {
+        $handle = fopen($filePath, 'rb');
+        if (!$handle) {
+            return false;
+        }
+
+        $header = fread($handle, 2);
+        fclose($handle);
+
+        return $header === 'PK';
+    }
+
+    /**
+     * 验证 PHAR 文件完整性
+     *
+     * @param string $filePath 文件路径
+     * @return bool 是否完整
+     */
+    private function validatePharFile($filePath)
+    {
+        $handle = fopen($filePath, 'rb');
+        if (!$handle) {
+            return false;
+        }
+
+        $header = fread($handle, 512);
+        fclose($handle);
+
+        // 检查是否为 PHP 文件或二进制 PHAR
+        return strpos($header, '<?php') === 0 ||
+               strpos($header, '#!/usr/bin/env php') === 0 ||
+               substr($header, 0, 2) === 'PK';
+    }
+
+    /**
+     * 验证通用文件完整性
+     *
+     * @param string $filePath 文件路径
+     * @return bool 是否完整
+     */
+    private function validateGenericFile($filePath)
+    {
+        $handle = fopen($filePath, 'rb');
+        if (!$handle) {
+            return false;
+        }
+
+        $header = fread($handle, 512);
+        fclose($handle);
+
+        // 检查是否为 HTML 错误页面
+        if (stripos($header, '<html') !== false || stripos($header, '<!doctype html') !== false) {
+            return false;
+        }
+
+        // 检查是否包含错误信息
+        $lowerHeader = strtolower($header);
+        $errorPatterns = ['not found', '404', 'error', 'forbidden', 'access denied'];
+
+        foreach ($errorPatterns as $pattern) {
+            if (strpos($lowerHeader, $pattern) !== false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 处理损坏文件
+     *
+     * @param string $filePath 文件路径
+     */
+    private function handleCorruptedFile($filePath)
+    {
+        // 记录损坏文件
+        error_log("检测到损坏文件: $filePath");
+
+        // 删除损坏文件
+        if (file_exists($filePath)) {
+            unlink($filePath);
+            error_log("已删除损坏文件: $filePath");
+        }
+
+        // 返回 404 错误
+        header('HTTP/1.0 404 Not Found');
+        header('Content-Type: text/html; charset=utf-8');
+
+        echo '<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件不可用 - PVM 下载站</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+        .error { color: #d32f2f; }
+        .info { color: #1976d2; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1 class="error">文件不可用</h1>
+    <p>请求的文件已损坏或不完整，已被自动删除。</p>
+    <div class="info">
+        <p>管理员可以：</p>
+        <ul style="display: inline-block; text-align: left;">
+            <li>重新同步该文件</li>
+            <li>检查下载源的可用性</li>
+            <li>查看同步日志获取更多信息</li>
+        </ul>
+    </div>
+    <p><a href="/">返回首页</a></p>
+</body>
+</html>';
     }
 }

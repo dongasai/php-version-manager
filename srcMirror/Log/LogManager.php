@@ -6,8 +6,9 @@ use Mirror\Config\ConfigManager;
 
 /**
  * 日志管理器类
- * 
+ *
  * 用于管理和记录系统日志
+ * 集成PVM的日志机制
  */
 class LogManager
 {
@@ -51,6 +52,27 @@ class LogManager
         'error' => 3,
         'critical' => 4,
     ];
+
+    /**
+     * 当前日志文件路径（PVM风格）
+     *
+     * @var string
+     */
+    private static $currentLogFile = null;
+
+    /**
+     * 命令开始时间
+     *
+     * @var string
+     */
+    private static $commandStartTime = null;
+
+    /**
+     * 是否启用文件日志
+     *
+     * @var bool
+     */
+    private static $enabled = true;
 
     /**
      * 构造函数
@@ -409,5 +431,278 @@ class LogManager
             $i++;
         }
         return round($size, 2) . ' ' . $units[$i];
+    }
+
+    // ========== PVM风格的日志方法 ==========
+
+    /**
+     * 初始化PVM风格的文件日志系统
+     *
+     * @param string $command 当前执行的命令
+     * @param array $args 命令参数
+     */
+    public static function initPvmLogging($command = '', $args = [])
+    {
+        // 记录命令开始时间
+        self::$commandStartTime = date('Y-m-d H:i:s');
+
+        // 创建日志文件路径
+        self::$currentLogFile = self::createPvmLogFilePath();
+
+        // 确保日志目录存在
+        self::ensurePvmLogDirectoryExists();
+
+        // 记录命令开始
+        self::logCommandStart($command, $args);
+    }
+
+    /**
+     * 获取PVM风格的日志根目录
+     *
+     * @return string
+     */
+    private static function getPvmLogRootDir()
+    {
+        // 检测是否在开发模式（项目目录中运行）
+        $projectRoot = dirname(dirname(dirname(__DIR__)));
+        $isDevMode = self::isDevMode($projectRoot);
+
+        // 开发模式：优先使用项目的 logs 目录
+        if ($isDevMode) {
+            $projectLogDir = $projectRoot . '/logs';
+            // 确保项目logs目录存在
+            if (!is_dir($projectLogDir)) {
+                mkdir($projectLogDir, 0755, true);
+            }
+            return $projectLogDir;
+        }
+
+        // 生产模式：使用 PVM 目录下的 log 文件夹
+        $homeDir = getenv('HOME');
+        $pvmLogDir = $homeDir . '/.pvm/log';
+
+        // 如果 PVM 目录存在，使用它
+        if (is_dir($homeDir . '/.pvm')) {
+            return $pvmLogDir;
+        }
+
+        // 最后备选：使用项目根目录下的 log 文件夹（向后兼容）
+        return $projectRoot . '/log';
+    }
+
+    /**
+     * 检测是否在开发模式
+     *
+     * @param string $projectRoot 项目根目录
+     * @return bool
+     */
+    private static function isDevMode($projectRoot)
+    {
+        // 检查当前工作目录是否在项目目录内
+        $currentDir = getcwd();
+        $isInProjectDir = strpos($currentDir, $projectRoot) === 0;
+
+        // 检查是否有项目文件
+        $hasProjectFiles = file_exists($projectRoot . '/composer.json') &&
+                          file_exists($projectRoot . '/bin/pvm-mirror') &&
+                          is_dir($projectRoot . '/srcMirror');
+
+        // 检查是否有开发环境标识
+        $hasDevIndicators = is_dir($projectRoot . '/docker') ||
+                           is_dir($projectRoot . '/tests') ||
+                           file_exists($projectRoot . '/docker-compose.yml');
+
+        return $isInProjectDir && $hasProjectFiles && $hasDevIndicators;
+    }
+
+    /**
+     * 创建PVM风格的日志文件路径
+     *
+     * @return string
+     */
+    private static function createPvmLogFilePath()
+    {
+        $logDir = self::getPvmLogRootDir();
+        $now = new \DateTime();
+
+        // 格式：年/月/日/时-分-秒.log
+        $year = $now->format('Y');
+        $month = $now->format('m');
+        $day = $now->format('d');
+        $time = $now->format('H-i-s');
+
+        return $logDir . "/{$year}/{$month}/{$day}/{$time}.log";
+    }
+
+    /**
+     * 确保PVM风格的日志目录存在
+     */
+    private static function ensurePvmLogDirectoryExists()
+    {
+        if (self::$currentLogFile) {
+            $logFileDir = dirname(self::$currentLogFile);
+            if (!is_dir($logFileDir)) {
+                mkdir($logFileDir, 0755, true);
+            }
+        }
+    }
+
+    /**
+     * 记录命令开始
+     *
+     * @param string $command 命令名称
+     * @param array $args 命令参数
+     */
+    private static function logCommandStart($command, $args)
+    {
+        if (!self::$enabled || !self::$currentLogFile) {
+            return;
+        }
+
+        $argsStr = implode(' ', $args);
+        $pid = getmypid();
+        $user = get_current_user();
+        $workDir = getcwd();
+
+        $logEntry = "=== 命令开始 ===" . PHP_EOL;
+        $logEntry .= "命令: $command" . PHP_EOL;
+        $logEntry .= "参数: $argsStr" . PHP_EOL;
+        $logEntry .= "开始时间: " . self::$commandStartTime . PHP_EOL;
+        $logEntry .= "PID: $pid" . PHP_EOL;
+        $logEntry .= "用户: $user" . PHP_EOL;
+        $logEntry .= "工作目录: $workDir" . PHP_EOL;
+        $logEntry .= PHP_EOL;
+
+        file_put_contents(self::$currentLogFile, $logEntry, FILE_APPEND);
+    }
+
+    /**
+     * 记录命令结束
+     *
+     * @param int $exitCode 退出代码
+     */
+    public static function logCommandEnd($exitCode = 0)
+    {
+        if (!self::$enabled || !self::$currentLogFile || !self::$commandStartTime) {
+            return;
+        }
+
+        $endTime = date('Y-m-d H:i:s');
+        $startTimestamp = strtotime(self::$commandStartTime);
+        $endTimestamp = strtotime($endTime);
+        $duration = $endTimestamp - $startTimestamp;
+
+        $status = $exitCode === 0 ? '成功' : '失败';
+
+        $logEntry = "=== 命令结束 ===" . PHP_EOL;
+        $logEntry .= "结束时间: $endTime" . PHP_EOL;
+        $logEntry .= "执行时长: {$duration}秒" . PHP_EOL;
+        $logEntry .= "退出代码: $exitCode" . PHP_EOL;
+        $logEntry .= "状态: $status" . PHP_EOL;
+        $logEntry .= PHP_EOL;
+
+        file_put_contents(self::$currentLogFile, $logEntry, FILE_APPEND);
+    }
+
+    /**
+     * 启用或禁用文件日志
+     *
+     * @param bool $enabled 是否启用文件日志
+     */
+    public static function setEnabled($enabled)
+    {
+        self::$enabled = $enabled;
+    }
+
+    /**
+     * 检查文件日志是否启用
+     *
+     * @return bool
+     */
+    public static function isEnabled()
+    {
+        return self::$enabled;
+    }
+
+    /**
+     * 获取当前PVM风格的日志文件路径
+     *
+     * @return string
+     */
+    public static function getCurrentPvmLogFile()
+    {
+        return self::$currentLogFile;
+    }
+
+    /**
+     * PVM风格的信息日志
+     *
+     * @param string $message 日志消息
+     * @param string $prefix 前缀标识
+     */
+    public static function pvmInfo($message, $prefix = 'INFO')
+    {
+        self::writePvmLog($message, 'INFO', $prefix);
+    }
+
+    /**
+     * PVM风格的调试日志
+     *
+     * @param string $message 日志消息
+     * @param string $prefix 前缀标识
+     */
+    public static function pvmDebug($message, $prefix = 'DEBUG')
+    {
+        self::writePvmLog($message, 'DEBUG', $prefix);
+    }
+
+    /**
+     * PVM风格的警告日志
+     *
+     * @param string $message 日志消息
+     */
+    public static function pvmWarning($message)
+    {
+        self::writePvmLog($message, 'WARNING');
+    }
+
+    /**
+     * PVM风格的错误日志
+     *
+     * @param string $message 日志消息
+     */
+    public static function pvmError($message)
+    {
+        self::writePvmLog($message, 'ERROR');
+    }
+
+    /**
+     * PVM风格的成功日志
+     *
+     * @param string $message 日志消息
+     */
+    public static function pvmSuccess($message)
+    {
+        self::writePvmLog($message, 'SUCCESS');
+    }
+
+    /**
+     * 写入PVM风格的日志
+     *
+     * @param string $message 日志消息
+     * @param string $level 日志级别
+     * @param string $prefix 前缀标识
+     */
+    private static function writePvmLog($message, $level, $prefix = null)
+    {
+        if (!self::$enabled || !self::$currentLogFile) {
+            return;
+        }
+
+        $time = date('Y-m-d H:i:s');
+        $prefixStr = $prefix ? "[$prefix] " : '';
+        $logEntry = "[$time] [$level] $prefixStr$message" . PHP_EOL;
+
+        file_put_contents(self::$currentLogFile, $logEntry, FILE_APPEND);
     }
 }

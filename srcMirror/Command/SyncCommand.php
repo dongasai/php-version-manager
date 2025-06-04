@@ -6,6 +6,8 @@ use Mirror\Mirror\PhpMirror;
 use Mirror\Mirror\PeclMirror;
 use Mirror\Mirror\ExtensionMirror;
 use Mirror\Mirror\ComposerMirror;
+use Mirror\Log\Logger;
+use Mirror\Log\LogManager;
 
 /**
  * 同步命令类
@@ -48,8 +50,14 @@ class SyncCommand extends AbstractCommand
         $type = $args[0];
         $version = isset($args[1]) ? $args[1] : null;
 
+        Logger::info("开始同步指定镜像内容...");
+        Logger::info("类型: $type" . ($version ? ", 版本: $version" : ""));
         echo "开始同步指定镜像内容...\n";
         echo "类型: $type" . ($version ? ", 版本: $version" : "") . "\n\n";
+
+        // 记录同步开始
+        LogManager::pvmInfo("开始指定内容同步", "SYNC");
+        LogManager::pvmInfo("同步类型: $type" . ($version ? ", 版本: $version" : ""), "SYNC");
 
         // 加载配置
         $configs = $this->loadConfig();
@@ -94,7 +102,11 @@ class SyncCommand extends AbstractCommand
      */
     private function executeFullSync()
     {
+        Logger::info("开始同步镜像内容...");
         echo "开始同步镜像内容...\n";
+
+        // 记录完整同步开始
+        LogManager::pvmInfo("开始完整镜像同步", "SYNC");
 
         // 加载配置
         $configs = $this->loadConfig();
@@ -105,17 +117,27 @@ class SyncCommand extends AbstractCommand
         $this->showSyncConfig($runtimeConfig);
 
         // 预检查阶段：收集所有待下载的包信息
+        Logger::info("=== 预检查阶段 ===");
         echo "\n=== 预检查阶段 ===\n";
+        LogManager::pvmInfo("开始预检查阶段", "SYNC");
+
         $downloadPlan = $this->collectDownloadPlan($mirrorConfig);
 
         // 显示下载计划统计
         $this->showDownloadPlanSummary($downloadPlan);
+        LogManager::pvmInfo("预检查完成，需要下载 " . $downloadPlan['summary']['download_files'] . " 个文件", "SYNC");
 
         // 执行下载阶段
+        Logger::info("=== 下载阶段 ===");
         echo "\n=== 下载阶段 ===\n";
+        LogManager::pvmInfo("开始下载阶段", "SYNC");
+
         $this->executeDownloadPlan($downloadPlan, $runtimeConfig);
 
+        Logger::success("镜像同步完成");
         echo "\n镜像同步完成\n";
+        LogManager::pvmSuccess("完整镜像同步完成");
+
         return 0;
     }
 

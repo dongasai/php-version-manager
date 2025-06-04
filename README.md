@@ -1,7 +1,7 @@
 # PHP Version Manager
 
 ## 项目简介
-PHP Version Manager 是一个用于管理 PHP Cli 版本的工具，支持版本的创建、更新和删除。该工具旨在简化 PHP 版本的管理过程，提供易于使用的接口和功能。
+PHP Version Manager (PVM) 是一个用于管理 PHP Cli 版本的工具，支持版本的创建、更新和删除。该工具旨在简化 PHP 版本的管理过程，提供易于使用的接口和功能。
 
 ## 功能
 - 创建新的 PHP 版本

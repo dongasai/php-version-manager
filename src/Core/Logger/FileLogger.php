@@ -66,7 +66,21 @@ class FileLogger
      */
     private static function getLogRootDir()
     {
-        // 优先使用 PVM 目录下的 log 文件夹
+        // 检测是否在开发模式（项目目录中运行）
+        $projectRoot = dirname(dirname(dirname(__DIR__)));
+        $isDevMode = self::isDevMode($projectRoot);
+
+        // 开发模式：优先使用项目的 logs 目录
+        if ($isDevMode) {
+            $projectLogDir = $projectRoot . '/logs';
+            // 确保项目logs目录存在
+            if (!is_dir($projectLogDir)) {
+                mkdir($projectLogDir, 0755, true);
+            }
+            return $projectLogDir;
+        }
+
+        // 生产模式：使用 PVM 目录下的 log 文件夹
         $homeDir = getenv('HOME');
         $pvmLogDir = $homeDir . '/.pvm/log';
 
@@ -75,9 +89,45 @@ class FileLogger
             return $pvmLogDir;
         }
 
-        // 否则使用项目根目录下的 log 文件夹
-        $projectRoot = dirname(dirname(dirname(__DIR__)));
+        // 最后备选：使用项目根目录下的 log 文件夹（向后兼容）
         return $projectRoot . '/log';
+    }
+
+    /**
+     * 检测是否为开发模式
+     *
+     * @param string $projectRoot 项目根目录
+     * @return bool 是否为开发模式
+     */
+    private static function isDevMode($projectRoot)
+    {
+        // 检查当前工作目录是否在项目目录内
+        $currentDir = getcwd();
+        $realProjectRoot = realpath($projectRoot);
+        $realCurrentDir = realpath($currentDir);
+
+        // 如果无法获取真实路径，使用原始路径比较
+        if ($realProjectRoot === false) {
+            $realProjectRoot = $projectRoot;
+        }
+        if ($realCurrentDir === false) {
+            $realCurrentDir = $currentDir;
+        }
+
+        // 检查是否在项目目录或其子目录中
+        $isInProjectDir = strpos($realCurrentDir, $realProjectRoot) === 0;
+
+        // 检查项目标识文件是否存在（composer.json, bin/pvm等）
+        $hasProjectFiles = file_exists($projectRoot . '/composer.json') &&
+                          file_exists($projectRoot . '/bin/pvm') &&
+                          is_dir($projectRoot . '/src');
+
+        // 检查是否有开发环境标识
+        $hasDevIndicators = is_dir($projectRoot . '/docker') ||
+                           is_dir($projectRoot . '/tests') ||
+                           file_exists($projectRoot . '/docker-compose.yml');
+
+        return $isInProjectDir && $hasProjectFiles && $hasDevIndicators;
     }
 
     /**

@@ -66,6 +66,112 @@ class ConfigManager
         }
 
         $this->runtimeConfig = require $configFile;
+
+        // 从环境变量覆盖配置
+        $this->loadEnvironmentConfig();
+    }
+
+    /**
+     * 从环境变量加载配置
+     */
+    private function loadEnvironmentConfig()
+    {
+        // 数据目录
+        if ($dataDir = getenv('PVM_MIRROR_DATA_DIR')) {
+            $this->runtimeConfig['data_dir'] = $dataDir;
+        }
+
+        // 日志目录
+        if ($logDir = getenv('PVM_MIRROR_LOG_DIR')) {
+            $this->runtimeConfig['log_dir'] = $logDir;
+        }
+
+        // 日志级别
+        if ($logLevel = getenv('PVM_MIRROR_LOG_LEVEL')) {
+            $this->runtimeConfig['log_level'] = $logLevel;
+        }
+
+        // 服务器配置
+        if (!isset($this->runtimeConfig['server'])) {
+            $this->runtimeConfig['server'] = [];
+        }
+
+        if ($host = getenv('PVM_MIRROR_HOST')) {
+            $this->runtimeConfig['server']['host'] = $host;
+        }
+
+        if ($port = getenv('PVM_MIRROR_PORT')) {
+            $this->runtimeConfig['server']['port'] = (int)$port;
+        }
+
+        if ($publicUrl = getenv('PVM_MIRROR_PUBLIC_URL')) {
+            $this->runtimeConfig['server']['public_url'] = $publicUrl;
+        }
+
+        if ($maxConnections = getenv('PVM_MIRROR_MAX_CONNECTIONS')) {
+            $this->runtimeConfig['server']['max_connections'] = (int)$maxConnections;
+        }
+
+        if ($timeout = getenv('PVM_MIRROR_TIMEOUT')) {
+            $this->runtimeConfig['server']['timeout'] = (int)$timeout;
+        }
+
+        // HTTPS配置
+        if ($enableHttps = getenv('PVM_MIRROR_ENABLE_HTTPS')) {
+            $this->runtimeConfig['server']['enable_https'] = filter_var($enableHttps, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ($sslCert = getenv('PVM_MIRROR_SSL_CERT')) {
+            $this->runtimeConfig['server']['ssl_cert'] = $sslCert;
+        }
+
+        if ($sslKey = getenv('PVM_MIRROR_SSL_KEY')) {
+            $this->runtimeConfig['server']['ssl_key'] = $sslKey;
+        }
+
+        // 缓存配置
+        if ($cacheDir = getenv('PVM_MIRROR_CACHE_DIR')) {
+            $this->runtimeConfig['cache_dir'] = $cacheDir;
+        }
+
+        if (!isset($this->runtimeConfig['cache'])) {
+            $this->runtimeConfig['cache'] = [];
+        }
+
+        if ($cacheSize = getenv('PVM_MIRROR_CACHE_SIZE')) {
+            $this->runtimeConfig['cache']['max_size'] = $cacheSize;
+        }
+
+        if ($cacheTtl = getenv('PVM_MIRROR_CACHE_TTL')) {
+            $this->runtimeConfig['cache']['ttl'] = (int)$cacheTtl;
+        }
+
+        // 同步配置
+        if (!isset($this->runtimeConfig['sync'])) {
+            $this->runtimeConfig['sync'] = [];
+        }
+
+        if ($syncInterval = getenv('PVM_MIRROR_SYNC_INTERVAL')) {
+            $this->runtimeConfig['sync']['interval'] = (int)$syncInterval;
+        }
+
+        if ($maxRetries = getenv('PVM_MIRROR_MAX_RETRIES')) {
+            $this->runtimeConfig['sync']['max_retries'] = (int)$maxRetries;
+        }
+
+        if ($retryInterval = getenv('PVM_MIRROR_RETRY_INTERVAL')) {
+            $this->runtimeConfig['sync']['retry_interval'] = (int)$retryInterval;
+        }
+
+        // 运行环境
+        if ($env = getenv('PVM_MIRROR_ENV')) {
+            $this->runtimeConfig['environment'] = $env;
+        }
+
+        // 调试模式
+        if ($debug = getenv('PVM_MIRROR_DEBUG')) {
+            $this->runtimeConfig['debug'] = filter_var($debug, FILTER_VALIDATE_BOOLEAN);
+        }
     }
 
     /**

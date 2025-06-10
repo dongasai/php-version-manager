@@ -57,12 +57,36 @@ RUN mkdir -p /app/data /app/logs && \
 # 切换到pvm-mirror用户
 USER pvm-mirror
 
-# 暴露端口
-EXPOSE 34403
+# 设置默认环境变量
+ENV PVM_MIRROR_ENV=production \
+    PVM_MIRROR_DEBUG=false \
+    PVM_MIRROR_DATA_DIR=/app/data \
+    PVM_MIRROR_LOG_DIR=/app/logs \
+    PVM_MIRROR_CACHE_DIR=/app/cache \
+    PVM_MIRROR_LOG_LEVEL=info \
+    PVM_MIRROR_HOST=0.0.0.0 \
+    PVM_MIRROR_PORT=34403 \
+    PVM_MIRROR_PUBLIC_URL=http://localhost:34403 \
+    PVM_MIRROR_MAX_CONNECTIONS=100 \
+    PVM_MIRROR_TIMEOUT=30 \
+    PVM_MIRROR_ENABLE_HTTPS=false \
+    PVM_MIRROR_CACHE_SIZE=104857600 \
+    PVM_MIRROR_CACHE_TTL=3600 \
+    PVM_MIRROR_SYNC_INTERVAL=24 \
+    PVM_MIRROR_MAX_RETRIES=3 \
+    PVM_MIRROR_RETRY_INTERVAL=300
 
-# 健康检查
+# 暴露端口 (使用环境变量)
+EXPOSE $PVM_MIRROR_PORT
+
+# 健康检查 (使用环境变量)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:34403/ || exit 1
+    CMD curl -f http://localhost:$PVM_MIRROR_PORT/ || exit 1
+
+# 创建启动脚本
+COPY --chown=pvm-mirror:pvm-mirror docker/pvm-mirror/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # 启动命令
-CMD ["/app/bin/pvm-mirror", "server", "start", "--foreground"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["server", "start", "--foreground"]

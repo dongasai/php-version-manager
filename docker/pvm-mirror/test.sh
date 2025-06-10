@@ -54,9 +54,23 @@ else
     echo "❌ HTTP响应异常 (状态码: $HTTP_CODE)"
 fi
 
+# 测试环境变量
+echo
+echo "6. 测试环境变量配置..."
+ENV_VARS=$(docker exec pvm-mirror-dev env | grep "PVM_MIRROR_" | wc -l)
+if [[ "$ENV_VARS" -gt 0 ]]; then
+    echo "✅ 环境变量已加载 ($ENV_VARS 个变量)"
+    if [[ "${1}" == "--verbose" ]]; then
+        echo "环境变量列表:"
+        docker exec pvm-mirror-dev env | grep "PVM_MIRROR_" | sort
+    fi
+else
+    echo "⚠️  未检测到PVM_MIRROR环境变量"
+fi
+
 # 显示容器信息
 echo
-echo "6. 容器信息:"
+echo "7. 容器信息:"
 docker compose -f dev-compose.yml ps
 
 echo
@@ -64,3 +78,5 @@ echo "=== 测试完成 ==="
 echo "访问地址: http://localhost:34403"
 echo "查看日志: docker compose -f dev-compose.yml logs -f"
 echo "停止服务: docker compose -f dev-compose.yml down"
+echo "查看环境变量: docker exec pvm-mirror-dev env | grep PVM_MIRROR_"
+echo "进入容器: docker exec -it pvm-mirror-dev bash"

@@ -5,7 +5,9 @@ services:
       dockerfile: docker/pvm-mirror/Dockerfile
     container_name: pvm-mirror-dev
     ports:
-      - "34403:34403"
+      - "${PVM_MIRROR_PORT:-34403}:${PVM_MIRROR_PORT:-34403}"
+    env_file:
+      - .env
     volumes:
       # 映射项目的data目录到容器的data目录
       - ../../data:/app/data
@@ -21,14 +23,36 @@ services:
       - ../../srcMirror:/app/srcMirror
       - ../../bin:/app/bin
     environment:
-      # 设置为开发模式
+      # 基础配置
       - PVM_MIRROR_ENV=development
-      # 设置日志级别为详细模式
-      - PVM_MIRROR_LOG_LEVEL=debug
-      # 设置数据目录
+      - PVM_MIRROR_DEBUG=true
+
+      # 目录配置
       - PVM_MIRROR_DATA_DIR=/app/data
-      # 设置日志目录
       - PVM_MIRROR_LOG_DIR=/app/logs
+      - PVM_MIRROR_CACHE_DIR=/app/cache
+
+      # 日志配置
+      - PVM_MIRROR_LOG_LEVEL=debug
+
+      # 服务器配置
+      - PVM_MIRROR_HOST=0.0.0.0
+      - PVM_MIRROR_PORT=34403
+      - PVM_MIRROR_PUBLIC_URL=http://localhost:34403
+      - PVM_MIRROR_MAX_CONNECTIONS=50
+      - PVM_MIRROR_TIMEOUT=30
+
+      # HTTPS配置（开发环境默认关闭）
+      - PVM_MIRROR_ENABLE_HTTPS=false
+
+      # 缓存配置（开发环境使用较小的缓存）
+      - PVM_MIRROR_CACHE_SIZE=52428800  # 50MB
+      - PVM_MIRROR_CACHE_TTL=60         # 1分钟，便于测试
+
+      # 同步配置（开发环境更频繁的同步）
+      - PVM_MIRROR_SYNC_INTERVAL=1      # 1小时
+      - PVM_MIRROR_MAX_RETRIES=3
+      - PVM_MIRROR_RETRY_INTERVAL=60    # 1分钟
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:34403/"]

@@ -131,12 +131,17 @@ class InteractiveCommand extends AbstractMenuCommand
             $installedVersions = $this->versionManager->getInstalledVersions();
             
             $this->ui->info('当前状态:', true);
-            $this->ui->info('  当前PHP版本: ' . $this->ui->colorize($currentVersion ?: '未安装', 'green'), true);
+            $this->ui->info('  当前PHP版本: ' . $this->ui->colorize($currentVersion ?: '未安装', \VersionManager\Console\UI\ConsoleUI::COLOR_GREEN), true);
             $this->ui->info('  已安装版本: ' . count($installedVersions) . ' 个', true);
             
             if (!empty($installedVersions)) {
-                $versionList = implode(', ', array_slice($installedVersions, 0, 5));
-                if (count($installedVersions) > 5) {
+                // 提取版本号字符串
+                $versionStrings = array_map(function($versionInfo) {
+                    return is_array($versionInfo) ? $versionInfo['version'] : $versionInfo;
+                }, $installedVersions);
+
+                $versionList = implode(', ', array_slice($versionStrings, 0, 5));
+                if (count($versionStrings) > 5) {
                     $versionList .= ' ...';
                 }
                 $this->ui->info('  版本列表: ' . $versionList, true);

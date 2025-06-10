@@ -86,7 +86,7 @@ class Application
         // 移除脚本名称
         array_shift($args);
 
-        $command = isset($args[0]) ? $args[0] : 'help';
+        $command = isset($args[0]) ? $args[0] : 'interactive';
 
         // 如果是版本查询
         if ($command === '--version' || $command === '-v') {

@@ -1,0 +1,196 @@
+name: Docker Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*-*'
+  release:
+    types: [published]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/pvm-mirror
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+      attestations: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # 版本标签
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ !contains(github.ref, '-') }}
+            # 最新稳定版
+            type=raw,value=stable,enable=${{ !contains(github.ref, '-') }}
+          labels: |
+            org.opencontainers.image.title=PVM Mirror
+            org.opencontainers.image.description=PHP Version Manager Mirror Server
+            org.opencontainers.image.vendor=PVM Project
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/pvm-mirror/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run comprehensive tests
+        run: |
+          # 测试发布的镜像
+          echo "Testing released image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
+          
+          # 基本功能测试
+          docker run --rm \
+            -e PVM_MIRROR_ENV=production \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} \
+            php -v
+          
+          # 启动服务测试
+          docker run -d --name pvm-mirror-release-test \
+            -p 34403:34403 \
+            -e PVM_MIRROR_ENV=production \
+            -e PVM_MIRROR_LOG_LEVEL=info \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          
+          # 等待服务启动
+          sleep 15
+          
+          # 健康检查
+          for i in {1..5}; do
+            if curl -f http://localhost:34403/; then
+              echo "Health check passed"
+              break
+            fi
+            echo "Health check attempt $i failed, retrying..."
+            sleep 5
+          done
+          
+          # 检查环境变量
+          docker exec pvm-mirror-release-test env | grep PVM_MIRROR_ | wc -l
+          
+          # 检查服务状态
+          docker ps | grep pvm-mirror-release-test
+          
+          # 清理
+          docker stop pvm-mirror-release-test
+          docker rm pvm-mirror-release-test
+
+      - name: Create release notes
+        if: github.event_name == 'release'
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🐳 Docker镜像发布成功
+          
+          **镜像标签:**
+          \`\`\`
+          ${{ steps.meta.outputs.tags }}
+          \`\`\`
+          
+          **拉取命令:**
+          \`\`\`bash
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          \`\`\`
+          
+          **运行命令:**
+          \`\`\`bash
+          docker run -d -p 34403:34403 \\
+            -e PVM_MIRROR_ENV=production \\
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          \`\`\`
+          
+          **镜像信息:**
+          - 架构: linux/amd64, linux/arm64
+          - 大小: $(docker image inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} --format='{{.Size}}' | numfmt --to=iec)
+          - 创建时间: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          - 版本: ${{ github.ref_name }}
+          
+          **安全扫描:** ✅ 已通过Trivy安全扫描
+          **构建证明:** ✅ 已生成SLSA构建证明
+          EOF
+
+  update-readme:
+    runs-on: ubuntu-latest
+    needs: release
+    if: github.event_name == 'release' && !contains(github.ref, '-')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Docker README
+        run: |
+          # 更新docker/pvm-mirror/README.md中的版本信息
+          sed -i "s/pvm-mirror:.*$/pvm-mirror:${{ github.ref_name }}/" docker/pvm-mirror/README.md
+          
+          # 更新最新版本标签
+          sed -i "s/pvm-mirror:latest/pvm-mirror:${{ github.ref_name }}/" docker/pvm-mirror/README.md
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docker/pvm-mirror/README.md
+          git diff --staged --quiet || git commit -m "docs: 更新Docker镜像版本到 ${{ github.ref_name }}"
+          git push

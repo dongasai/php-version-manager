@@ -1,0 +1,190 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+    paths:
+      - 'docker/pvm-mirror/**'
+      - 'srcMirror/**'
+      - 'configMirror/**'
+      - 'bin/pvm-mirror'
+      - '.github/workflows/docker-build.yml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'docker/pvm-mirror/**'
+      - 'srcMirror/**'
+      - 'configMirror/**'
+      - 'bin/pvm-mirror'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Custom tag for the image'
+        required: false
+        default: 'manual'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/pvm-mirror
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # 分支策略
+            type=ref,event=branch
+            type=ref,event=pr,prefix=pr-
+            # 最新标签
+            type=raw,value=latest,enable={{is_default_branch}}
+            # 开发标签
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/develop' }}
+            # 手动触发标签
+            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            # SHA标签
+            type=sha,prefix={{branch}}-
+          labels: |
+            org.opencontainers.image.title=PVM Mirror
+            org.opencontainers.image.description=PHP Version Manager Mirror Server
+            org.opencontainers.image.vendor=PVM Project
+            org.opencontainers.image.licenses=MIT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/pvm-mirror/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for testing
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=pr,prefix=pr-
+
+      - name: Test Docker image
+        run: |
+          # 拉取构建的镜像
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.number }}
+          
+          # 运行基本测试
+          docker run --rm --name pvm-mirror-test \
+            -e PVM_MIRROR_ENV=testing \
+            -e PVM_MIRROR_DEBUG=true \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.number }} \
+            php -v
+          
+          # 运行健康检查测试
+          docker run -d --name pvm-mirror-health-test \
+            -p 34403:34403 \
+            -e PVM_MIRROR_ENV=testing \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.number }}
+          
+          # 等待服务启动
+          sleep 10
+          
+          # 检查健康状态
+          curl -f http://localhost:34403/ || exit 1
+          
+          # 清理
+          docker stop pvm-mirror-health-test
+          docker rm pvm-mirror-health-test
+
+      - name: Run container tests
+        run: |
+          cd docker/pvm-mirror
+          
+          # 使用PR镜像运行测试
+          export PVM_MIRROR_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.number }}
+          
+          # 创建临时compose文件
+          cat > test-compose.yml << EOF
+          services:
+            pvm-mirror:
+              image: \${PVM_MIRROR_IMAGE}
+              ports:
+                - "34403:34403"
+              environment:
+                - PVM_MIRROR_ENV=testing
+                - PVM_MIRROR_DEBUG=true
+                - PVM_MIRROR_LOG_LEVEL=debug
+          EOF
+          
+          # 运行测试
+          docker compose -f test-compose.yml up -d
+          sleep 15
+          
+          # 运行测试脚本
+          ./test.sh
+          
+          # 清理
+          docker compose -f test-compose.yml down

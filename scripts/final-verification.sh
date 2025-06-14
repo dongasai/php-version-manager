@@ -60,11 +60,12 @@ check_git_status() {
     fi
     
     # 检查远程状态
-    if git status | grep -q "Your branch is up to date"; then
+    local git_status=$(git status)
+    if echo "$git_status" | grep -q "Your branch is up to date\|您的分支与上游分支.*一致"; then
         log_info "与远程仓库同步"
     else
         log_warn "与远程仓库不同步"
-        git status | grep -E "(ahead|behind)"
+        echo "$git_status" | grep -E "(ahead|behind|领先|落后)" || true
     fi
 }
 

@@ -4,6 +4,7 @@ namespace VersionManager\Core\Version;
 
 use VersionManager\Core\Tags\TaggableInterface;
 use VersionManager\Core\System\OsDriverFactory;
+use VersionManager\Core\Logger\FileLogger;
 
 /**
  * 抽象版本安装驱动基类
@@ -162,23 +163,31 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
 
             // 获取PHP版本信息
             $output = [];
-            exec($phpBin . ' -v', $output);
+            $command = $phpBin . ' -v';
+            FileLogger::debug("执行PHP版本查询: {$command}", 'COMMAND');
+            exec($command, $output);
 
             if (!empty($output)) {
                 $info['version_string'] = $output[0];
+                FileLogger::debug("PHP版本信息: " . $output[0], 'COMMAND');
             }
 
             // 获取PHP编译选项
             $output = [];
-            exec($phpBin . ' -i | grep "Configure Command"', $output);
+            $command = $phpBin . ' -i | grep "Configure Command"';
+            FileLogger::debug("执行PHP编译选项查询: {$command}", 'COMMAND');
+            exec($command, $output);
 
             if (!empty($output)) {
                 $info['configure_command'] = trim(str_replace('Configure Command =>', '', $output[0]));
+                FileLogger::debug("PHP编译选项: " . $info['configure_command'], 'COMMAND');
             }
 
             // 获取PHP扩展
             $output = [];
-            exec($phpBin . ' -m', $output);
+            $command = $phpBin . ' -m';
+            FileLogger::debug("执行PHP扩展查询: {$command}", 'COMMAND');
+            exec($command, $output);
 
             $extensions = [];
             $inExtensions = false;
@@ -271,9 +280,16 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
 
         // 使用系统命令删除目录，这样更快
         $command = "rm -rf " . escapeshellarg($dir);
+        FileLogger::info("执行删除命令: {$command}", 'COMMAND');
+        $startTime = microtime(true);
+
         passthru($command, $returnCode);
 
+        $duration = microtime(true) - $startTime;
+
         if ($returnCode !== 0) {
+            FileLogger::error("删除命令执行失败: {$command}", 'COMMAND');
+            FileLogger::error("退出码: {$returnCode}, 耗时: " . round($duration, 2) . "秒", 'COMMAND');
             echo "警告: 使用系统命令删除目录失败，尝试使用PHP递归删除\n";
 
             // 如果系统命令失败，则使用PHP递归删除
@@ -294,6 +310,8 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
             }
 
             return rmdir($dir);
+        } else {
+            FileLogger::info("删除命令执行成功，耗时: " . round($duration, 2) . "秒", 'COMMAND');
         }
 
         echo "目录清理完成\n";
@@ -303,23 +321,90 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
     /**
      * 下载文件
      *
-     * @param string $url 文件URL
+     * @param string|array $url 文件URL或URL数组
      * @param string $destination 目标路径
      * @return bool
      */
     protected function downloadFile($url, $destination)
     {
+        // 如果传入的是数组，按优先级尝试下载
+        if (is_array($url)) {
+            return $this->downloadFileWithFallback($url, $destination);
+        }
+
         $command = "curl -L -o {$destination} {$url}";
         $output = [];
         $returnCode = 0;
 
+        // 记录命令执行
+        FileLogger::info("执行下载命令: {$command}", 'COMMAND');
+        $startTime = microtime(true);
+
         exec($command . ' 2>&1', $output, $returnCode);
 
+        $duration = microtime(true) - $startTime;
+
         if ($returnCode !== 0) {
+            FileLogger::error("下载命令执行失败: {$command}", 'COMMAND');
+            FileLogger::error("退出码: {$returnCode}, 耗时: " . round($duration, 2) . "秒", 'COMMAND');
+            if (!empty($output)) {
+                FileLogger::error("命令输出: " . implode("\n", $output), 'COMMAND');
+            }
             throw new \Exception("下载文件失败: " . implode("\n", $output));
+        } else {
+            FileLogger::info("下载命令执行成功，耗时: " . round($duration, 2) . "秒", 'COMMAND');
         }
 
         return true;
+    }
+
+    /**
+     * 使用多个URL按优先级尝试下载
+     *
+     * @param array $urls URL数组
+     * @param string $destination 目标路径
+     * @return bool
+     */
+    protected function downloadFileWithFallback(array $urls, $destination)
+    {
+        $lastException = null;
+        $attemptCount = 0;
+
+        foreach ($urls as $url) {
+            $attemptCount++;
+
+            try {
+                echo "尝试从源 {$attemptCount} 下载: " . parse_url($url, PHP_URL_HOST) . "\n";
+
+                // 尝试下载
+                $success = $this->downloadFile($url, $destination);
+
+                if ($success) {
+                    if ($attemptCount > 1) {
+                        echo "下载成功！\n";
+                    }
+                    return true;
+                }
+            } catch (\Exception $e) {
+                $lastException = $e;
+                echo "下载失败: " . $e->getMessage() . "\n";
+
+                // 如果还有其他URL可以尝试，显示切换信息
+                if ($attemptCount < count($urls)) {
+                    echo "正在切换到下一个源...\n";
+                }
+
+                // 继续尝试下一个URL
+                continue;
+            }
+        }
+
+        // 所有URL都失败了
+        if ($lastException) {
+            throw new \Exception("所有下载源都失败了，最后一个错误: " . $lastException->getMessage());
+        } else {
+            throw new \Exception("所有下载源都失败了");
+        }
     }
 
     /**
@@ -354,10 +439,23 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
         $output = [];
         $returnCode = 0;
 
+        // 记录命令执行
+        FileLogger::info("执行解压命令: {$command}", 'COMMAND');
+        $startTime = microtime(true);
+
         exec($command . ' 2>&1', $output, $returnCode);
 
+        $duration = microtime(true) - $startTime;
+
         if ($returnCode !== 0) {
+            FileLogger::error("解压命令执行失败: {$command}", 'COMMAND');
+            FileLogger::error("退出码: {$returnCode}, 耗时: " . round($duration, 2) . "秒", 'COMMAND');
+            if (!empty($output)) {
+                FileLogger::error("命令输出: " . implode("\n", $output), 'COMMAND');
+            }
             throw new \Exception("解压文件失败: " . implode("\n", $output));
+        } else {
+            FileLogger::info("解压命令执行成功，耗时: " . round($duration, 2) . "秒", 'COMMAND');
         }
 
         return true;

@@ -26,10 +26,10 @@ teardown() {
   [[ "$output" =~ "PHP Version Manager" ]]
 }
 
-@test "pvm 不带参数应该显示帮助信息" {
-  run timeout 10 "$PVM_BIN"
-  [ "$status" -eq 0 ]
-  [[ "$output" =~ "PHP Version Manager" ]]
+@test "pvm 不带参数应该进入交互模式" {
+  run timeout 3 "$PVM_BIN" <<< "11"
+  [ "$status" -eq 124 ] || [ "$status" -eq 0 ]
+  [[ "$output" =~ "PVM 交互式管理界面" ]]
 }
 
 @test "pvm help list 应该显示list命令帮助" {

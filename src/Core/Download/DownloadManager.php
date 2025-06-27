@@ -237,6 +237,92 @@ class DownloadManager
     }
 
     /**
+     * 下载单个URL的文件
+     *
+     * @param string $url 文件URL
+     * @param string $destination 目标路径
+     * @param array $options 下载选项
+     * @return bool 是否下载成功
+     * @throws \Exception 下载失败时抛出异常
+     */
+    private function downloadSingleUrl($url, $destination, array $options = [])
+    {
+        $startTime = microtime(true);
+
+        // 记录下载开始
+        $fileSize = $this->getFileSize($url);
+        FileLogger::logDownloadStart($url, $destination, $fileSize ?: 0);
+
+        // 检查缓存
+        if ($this->useCache) {
+            $cacheFile = $this->cacheManager->getDownloadCache($url, true);
+            if ($cacheFile !== null) {
+                // 从缓存复制文件
+                if (copy($cacheFile, $destination)) {
+                    $duration = microtime(true) - $startTime;
+                    $actualSize = filesize($destination);
+
+                    if ($this->showProgress) {
+                        echo "从缓存获取文件: " . basename($url) . PHP_EOL;
+                    }
+
+                    // 设置文件权限
+                    $this->permissionManager->setSecureFilePermission($destination);
+
+                    // 验证签名
+                    if ($this->verifySignature && isset($options['verify_type']) && isset($options['verify_version'])) {
+                        $this->verifyFileSignature($destination, $options['verify_type'], $options['verify_version']);
+                    }
+
+                    // 记录下载完成（来自缓存）
+                    FileLogger::logDownloadComplete($url, $destination, $actualSize, $duration, true);
+
+                    return true;
+                }
+            }
+        }
+
+        try {
+            // 如果不使用多线程下载或者不支持多线程下载，则使用单线程下载
+            if (!$this->useMultiThread || !$this->isMultiThreadSupported()) {
+                $success = $this->downloadSingleThread($url, $destination, $options);
+            } else {
+                // 使用多线程下载
+                $success = $this->downloadMultiThread($url, $destination, $options);
+            }
+
+            if ($success) {
+                $duration = microtime(true) - $startTime;
+                $actualSize = filesize($destination);
+
+                // 设置文件权限
+                $this->permissionManager->setSecureFilePermission($destination);
+
+                // 验证文件完整性（如果提供了校验和）
+                if (isset($options['checksums']) && !empty($options['checksums'])) {
+                    if (!IntegrityVerifier::verifyDownloadedFile($destination, $options['checksums'])) {
+                        throw new \Exception("文件完整性校验失败");
+                    }
+                }
+
+                // 验证签名
+                if ($this->verifySignature && isset($options['verify_type']) && isset($options['verify_version'])) {
+                    $this->verifyFileSignature($destination, $options['verify_type'], $options['verify_version']);
+                }
+
+                // 记录下载完成（来自网络）
+                FileLogger::logDownloadComplete($url, $destination, $actualSize, $duration, false);
+            }
+
+            return $success;
+
+        } catch (\Exception $e) {
+            FileLogger::logDownloadError($url, $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * 使用多个URL按优先级尝试下载
      *
      * @param array $urls URL数组（按优先级排序）
@@ -247,6 +333,13 @@ class DownloadManager
      */
     private function downloadWithFallback(array $urls, $destination, array $options = [])
     {
+        // 记录所有可用的下载URL
+        FileLogger::info("获取到 " . count($urls) . " 个下载源", 'DOWNLOAD');
+        foreach ($urls as $index => $url) {
+            $priority = $index + 1;
+            FileLogger::info("  源[{$priority}]: {$url}", 'DOWNLOAD');
+        }
+
         $lastException = null;
         $attemptCount = 0;
 
@@ -254,6 +347,9 @@ class DownloadManager
             $attemptCount++;
 
             try {
+                // 记录当前尝试的URL
+                FileLogger::info("尝试下载源 [{$attemptCount}/" . count($urls) . "]: {$url}", 'DOWNLOAD');
+
                 if ($this->showProgress) {
                     // 判断是否为镜像源
                     $isMirror = $this->isMirrorUrl($url);
@@ -261,10 +357,11 @@ class DownloadManager
                     echo "\033[1;36m尝试从{$sourceType}下载 (第{$attemptCount}个源): " . $this->getUrlHost($url) . "\033[0m" . PHP_EOL;
                 }
 
-                // 尝试下载
-                $success = $this->download($url, $destination, $options);
+                // 尝试下载（直接调用单个URL的下载方法，避免递归）
+                $success = $this->downloadSingleUrl($url, $destination, $options);
 
                 if ($success) {
+                    FileLogger::info("下载成功，使用源: {$url}", 'DOWNLOAD');
                     if ($this->showProgress && $attemptCount > 1) {
                         echo "\033[1;32m下载成功！\033[0m" . PHP_EOL;
                     }
@@ -275,6 +372,7 @@ class DownloadManager
 
                 // 记录下载失败
                 FileLogger::logDownloadError($url, $e->getMessage(), $attemptCount);
+                FileLogger::error("下载源失败 [{$attemptCount}/" . count($urls) . "]: {$url} - {$e->getMessage()}", 'DOWNLOAD');
 
                 if ($this->showProgress) {
                     echo "\033[1;33m下载失败: " . $e->getMessage() . "\033[0m" . PHP_EOL;
@@ -296,6 +394,7 @@ class DownloadManager
             $errorMessage .= "，最后一个错误: " . $lastException->getMessage();
         }
 
+        FileLogger::error("所有下载源都失败: " . $errorMessage, 'DOWNLOAD');
         throw new \Exception($errorMessage);
     }
 

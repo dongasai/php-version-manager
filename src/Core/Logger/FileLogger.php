@@ -282,6 +282,36 @@ class FileLogger
     }
 
     /**
+     * 记录下载URL列表
+     *
+     * @param array $urls URL列表
+     * @param string $version PHP版本
+     */
+    public static function logDownloadUrls($urls, $version = '')
+    {
+        $message = "获取下载URL列表" . ($version ? " (PHP {$version})" : "");
+        self::writeLog('INFO', $message, 'DOWNLOAD');
+
+        foreach ($urls as $index => $url) {
+            $priority = $index + 1;
+            self::writeLog('INFO', "  [{$priority}] {$url}", 'DOWNLOAD');
+        }
+    }
+
+    /**
+     * 记录下载尝试
+     *
+     * @param string $url 当前尝试的URL
+     * @param int $attempt 尝试次数
+     * @param int $total 总URL数量
+     */
+    public static function logDownloadAttempt($url, $attempt, $total)
+    {
+        $message = "尝试下载 [{$attempt}/{$total}]: {$url}";
+        self::writeLog('INFO', $message, 'DOWNLOAD');
+    }
+
+    /**
      * 记录下载完成日志
      *
      * @param string $url 下载URL

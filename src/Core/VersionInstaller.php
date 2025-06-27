@@ -8,6 +8,7 @@ use VersionManager\Core\Download\DownloadManager;
 use VersionManager\Core\Security\SignatureVerifier;
 use VersionManager\Core\Security\PermissionManager;
 use VersionManager\Core\Security\SecurityUpdater;
+use VersionManager\Core\Logger\FileLogger;
 use VersionManager\Core\Version\GenericVersionDriver;
 use VersionManager\Core\Version\VersionDriverFactory;
 
@@ -394,6 +395,13 @@ class VersionInstaller
      */
     private function executeCommand($command, $timeout = 0)
     {
+        // 记录命令执行开始
+        FileLogger::info("开始执行命令: {$command}", 'COMMAND');
+        if ($timeout > 0) {
+            FileLogger::info("命令超时设置: {$timeout}秒", 'COMMAND');
+        }
+        $commandStartTime = microtime(true);
+
         // 使用proc_open实现实时输出
         $descriptorspec = [
             0 => ["pipe", "r"],  // stdin
@@ -481,6 +489,21 @@ class VersionInstaller
             // 关闭进程
             $returnCode = proc_close($process);
 
+            $commandDuration = microtime(true) - $commandStartTime;
+
+            // 记录命令执行结果
+            if ($returnCode === 0) {
+                FileLogger::info("命令执行成功，退出码: {$returnCode}, 耗时: " . round($commandDuration, 2) . "秒", 'COMMAND');
+            } else {
+                FileLogger::error("命令执行失败，退出码: {$returnCode}, 耗时: " . round($commandDuration, 2) . "秒", 'COMMAND');
+                if (!empty(trim($error))) {
+                    FileLogger::error("错误输出: " . trim($error), 'COMMAND');
+                }
+                if (!empty(trim($output))) {
+                    FileLogger::error("标准输出: " . trim($output), 'COMMAND');
+                }
+            }
+
             // 如果返回非零状态码且有错误输出，则抛出异常
             if ($returnCode !== 0 && !empty(trim($error))) {
                 throw new Exception($error);
@@ -494,6 +517,7 @@ class VersionInstaller
                     strpos($output, '0 newly installed') !== false ||
                     strpos($output, '0 upgraded') !== false) {
                     // 这是正常情况，依赖已经安装
+                    FileLogger::info("依赖已经是最新版本或已安装", 'COMMAND');
                     return true;
                 }
 
@@ -503,6 +527,7 @@ class VersionInstaller
 
             return true;
         } else {
+            FileLogger::error("无法启动进程: {$command}", 'COMMAND');
             throw new Exception("无法启动进程");
         }
     }
@@ -812,8 +837,11 @@ class VersionInstaller
 
         foreach ($packageManagers as $name => $command) {
             $output = [];
-            exec("which {$command} 2>/dev/null", $output, $returnCode);
+            $whichCommand = "which {$command} 2>/dev/null";
+            FileLogger::debug("检测包管理器: {$whichCommand}", 'COMMAND');
+            exec($whichCommand, $output, $returnCode);
             if ($returnCode === 0 && !empty($output)) {
+                FileLogger::info("检测到包管理器: {$name} ({$command})", 'COMMAND');
                 return $name;
             }
         }
@@ -874,10 +902,24 @@ class VersionInstaller
         $command = "tar -xzf {$tarFile} -C {$this->tempDir}";
         $output = [];
         $returnCode = 0;
+
+        // 记录解压命令执行
+        FileLogger::info("执行解压命令: {$command}", 'COMMAND');
+        $startTime = microtime(true);
+
         exec($command, $output, $returnCode);
 
+        $duration = microtime(true) - $startTime;
+
         if ($returnCode !== 0) {
+            FileLogger::error("解压命令执行失败: {$command}", 'COMMAND');
+            FileLogger::error("退出码: {$returnCode}, 耗时: " . round($duration, 2) . "秒", 'COMMAND');
+            if (!empty($output)) {
+                FileLogger::error("命令输出: " . implode("\n", $output), 'COMMAND');
+            }
             throw new Exception("源码解压失败: " . implode("\n", $output));
+        } else {
+            FileLogger::info("解压命令执行成功，耗时: " . round($duration, 2) . "秒", 'COMMAND');
         }
 
         // 配置编译选项
@@ -1017,10 +1059,24 @@ class VersionInstaller
         $command = "tar -xzf {$tarFile} -C {$versionDir} --strip-components=1";
         $output = [];
         $returnCode = 0;
+
+        // 记录解压命令执行
+        FileLogger::info("执行二进制包解压命令: {$command}", 'COMMAND');
+        $startTime = microtime(true);
+
         exec($command, $output, $returnCode);
 
+        $duration = microtime(true) - $startTime;
+
         if ($returnCode !== 0) {
+            FileLogger::error("二进制包解压命令执行失败: {$command}", 'COMMAND');
+            FileLogger::error("退出码: {$returnCode}, 耗时: " . round($duration, 2) . "秒", 'COMMAND');
+            if (!empty($output)) {
+                FileLogger::error("命令输出: " . implode("\n", $output), 'COMMAND');
+            }
             throw new Exception("二进制包解压失败: " . implode("\n", $output));
+        } else {
+            FileLogger::info("二进制包解压命令执行成功，耗时: " . round($duration, 2) . "秒", 'COMMAND');
         }
 
         // 创建配置目录
@@ -1197,17 +1253,23 @@ class VersionInstaller
 
         // 获取PHP版本
         $output = [];
-        exec($phpBin . ' -v', $output);
+        $versionCommand = $phpBin . ' -v';
+        FileLogger::debug("获取PHP版本信息: {$versionCommand}", 'COMMAND');
+        exec($versionCommand, $output);
         $phpVersion = !empty($output) ? $output[0] : '';
 
         // 获取PHP配置信息
         $output = [];
-        exec($phpBin . ' -i | grep "Configure Command"', $output);
+        $configCommand = $phpBin . ' -i | grep "Configure Command"';
+        FileLogger::debug("获取PHP配置信息: {$configCommand}", 'COMMAND');
+        exec($configCommand, $output);
         $configureCommand = !empty($output) ? str_replace('Configure Command => ', '', $output[0]) : '';
 
         // 获取PHP扩展信息
         $output = [];
-        exec($phpBin . ' -m', $output);
+        $extensionCommand = $phpBin . ' -m';
+        FileLogger::debug("获取PHP扩展信息: {$extensionCommand}", 'COMMAND');
+        exec($extensionCommand, $output);
         $extensions = array_filter($output, function($line) {
             return !empty($line) && $line !== '[PHP Modules]' && $line !== '[Zend Modules]';
         });

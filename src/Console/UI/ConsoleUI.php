@@ -121,8 +121,8 @@ class ConsoleUI
      * 输出彩色文本
      *
      * @param string $text 文本内容
-     * @param int $foreground 前景色
-     * @param int $background 背景色
+     * @param int|string $foreground 前景色（可以是颜色常量或颜色名称字符串）
+     * @param int|string $background 背景色（可以是颜色常量或颜色名称字符串）
      * @param int $style 样式
      * @return string
      */
@@ -141,18 +141,59 @@ class ConsoleUI
 
         // 添加前景色
         if ($foreground !== null) {
-            $colored .= "\033[" . (30 + $foreground) . "m";
+            $foregroundCode = $this->getColorCode($foreground);
+            if ($foregroundCode !== null) {
+                $colored .= "\033[" . (30 + $foregroundCode) . "m";
+            }
         }
 
         // 添加背景色
         if ($background !== null) {
-            $colored .= "\033[" . (40 + $background) . "m";
+            $backgroundCode = $this->getColorCode($background);
+            if ($backgroundCode !== null) {
+                $colored .= "\033[" . (40 + $backgroundCode) . "m";
+            }
         }
 
         // 添加文本和重置
         $colored .= $text . "\033[0m";
 
         return $colored;
+    }
+
+    /**
+     * 获取颜色代码
+     *
+     * @param int|string $color 颜色（可以是颜色常量或颜色名称字符串）
+     * @return int|null 颜色代码
+     */
+    private function getColorCode($color)
+    {
+        // 如果已经是数字，直接返回
+        if (is_int($color)) {
+            return $color;
+        }
+
+        // 如果是字符串，转换为对应的颜色常量
+        if (is_string($color)) {
+            $colorMap = [
+                'black' => self::COLOR_BLACK,
+                'red' => self::COLOR_RED,
+                'green' => self::COLOR_GREEN,
+                'yellow' => self::COLOR_YELLOW,
+                'blue' => self::COLOR_BLUE,
+                'magenta' => self::COLOR_MAGENTA,
+                'cyan' => self::COLOR_CYAN,
+                'white' => self::COLOR_WHITE,
+            ];
+
+            $color = strtolower($color);
+            if (isset($colorMap[$color])) {
+                return $colorMap[$color];
+            }
+        }
+
+        return null;
     }
 
     /**

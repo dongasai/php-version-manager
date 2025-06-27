@@ -128,25 +128,23 @@ class InteractiveCommand extends AbstractMenuCommand
     {
         try {
             $currentVersion = $this->versionSwitcher->getCurrentVersion();
-            $installedVersions = $this->versionManager->getInstalledVersions();
-            
+
+            // 使用VersionDetector获取真正有效的已安装版本（只包含PVM管理的版本）
+            $versionDetector = new \VersionManager\Core\VersionDetector();
+            $pvmInstalledVersions = $versionDetector->getInstalledVersions();
+
             $this->ui->info('当前状态:', true);
             $this->ui->info('  当前PHP版本: ' . $this->ui->colorize($currentVersion ?: '未安装', \VersionManager\Console\UI\ConsoleUI::COLOR_GREEN), true);
-            $this->ui->info('  已安装版本: ' . count($installedVersions) . ' 个', true);
-            
-            if (!empty($installedVersions)) {
-                // 提取版本号字符串
-                $versionStrings = array_map(function($versionInfo) {
-                    return is_array($versionInfo) ? $versionInfo['version'] : $versionInfo;
-                }, $installedVersions);
+            $this->ui->info('  已安装版本: ' . count($pvmInstalledVersions) . ' 个', true);
 
-                $versionList = implode(', ', array_slice($versionStrings, 0, 5));
-                if (count($versionStrings) > 5) {
+            if (!empty($pvmInstalledVersions)) {
+                $versionList = implode(', ', array_slice($pvmInstalledVersions, 0, 5));
+                if (count($pvmInstalledVersions) > 5) {
                     $versionList .= ' ...';
                 }
                 $this->ui->info('  版本列表: ' . $versionList, true);
             }
-            
+
             $this->ui->info('');
         } catch (\Exception $e) {
             $this->ui->warning('无法获取状态信息: ' . $e->getMessage(), true);

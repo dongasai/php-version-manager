@@ -315,6 +315,13 @@ class VersionSwitcher
      */
     public function isVersionInstalled($version)
     {
+        // 检查是否是系统版本
+        $systemVersion = $this->getSystemVersion();
+        if ($version === $systemVersion) {
+            return true;
+        }
+
+        // 检查PVM管理的版本
         $versionDir = $this->versionsDir . '/' . $version;
         $phpBin = $versionDir . '/bin/php';
 

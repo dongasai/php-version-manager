@@ -2,30 +2,35 @@
 
 namespace VersionManager\Core\Version\Drivers\PHP71;
 
-use VersionManager\Core\Version\GenericVersionDriver;
+use VersionManager\Core\Version\BaseVersionDriver;
+use VersionManager\Core\Version\Util\ConfigureHelper;
 
 /**
  * PHP 7.1 基础版本安装驱动类
  */
-class Base extends GenericVersionDriver
+class Base extends BaseVersionDriver
 {
     /**
-     * 构造函数
+     * 驱动名称
+     *
+     * @var string
      */
-    public function __construct()
-    {
-        parent::__construct();
-        $this->name = 'php71_base';
-        $this->description = 'PHP 7.1 基础版本安装驱动';
-    }
+    protected $name = 'php72';
+
+    /**
+     * 驱动描述
+     *
+     * @var string
+     */
+    protected $description = 'PHP 7.2版本安装驱动';
     
     /**
      * {@inheritdoc}
      */
     public function isSupported($version)
     {
-        // 只支持PHP 7.1.x版本
-        return preg_match('/^7\.1\.\d+$/', $version);
+        // 只支持PHP 7.2.x版本
+        return preg_match('/^7\.2\.\d+$/', $version);
     }
     
     /**

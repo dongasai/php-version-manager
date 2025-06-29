@@ -2,12 +2,13 @@
 
 namespace VersionManager\Core\Version\Drivers\PHP80;
 
-use VersionManager\Core\Version\GenericVersionDriver;
+use VersionManager\Core\Version\BaseVersionDriver;
+use VersionManager\Core\Version\Util\ConfigureHelper;
 
 /**
  * PHP 8.0 基础版本安装驱动类
  */
-class Base extends GenericVersionDriver
+class Base extends BaseVersionDriver
 {
     /**
      * 驱动名称

@@ -2,22 +2,26 @@
 
 namespace VersionManager\Core\Version\Drivers\PHP54;
 
-use VersionManager\Core\Version\GenericVersionDriver;
+use VersionManager\Core\Version\BaseVersionDriver;
 
 /**
  * PHP 5.4版本安装驱动基础类
  */
-class Base extends GenericVersionDriver
+class Base extends BaseVersionDriver
 {
     /**
-     * 构造函数
+     * 驱动名称
+     *
+     * @var string
      */
-    public function __construct()
-    {
-        parent::__construct();
-        $this->name = 'php54';
-        $this->description = 'PHP 5.4版本安装驱动';
-    }
+    protected $name = 'php54';
+
+    /**
+     * 驱动描述
+     *
+     * @var string
+     */
+    protected $description = 'PHP 5.4版本安装驱动';
 
     /**
      * {@inheritdoc}

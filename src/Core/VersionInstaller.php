@@ -9,7 +9,7 @@ use VersionManager\Core\Security\SignatureVerifier;
 use VersionManager\Core\Security\PermissionManager;
 use VersionManager\Core\Security\SecurityUpdater;
 use VersionManager\Core\Logger\FileLogger;
-use VersionManager\Core\Version\GenericVersionDriver;
+use VersionManager\Core\Version\BaseVersionDriver;
 use VersionManager\Core\Version\VersionDriverFactory;
 
 /**
@@ -219,9 +219,10 @@ class VersionInstaller
                 if ($this->isWebEnvironment()) {
                     echo "\033[33m在Web环境中自动确认安装\033[0m\n";
                 } else {
-                    echo "\033[33m是否继续安装? (y/n) \033[0m";
-                    $answer = trim(fgets(STDIN));
-                    if (strtolower($answer) !== 'y') {
+                    // 使用倒计时确认
+                    $ui = new \VersionManager\Console\UI\ConsoleUI();
+                    $shouldContinue = $ui->confirmWithCountdown("是否继续安装?", true, 5);
+                    if (!$shouldContinue) {
                         throw new Exception("用户取消安装");
                     }
                 }
@@ -258,9 +259,10 @@ class VersionInstaller
                     echo "\033[33m在Web环境中自动确认安装最新版本 {$securityUpdate['latest_version']}\033[0m\n";
                     return $this->install($securityUpdate['latest_version'], $options);
                 } else {
-                    echo "\033[33m是否安装最新版本? (y/n) \033[0m";
-                    $answer = trim(fgets(STDIN));
-                    if (strtolower($answer) === 'y') {
+                    // 使用倒计时确认
+                    $ui = new \VersionManager\Console\UI\ConsoleUI();
+                    $shouldInstallLatest = $ui->confirmWithCountdown("是否安装最新版本 {$securityUpdate['latest_version']}?", true, 5);
+                    if ($shouldInstallLatest) {
                         return $this->install($securityUpdate['latest_version'], $options);
                     }
                 }
@@ -277,9 +279,10 @@ class VersionInstaller
                 if ($this->isWebEnvironment()) {
                     echo "\033[33m在Web环境中自动确认安装\033[0m\n";
                 } else {
-                    echo "\033[33m是否继续安装? (y/n) \033[0m";
-                    $answer = trim(fgets(STDIN));
-                    if (strtolower($answer) !== 'y') {
+                    // 使用倒计时确认
+                    $ui = new \VersionManager\Console\UI\ConsoleUI();
+                    $shouldContinue = $ui->confirmWithCountdown("是否继续安装?", true, 5);
+                    if (!$shouldContinue) {
                         throw new Exception("用户取消安装");
                     }
                 }

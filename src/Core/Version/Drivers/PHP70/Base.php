@@ -2,22 +2,27 @@
 
 namespace VersionManager\Core\Version\Drivers\PHP70;
 
-use VersionManager\Core\Version\GenericVersionDriver;
+use VersionManager\Core\Version\BaseVersionDriver;
+use VersionManager\Core\Version\Util\ConfigureHelper;
 
 /**
  * PHP 7.0版本安装驱动基础类
  */
-class Base extends GenericVersionDriver
+class Base extends BaseVersionDriver
 {
     /**
-     * 构造函数
+     * 驱动名称
+     *
+     * @var string
      */
-    public function __construct()
-    {
-        parent::__construct();
-        $this->name = 'php70';
-        $this->description = 'PHP 7.0版本安装驱动';
-    }
+    protected $name = 'php70';
+
+    /**
+     * 驱动描述
+     *
+     * @var string
+     */
+    protected $description = 'PHP 7.0版本安装驱动';
     
     /**
      * {@inheritdoc}

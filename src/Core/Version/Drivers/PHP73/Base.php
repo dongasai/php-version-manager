@@ -2,12 +2,13 @@
 
 namespace VersionManager\Core\Version\Drivers\PHP73;
 
-use VersionManager\Core\Version\GenericVersionDriver;
+use VersionManager\Core\Version\BaseVersionDriver;
+use VersionManager\Core\Version\Util\ConfigureHelper;
 
 /**
  * PHP 7.3版本安装驱动基础类
  */
-class Base extends GenericVersionDriver
+class Base extends BaseVersionDriver
 {
     /**
      * 驱动名称
@@ -37,21 +38,20 @@ class Base extends GenericVersionDriver
      */
     protected function getConfigureOptions($version, array $options = [])
     {
-        // 获取基本配置选项
-        $configureOptions = parent::getConfigureOptions($version, $options);
+        $prefix = $this->versionsDir . '/' . $version;
+        $customOptions = isset($options['configure_options']) ? $options['configure_options'] : [];
 
-        // 添加PHP 7.3特定的配置选项
-        $php73Options = [
-            '--with-gd',
-            '--with-jpeg-dir',
-            '--with-png-dir',
-            '--with-webp-dir',
-            '--with-freetype-dir',
-            '--with-xpm-dir',
-        ];
+        // 获取基础配置选项
+        $configureOptions = ConfigureHelper::getBaseConfigureOptions($version, $prefix);
 
-        // 合并配置选项
-        $configureOptions = array_merge($configureOptions, $php73Options);
+        // 添加PHP 7.3特定的GD配置选项
+        $gdOptions = ConfigureHelper::getGdConfigureOptions($version);
+        $configureOptions = array_merge($configureOptions, $gdOptions);
+
+        // 合并自定义选项
+        if (!empty($customOptions)) {
+            $configureOptions = array_merge($configureOptions, $customOptions);
+        }
 
         return $configureOptions;
     }

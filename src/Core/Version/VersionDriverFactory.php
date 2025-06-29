@@ -81,9 +81,9 @@ class VersionDriverFactory
             $driverClass = self::findBestMatchDriver($phpVersionKey, $distro, $distroVersion, $arch);
         }
 
-        // 如果没有找到特定PHP版本的驱动，则使用通用驱动
+        // 如果没有找到特定PHP版本的驱动，则抛出异常
         if (!$driverClass) {
-            $driverClass = GenericVersionDriver::class;
+            throw new \Exception("未找到适用于PHP版本 {$phpVersion} 的驱动");
         }
 
         // 创建驱动实例

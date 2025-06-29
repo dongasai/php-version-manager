@@ -2,20 +2,27 @@
 
 namespace VersionManager\Core\Version\Drivers\PHP74;
 
-use VersionManager\Core\Version\GenericVersionDriver;
+use VersionManager\Core\Version\BaseVersionDriver;
+use VersionManager\Core\Version\Util\ConfigureHelper;
 
 /**
  * PHP 7.4版本安装驱动基础类
  */
-class Base extends GenericVersionDriver
+class Base extends BaseVersionDriver
 {
     /**
-     * 构造函数
+     * 驱动名称
+     *
+     * @var string
      */
-    public function __construct()
-    {
-        parent::__construct('php74', 'PHP 7.4版本安装驱动');
-    }
+    protected $name = 'php74';
+
+    /**
+     * 驱动描述
+     *
+     * @var string
+     */
+    protected $description = 'PHP 7.4版本安装驱动';
 
     /**
      * {@inheritdoc}
@@ -39,20 +46,20 @@ class Base extends GenericVersionDriver
      */
     protected function getConfigureOptions($version, array $options = [])
     {
-        // 获取基本配置选项
-        $configureOptions = parent::getConfigureOptions($version, $options);
+        $prefix = $this->versionsDir . '/' . $version;
+        $customOptions = isset($options['configure_options']) ? $options['configure_options'] : [];
 
-        // 添加PHP 7.4特定的配置选项
-        $php74Options = [
-            '--enable-gd',
-            '--with-jpeg',
-            '--with-webp',
-            '--with-freetype',
-            '--with-xpm',
-        ];
+        // 获取基础配置选项
+        $configureOptions = ConfigureHelper::getBaseConfigureOptions($version, $prefix);
 
-        // 合并配置选项
-        $configureOptions = array_merge($configureOptions, $php74Options);
+        // 添加PHP 7.4特定的GD配置选项
+        $gdOptions = ConfigureHelper::getGdConfigureOptions($version);
+        $configureOptions = array_merge($configureOptions, $gdOptions);
+
+        // 合并自定义选项
+        if (!empty($customOptions)) {
+            $configureOptions = array_merge($configureOptions, $customOptions);
+        }
 
         return $configureOptions;
     }

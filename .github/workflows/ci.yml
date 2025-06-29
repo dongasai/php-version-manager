@@ -65,9 +65,6 @@ jobs:
         run: |
           cd docker/pvm-mirror
 
-          # 测试Dockerfile语法
-          docker build --dry-run -f Dockerfile ../../ || echo "Dockerfile syntax check"
-
           # 构建测试镜像
           docker build -t pvm-mirror:test -f Dockerfile ../../
 

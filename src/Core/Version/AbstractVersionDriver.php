@@ -255,13 +255,7 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
      */
     protected function createTempDir($prefix = 'pvm_')
     {
-        $tempDir = sys_get_temp_dir() . '/' . $prefix . uniqid();
-
-        if (!is_dir($tempDir)) {
-            mkdir($tempDir, 0755, true);
-        }
-
-        return $tempDir;
+        return Util\FileHelper::createTempDir($prefix);
     }
 
     /**
@@ -272,50 +266,7 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
      */
     protected function removeDirectory($dir)
     {
-        if (!is_dir($dir)) {
-            return false;
-        }
-
-        echo "正在清理目录: " . basename($dir) . "\n";
-
-        // 使用系统命令删除目录，这样更快
-        $command = "rm -rf " . escapeshellarg($dir);
-        FileLogger::info("执行删除命令: {$command}", 'COMMAND');
-        $startTime = microtime(true);
-
-        passthru($command, $returnCode);
-
-        $duration = microtime(true) - $startTime;
-
-        if ($returnCode !== 0) {
-            FileLogger::error("删除命令执行失败: {$command}", 'COMMAND');
-            FileLogger::error("退出码: {$returnCode}, 耗时: " . round($duration, 2) . "秒", 'COMMAND');
-            echo "警告: 使用系统命令删除目录失败，尝试使用PHP递归删除\n";
-
-            // 如果系统命令失败，则使用PHP递归删除
-            $objects = scandir($dir);
-
-            foreach ($objects as $object) {
-                if ($object === '.' || $object === '..') {
-                    continue;
-                }
-
-                $path = $dir . '/' . $object;
-
-                if (is_dir($path)) {
-                    $this->removeDirectory($path);
-                } else {
-                    unlink($path);
-                }
-            }
-
-            return rmdir($dir);
-        } else {
-            FileLogger::info("删除命令执行成功，耗时: " . round($duration, 2) . "秒", 'COMMAND');
-        }
-
-        echo "目录清理完成\n";
-        return true;
+        return Util\FileHelper::removeDirectory($dir);
     }
 
     /**
@@ -327,85 +278,10 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
      */
     protected function downloadFile($url, $destination)
     {
-        // 如果传入的是数组，按优先级尝试下载
-        if (is_array($url)) {
-            return $this->downloadFileWithFallback($url, $destination);
-        }
-
-        $command = "curl -L -o {$destination} {$url}";
-        $output = [];
-        $returnCode = 0;
-
-        // 记录命令执行
-        FileLogger::info("执行下载命令: {$command}", 'COMMAND');
-        $startTime = microtime(true);
-
-        exec($command . ' 2>&1', $output, $returnCode);
-
-        $duration = microtime(true) - $startTime;
-
-        if ($returnCode !== 0) {
-            FileLogger::error("下载命令执行失败: {$command}", 'COMMAND');
-            FileLogger::error("退出码: {$returnCode}, 耗时: " . round($duration, 2) . "秒", 'COMMAND');
-            if (!empty($output)) {
-                FileLogger::error("命令输出: " . implode("\n", $output), 'COMMAND');
-            }
-            throw new \Exception("下载文件失败: " . implode("\n", $output));
-        } else {
-            FileLogger::info("下载命令执行成功，耗时: " . round($duration, 2) . "秒", 'COMMAND');
-        }
-
-        return true;
+        return Util\DownloadHelper::downloadFile($url, $destination);
     }
 
-    /**
-     * 使用多个URL按优先级尝试下载
-     *
-     * @param array $urls URL数组
-     * @param string $destination 目标路径
-     * @return bool
-     */
-    protected function downloadFileWithFallback(array $urls, $destination)
-    {
-        $lastException = null;
-        $attemptCount = 0;
 
-        foreach ($urls as $url) {
-            $attemptCount++;
-
-            try {
-                echo "尝试从源 {$attemptCount} 下载: " . parse_url($url, PHP_URL_HOST) . "\n";
-
-                // 尝试下载
-                $success = $this->downloadFile($url, $destination);
-
-                if ($success) {
-                    if ($attemptCount > 1) {
-                        echo "下载成功！\n";
-                    }
-                    return true;
-                }
-            } catch (\Exception $e) {
-                $lastException = $e;
-                echo "下载失败: " . $e->getMessage() . "\n";
-
-                // 如果还有其他URL可以尝试，显示切换信息
-                if ($attemptCount < count($urls)) {
-                    echo "正在切换到下一个源...\n";
-                }
-
-                // 继续尝试下一个URL
-                continue;
-            }
-        }
-
-        // 所有URL都失败了
-        if ($lastException) {
-            throw new \Exception("所有下载源都失败了，最后一个错误: " . $lastException->getMessage());
-        } else {
-            throw new \Exception("所有下载源都失败了");
-        }
-    }
 
     /**
      * 解压文件
@@ -416,49 +292,7 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
      */
     protected function extractFile($file, $destination)
     {
-        $extension = pathinfo($file, PATHINFO_EXTENSION);
-
-        switch ($extension) {
-            case 'gz':
-            case 'tgz':
-                $command = "tar -xzf {$file} -C {$destination}";
-                break;
-            case 'bz2':
-                $command = "tar -xjf {$file} -C {$destination}";
-                break;
-            case 'xz':
-                $command = "tar -xJf {$file} -C {$destination}";
-                break;
-            case 'zip':
-                $command = "unzip {$file} -d {$destination}";
-                break;
-            default:
-                throw new \Exception("不支持的压缩格式: {$extension}");
-        }
-
-        $output = [];
-        $returnCode = 0;
-
-        // 记录命令执行
-        FileLogger::info("执行解压命令: {$command}", 'COMMAND');
-        $startTime = microtime(true);
-
-        exec($command . ' 2>&1', $output, $returnCode);
-
-        $duration = microtime(true) - $startTime;
-
-        if ($returnCode !== 0) {
-            FileLogger::error("解压命令执行失败: {$command}", 'COMMAND');
-            FileLogger::error("退出码: {$returnCode}, 耗时: " . round($duration, 2) . "秒", 'COMMAND');
-            if (!empty($output)) {
-                FileLogger::error("命令输出: " . implode("\n", $output), 'COMMAND');
-            }
-            throw new \Exception("解压文件失败: " . implode("\n", $output));
-        } else {
-            FileLogger::info("解压命令执行成功，耗时: " . round($duration, 2) . "秒", 'COMMAND');
-        }
-
-        return true;
+        return Util\FileHelper::extractFile($file, $destination);
     }
 
     /**
@@ -470,22 +304,10 @@ abstract class AbstractVersionDriver implements VersionDriverInterface, Taggable
      */
     protected function getConfigureOptions($version, array $options = [])
     {
-        // 安装目录
         $prefix = $this->versionsDir . '/' . $version;
+        $customOptions = isset($options['configure_options']) ? $options['configure_options'] : [];
 
-        // 基本配置选项
-        $configureOptions = [
-            "--prefix={$prefix}",
-            "--with-config-file-path={$prefix}/etc",
-            "--with-config-file-scan-dir={$prefix}/etc/conf.d",
-        ];
-
-        // 如果指定了配置选项，则使用指定的选项
-        if (isset($options['configure_options']) && is_array($options['configure_options'])) {
-            $configureOptions = array_merge($configureOptions, $options['configure_options']);
-        }
-
-        return $configureOptions;
+        return Util\ConfigureHelper::getFullConfigureOptions($version, $prefix, $customOptions);
     }
 
     /**

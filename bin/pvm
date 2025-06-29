@@ -86,15 +86,13 @@ try {
                 echo "\033[33m自动确认修复环境问题...\033[0m" . PHP_EOL;
                 $shouldFix = true;
             } else {
-                // 提示用户是否立即修复
-                echo "\033[33m是否立即修复环境问题？(y/n) \033[0m";
-                $handle = fopen("php://stdin", "r");
-                $line = trim(fgets($handle));
-                fclose($handle);
-
-                $shouldFix = getenv('TEST_AUTO_FIX') ?
-                    (getenv('TEST_AUTO_FIX') === '1') :
-                    (strtolower($line) === 'y' || strtolower($line) === 'yes');
+                // 使用倒计时确认
+                if (getenv('TEST_AUTO_FIX')) {
+                    $shouldFix = (getenv('TEST_AUTO_FIX') === '1');
+                } else {
+                    $ui = new \VersionManager\Console\UI\ConsoleUI();
+                    $shouldFix = $ui->confirmWithCountdown("是否立即修复环境问题？", true, 5);
+                }
             }
 
             if ($shouldFix) {

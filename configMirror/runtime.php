@@ -124,7 +124,7 @@ return [
     // 资源限制配置
     'resource' => [
         // 是否启用资源限制
-        'enable_resource_limits' => true,
+        'enable_resource_limits' => false,
 
         // 最大并发下载数
         'max_concurrent_downloads' => 10,
@@ -133,7 +133,7 @@ return [
         'max_requests_per_minute' => 60,
 
         // 下载速度限制（字节/秒，0表示不限制）
-        'download_speed_limit' => 1048576, // 1MB/s
+        'download_speed_limit' => 0, // 禁用速度限制
 
         // CPU使用率阈值（百分比）
         'high_load_threshold' => 80,

@@ -1,16 +1,10 @@
-{
-  "customModes": [
-    {
-      "slug": "bats",
-      "name": "bats",
-      "roleDefinition": "你是一名bats测试工程师,熟练的使用bats对程序进行测试",
-      "whenToUse": "编写bats,运行bats",
-      "groups": [
-        "read",
-        "edit",
-        "command"
-      ],
-      "source": "project"
-    }
-  ]
-}
+customModes:
+  - slug: bats
+    name: bats
+    roleDefinition: 你是一名bats测试工程师,熟练的使用bats对程序进行测试
+    whenToUse: 编写bats,运行bats
+    groups:
+      - read
+      - edit
+      - command
+    source: project

@@ -2,8 +2,8 @@
 
 /**
  * PHP 内置服务器路由文件
- * 
- * 这个文件用于处理 PHP 内置服务器的路由，确保所有请求都正确路由到我们的应用
+ *
+ * 优化版：直接提供静态文件服务，避免PHP处理文件下载
  */
 
 // 获取请求的文件路径
@@ -28,5 +28,40 @@ if (in_array($extension, $staticExtensions)) {
     }
 }
 
-// 对于所有其他请求，都路由到 index.php
+// 检查是否是下载文件请求（直接从data目录提供文件）
+if (strpos($cleanPath, '/php/') === 0 || strpos($cleanPath, '/pecl/') === 0 ||
+    strpos($cleanPath, '/extensions/') === 0 || strpos($cleanPath, '/composer/') === 0) {
+
+    $dataFile = dirname(__DIR__) . '/data' . $cleanPath;
+    if (file_exists($dataFile) && is_file($dataFile)) {
+        // 直接发送文件，不经过PHP应用处理
+        $mimeType = 'application/octet-stream';
+
+        // 根据文件扩展名设置正确的MIME类型
+        $extension = strtolower(pathinfo($dataFile, PATHINFO_EXTENSION));
+        switch ($extension) {
+            case 'gz':
+            case 'tgz':
+                $mimeType = 'application/gzip';
+                break;
+            case 'phar':
+                $mimeType = 'application/x-php';
+                break;
+            case 'zip':
+                $mimeType = 'application/zip';
+                break;
+        }
+
+        // 设置响应头
+        header('Content-Type: ' . $mimeType);
+        header('Content-Length: ' . filesize($dataFile));
+        header('Content-Disposition: attachment; filename="' . basename($dataFile) . '"');
+
+        // 直接输出文件内容
+        readfile($dataFile);
+        exit;
+    }
+}
+
+// 对于其他请求（API、Web界面等），路由到 index.php
 require_once __DIR__ . '/index.php';

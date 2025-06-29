@@ -474,6 +474,57 @@ class ConsoleUI
     }
 
     /**
+     * 倒计时确认（5秒后自动确认）
+     *
+     * @param string $question 问题
+     * @param bool $default 默认值（倒计时结束后的默认选择）
+     * @param int $countdown 倒计时秒数，默认5秒
+     * @return bool 用户确认结果
+     */
+    public function confirmWithCountdown($question, $default = true, $countdown = 5)
+    {
+        $defaultText = $default ? 'Y/n' : 'y/N';
+        echo "{$question} [{$defaultText}] ";
+
+        // 显示倒计时提示
+        $defaultAction = $default ? '继续' : '取消';
+        echo "\n" . $this->colorize("将在 {$countdown} 秒后自动{$defaultAction}，按任意键立即选择...", self::COLOR_YELLOW) . "\n";
+
+        // 设置非阻塞输入
+        if (function_exists('stream_set_blocking')) {
+            stream_set_blocking(STDIN, false);
+        }
+
+        // 倒计时循环
+        for ($i = $countdown; $i > 0; $i--) {
+            echo "\r" . $this->colorize("倒计时: {$i} 秒", self::COLOR_CYAN) . str_repeat(' ', 10);
+
+            // 检查是否有输入
+            $input = fgets(STDIN);
+            if ($input !== false && trim($input) !== '') {
+                // 恢复阻塞输入
+                if (function_exists('stream_set_blocking')) {
+                    stream_set_blocking(STDIN, true);
+                }
+
+                echo "\n";
+                $answer = strtolower(trim($input));
+                return $answer === 'y' || $answer === 'yes';
+            }
+
+            sleep(1);
+        }
+
+        // 恢复阻塞输入
+        if (function_exists('stream_set_blocking')) {
+            stream_set_blocking(STDIN, true);
+        }
+
+        echo "\r" . $this->colorize("倒计时结束，自动{$defaultAction}", self::COLOR_GREEN) . "\n";
+        return $default;
+    }
+
+    /**
      * 提示用户输入密码（隐藏输入）
      *
      * @param string $prompt 提示信息

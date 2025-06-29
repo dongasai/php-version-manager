@@ -122,10 +122,9 @@ class InstallCommand implements CommandInterface
                     echo "自动确认修复环境问题..." . PHP_EOL;
                     $shouldFix = true;
                 } else {
-                    // 询问是否修复环境问题
-                    echo "是否立即修复环境问题？(y/n) ";
-                    $answer = trim(fgets(STDIN));
-                    $shouldFix = (strtolower($answer) === 'y');
+                    // 使用倒计时确认
+                    $ui = new \VersionManager\Console\UI\ConsoleUI();
+                    $shouldFix = $ui->confirmWithCountdown("是否立即修复环境问题？", true, 5);
                 }
 
                 if ($shouldFix) {

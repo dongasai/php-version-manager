@@ -12,6 +12,7 @@ use VersionManager\Core\Logger\FileLogger;
  * 下载管理类
  *
  * 负责管理文件下载，支持多线程下载和缓存
+ * 配合UrlManager使用按测速结果排序的镜像源进行下载
  */
 class DownloadManager
 {
@@ -351,10 +352,9 @@ class DownloadManager
                 FileLogger::info("尝试下载源 [{$attemptCount}/" . count($urls) . "]: {$url}", 'DOWNLOAD');
 
                 if ($this->showProgress) {
-                    // 判断是否为镜像源
-                    $isMirror = $this->isMirrorUrl($url);
-                    $sourceType = $isMirror ? "镜像源" : "官方源";
-                    echo "\033[1;36m尝试从{$sourceType}下载 (第{$attemptCount}个源): " . $this->getUrlHost($url) . "\033[0m" . PHP_EOL;
+                    // 现在所有源都是镜像源，按测速结果排序
+                    $sourceRank = $attemptCount === 1 ? "最优" : "第{$attemptCount}";
+                    echo "\033[1;36m尝试从镜像源下载 ({$sourceRank}镜像源): " . $this->getUrlHost($url) . "\033[0m" . PHP_EOL;
                 }
 
                 // 尝试下载（直接调用单个URL的下载方法，避免递归）
@@ -398,25 +398,7 @@ class DownloadManager
         throw new \Exception($errorMessage);
     }
 
-    /**
-     * 判断URL是否为镜像源
-     *
-     * @param string $url URL
-     * @return bool
-     */
-    private function isMirrorUrl($url)
-    {
-        // 简单判断：如果不是官方域名，则认为是镜像源
-        $officialHosts = [
-            'www.php.net',
-            'pecl.php.net',
-            'getcomposer.org',
-            'github.com'
-        ];
 
-        $host = parse_url($url, PHP_URL_HOST);
-        return !in_array($host, $officialHosts);
-    }
 
     /**
      * 获取URL的主机名

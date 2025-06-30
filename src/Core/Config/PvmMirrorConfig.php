@@ -29,25 +29,32 @@ class PvmMirrorConfig
      * @var array
      */
     private $defaultConfig = [
-        // 是否启用PVM镜像源
-        'enabled' => false,
-        
-        // PVM镜像源地址
+        // 是否启用PVM镜像源（默认启用）
+        'enabled' => true,
+
+        // 主镜像源地址
         'mirror_url' => 'https://pvm.2sxo.com',
-        
-        // 备用镜像源地址
+
+        // 备用镜像源地址（按优先级排序）
         'fallback_mirrors' => [
-            'http://localhost:34403',  // 本地镜像
+            'http://localhost:34403',  // 本地镜像（开发测试用）
+            // 可以添加更多备用镜像源
         ],
-        
+
         // 连接超时时间（秒）
         'timeout' => 30,
-        
+
         // 是否使用HTTPS验证
         'verify_ssl' => true,
-        
-        // 自动回退到官方源
-        'auto_fallback_to_official' => true,
+
+        // 镜像源测速功能
+        'speed_test_enabled' => true,
+
+        // 测速缓存有效期（秒，默认1天）
+        'speed_test_cache_ttl' => 86400,
+
+        // 测速超时时间（秒）
+        'speed_test_timeout' => 10,
     ];
     
     /**
@@ -252,39 +259,11 @@ class PvmMirrorConfig
                 }
             }
         }
-        
-        // 如果启用了自动回退到官方源，添加官方源URL
-        if ($this->config['auto_fallback_to_official'] ?? true) {
-            $urls = array_merge($urls, $this->getOfficialUrls($type, $filename, $extension));
-        }
-        
+
         return $urls;
     }
     
-    /**
-     * 获取官方源URL
-     *
-     * @param string $type 下载类型
-     * @param string $filename 文件名
-     * @param string $extension 扩展名
-     * @return array
-     */
-    private function getOfficialUrls($type, $filename, $extension = null)
-    {
-        switch ($type) {
-            case 'php':
-                return ['https://www.php.net/distributions/' . $filename];
-            case 'pecl':
-                return ['https://pecl.php.net/get/' . $filename];
-            case 'composer':
-                return ['https://getcomposer.org/download/' . $filename];
-            case 'extension':
-                // 对于扩展，返回PECL源
-                return ['https://pecl.php.net/get/' . $filename];
-            default:
-                return [];
-        }
-    }
+
     
     /**
      * 获取连接超时时间
@@ -387,7 +366,39 @@ class PvmMirrorConfig
             'fallback_count' => count($this->getFallbackMirrors()),
             'timeout' => $this->getTimeout(),
             'verify_ssl' => $this->isVerifySsl(),
-            'auto_fallback' => $this->config['auto_fallback_to_official'] ?? true,
+            'speed_test_enabled' => $this->isSpeedTestEnabled(),
+            'speed_test_cache_ttl' => $this->getSpeedTestCacheTtl(),
+            'speed_test_timeout' => $this->getSpeedTestTimeout(),
         ];
+    }
+
+    /**
+     * 是否启用测速功能
+     *
+     * @return bool
+     */
+    public function isSpeedTestEnabled()
+    {
+        return $this->config['speed_test_enabled'] ?? $this->defaultConfig['speed_test_enabled'];
+    }
+
+    /**
+     * 获取测速缓存有效期
+     *
+     * @return int
+     */
+    public function getSpeedTestCacheTtl()
+    {
+        return $this->config['speed_test_cache_ttl'] ?? $this->defaultConfig['speed_test_cache_ttl'];
+    }
+
+    /**
+     * 获取测速超时时间
+     *
+     * @return int
+     */
+    public function getSpeedTestTimeout()
+    {
+        return $this->config['speed_test_timeout'] ?? $this->defaultConfig['speed_test_timeout'];
     }
 }

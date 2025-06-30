@@ -115,6 +115,12 @@ class Controller
             return;
         }
 
+        // 如果是ping测速端点
+        if ($requestPath === '/ping' || $requestPath === '/ping/') {
+            $this->handlePingRequest();
+            return;
+        }
+
         // 处理文件下载请求
         $this->handleFileRequest($requestPath);
     }
@@ -1084,5 +1090,71 @@ class Controller
     <p><a href="/">返回首页</a></p>
 </body>
 </html>';
+    }
+
+    /**
+     * 处理ping测速请求
+     */
+    public function handlePingRequest()
+    {
+        // 设置内容类型为纯文本
+        header('Content-Type: text/plain; charset=utf-8');
+
+        // 记录请求开始时间
+        $startTime = microtime(true);
+
+        // 获取服务器基本信息
+        $serverInfo = [
+            'server' => 'pvm-mirror',
+            'version' => '1.0.0',
+            'timestamp' => time(),
+            'datetime' => date('Y-m-d H:i:s'),
+            'timezone' => date_default_timezone_get(),
+        ];
+
+        // 获取镜像状态（简化版，避免耗时操作）
+        try {
+            $status = $this->status->getBasicStatus();
+            $serverInfo['status'] = 'online';
+            $serverInfo['php_versions'] = isset($status['php_count']) ? $status['php_count'] : 0;
+            $serverInfo['pecl_extensions'] = isset($status['pecl_count']) ? $status['pecl_count'] : 0;
+        } catch (Exception $e) {
+            $serverInfo['status'] = 'limited';
+            $serverInfo['error'] = 'Status check failed';
+        }
+
+        // 计算响应时间
+        $responseTime = round((microtime(true) - $startTime) * 1000, 2);
+        $serverInfo['response_time_ms'] = $responseTime;
+
+        // 输出ping响应（简单的键值对格式，便于解析）
+        echo "pong\n";
+        echo "server=pvm-mirror\n";
+        echo "version=1.0.0\n";
+        echo "status=" . $serverInfo['status'] . "\n";
+        echo "timestamp=" . $serverInfo['timestamp'] . "\n";
+        echo "datetime=" . $serverInfo['datetime'] . "\n";
+        echo "response_time_ms=" . $responseTime . "\n";
+
+        if (isset($serverInfo['php_versions'])) {
+            echo "php_versions=" . $serverInfo['php_versions'] . "\n";
+        }
+        if (isset($serverInfo['pecl_extensions'])) {
+            echo "pecl_extensions=" . $serverInfo['pecl_extensions'] . "\n";
+        }
+
+        // 添加一个简单的负载指示器
+        $load = sys_getloadavg();
+        if ($load !== false && isset($load[0])) {
+            echo "load_avg=" . round($load[0], 2) . "\n";
+        }
+
+        // 内存使用情况
+        $memoryUsage = memory_get_usage(true);
+        $memoryLimit = ini_get('memory_limit');
+        echo "memory_usage_mb=" . round($memoryUsage / 1024 / 1024, 2) . "\n";
+
+        // 结束标记
+        echo "end\n";
     }
 }

@@ -223,4 +223,42 @@ class MirrorStatus
 
         return $result;
     }
+
+    /**
+     * 获取基本状态信息（用于ping请求，避免耗时操作）
+     *
+     * @return array
+     */
+    public function getBasicStatus()
+    {
+        // 获取数据目录
+        $configManager = new \Mirror\Config\ConfigManager();
+        $dataDir = $configManager->getDataDir();
+
+        // 快速统计文件数量，不计算大小和详细信息
+        $phpDir = $dataDir . '/php';
+        $peclDir = $dataDir . '/pecl';
+
+        $phpCount = 0;
+        $peclCount = 0;
+
+        // 快速统计PHP文件数量
+        if (is_dir($phpDir)) {
+            $phpFiles = glob($phpDir . '/*.tar.gz');
+            $phpCount = $phpFiles ? count($phpFiles) : 0;
+        }
+
+        // 快速统计PECL文件数量
+        if (is_dir($peclDir)) {
+            $peclFiles = glob($peclDir . '/*.tgz');
+            $peclCount = $peclFiles ? count($peclFiles) : 0;
+        }
+
+        return [
+            'php_count' => $phpCount,
+            'pecl_count' => $peclCount,
+            'status' => 'online',
+            'timestamp' => time(),
+        ];
+    }
 }

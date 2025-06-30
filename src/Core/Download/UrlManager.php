@@ -7,11 +7,10 @@ use VersionManager\Core\Config\PvmMirrorConfig;
 /**
  * 下载地址管理类
  *
- * 简化的URL管理，只对几个主要官方源进行镜像适配：
- * - php.net
- * - pecl.php.net
- * - getcomposer.org
- * - github.com
+ * 完全依赖pvm-mirror镜像源的URL管理，支持智能测速选择最优镜像源：
+ * - 集成MirrorSpeedTest进行镜像源测速
+ * - 按测速结果排序镜像源
+ * - 不再依赖官方源，只使用镜像源
  */
 class UrlManager
 {
@@ -23,67 +22,67 @@ class UrlManager
     private $pvmMirrorConfig;
 
     /**
+     * 镜像源测速器
+     *
+     * @var MirrorSpeedTest
+     */
+    private $speedTest;
+
+    /**
      * 构造函数
      */
     public function __construct()
     {
         $this->pvmMirrorConfig = new PvmMirrorConfig();
+        $this->speedTest = new MirrorSpeedTest();
     }
 
     /**
-     * 转换URL，如果启用镜像则使用镜像地址，否则返回原地址
+     * 获取下载URL列表（只使用镜像源，按测速结果排序）
      *
      * @param string $originalUrl 原始URL
-     * @return array URL列表（按优先级排序）
+     * @return array URL列表（按测速结果排序）
      */
     public function getDownloadUrls($originalUrl)
     {
         $urls = [];
 
-        // 如果启用了PVM镜像源，优先使用镜像源
+        // 只使用镜像源，不再支持官方源
         if ($this->pvmMirrorConfig->isEnabled()) {
             $mirrorUrl = $this->convertToMirrorUrl($originalUrl);
             if ($mirrorUrl) {
-                // 添加所有可用的镜像源
-                foreach ($this->pvmMirrorConfig->getAllMirrors() as $mirror) {
-                    $urls[] = str_replace($this->getMirrorBaseUrl(), $mirror, $mirrorUrl);
+                // 获取按测速结果排序的镜像源
+                $optimalMirrors = $this->getOptimalMirrors();
+
+                // 根据测速结果生成URL列表
+                foreach ($optimalMirrors as $mirrorInfo) {
+                    $urls[] = str_replace($this->getMirrorBaseUrl(), $mirrorInfo['url'], $mirrorUrl);
                 }
             }
         }
-
-        // 始终添加原始URL作为备用
-        $urls[] = $originalUrl;
 
         return array_unique($urls);
     }
 
     /**
-     * 获取PHP源码下载URL
+     * 获取PHP源码下载URL（只使用镜像源，按测速结果排序）
      *
      * @param string $version PHP版本
-     * @return array 下载URL列表（按优先级排序）
+     * @return array 下载URL列表（按测速结果排序）
      */
     public function getPhpDownloadUrls($version)
     {
         $urls = [];
 
-        // 如果启用了PVM镜像源，优先使用镜像源
+        // 只使用镜像源
         if ($this->pvmMirrorConfig->isEnabled()) {
-            $mirrorUrl = $this->getMirrorBaseUrl() . '/php/php-' . $version . '.tar.gz';
-            // 添加所有可用的镜像源
-            foreach ($this->pvmMirrorConfig->getAllMirrors() as $mirror) {
-                $urls[] = str_replace($this->getMirrorBaseUrl(), $mirror, $mirrorUrl);
+            // 获取按测速结果排序的镜像源
+            $optimalMirrors = $this->getOptimalMirrors();
+
+            // 根据测速结果生成URL列表
+            foreach ($optimalMirrors as $mirrorInfo) {
+                $urls[] = $mirrorInfo['url'] . '/php/php-' . $version . '.tar.gz';
             }
-        }
-
-        // 添加官方源
-        $officialUrl = "https://www.php.net/distributions/php-{$version}.tar.gz";
-        $urls[] = $officialUrl;
-
-        // 为早期PHP版本添加museum源作为备用
-        if ($this->isEarlyPhpVersion($version)) {
-            $museumUrl = "https://museum.php.net/php5/php-{$version}.tar.gz";
-            $urls[] = $museumUrl;
         }
 
         return array_unique($urls);
@@ -220,39 +219,20 @@ class UrlManager
     }
 
     /**
-     * 检查是否为早期PHP版本（需要使用museum源）
+     * 获取按测速结果排序的最优镜像源列表
      *
-     * @param string $version PHP版本
-     * @return bool
+     * @return array 按速度排序的镜像源列表
      */
-    private function isEarlyPhpVersion($version)
+    private function getOptimalMirrors()
     {
-        // 解析版本号
-        if (!preg_match('/^(\d+)\.(\d+)\.(\d+)/', $version, $matches)) {
-            return false;
+        // 获取所有配置的镜像源
+        $mirrors = $this->pvmMirrorConfig->getAllMirrors();
+
+        if (empty($mirrors)) {
+            return [];
         }
 
-        $major = (int)$matches[1];
-        $minor = (int)$matches[2];
-        $patch = (int)$matches[3];
-
-        // PHP 5.4.0 - 5.4.44 的早期版本在官方源不可用
-        if ($major == 5 && $minor == 4) {
-            // 5.4.45是最后一个版本，在官方源可用
-            return $patch < 45;
-        }
-
-        // PHP 5.3及更早版本
-        if ($major < 5 || ($major == 5 && $minor < 4)) {
-            return true;
-        }
-
-        // PHP 5.5.0 - 5.5.37 的早期版本也可能需要museum源
-        if ($major == 5 && $minor == 5) {
-            // 检查一些早期版本
-            return $patch < 10;
-        }
-
-        return false;
+        // 使用测速器获取最优镜像源
+        return $this->speedTest->getOptimalMirrors($mirrors);
     }
 }

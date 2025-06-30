@@ -79,6 +79,9 @@ class VersionDriverFactory
 
             // 查找最匹配的驱动
             $driverClass = self::findBestMatchDriver($phpVersionKey, $distro, $distroVersion, $arch);
+        } else {
+            // 如果没有指定PHP版本，则使用基础版本驱动
+            $driverClass = __NAMESPACE__ . '\\BaseVersionDriver';
         }
 
         // 如果没有找到特定PHP版本的驱动，则抛出异常
